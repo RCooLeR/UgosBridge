@@ -10,6 +10,9 @@ services:
     # pid: host
     ports:
       - "9877:9877"
+    # Makes host.docker.internal resolve to the NAS host on Linux Docker.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       UGOS_BRIDGE_LISTEN_ADDRESS: ":9877"
       UGOS_BRIDGE_DOCKER_HOST: "unix:///var/run/docker.sock"
@@ -22,6 +25,14 @@ services:
       UGOS_BRIDGE_HOST_HOSTNAME_PATH: "/rootfs/etc/hostname"
       UGOS_BRIDGE_HOST_FILESYSTEMS: "/:/rootfs,/volume1:/volume1,/volume2:/volume2"
       UGOS_BRIDGE_HOST_DRI_PATH: "/dev/dri"
+      # UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW: "2m"
+      # Optional UPS monitoring through NUT upsc:
+      # UGOS_BRIDGE_HOST_UPS_ENABLED: "true"
+      # UGOS_BRIDGE_HOST_UPS_COMMAND: "upsc"
+      # Use "ups@localhost" only with host networking or a NUT server inside this container.
+      # For a NUT server on the NAS host, use the NAS IP or host.docker.internal when available.
+      # UGOS_BRIDGE_HOST_UPS_TARGETS: "ups@host.docker.internal"
+      # UGOS_BRIDGE_HOST_UPS_TIMEOUT: "3s"
       UGOS_BRIDGE_HOST_VMS_ENABLED: "true"
       UGOS_BRIDGE_HOST_VIRSH_URI: "qemu:///system"
       # Optional VM display name overrides keyed by the UGOS Virtual Machine app domain/id:

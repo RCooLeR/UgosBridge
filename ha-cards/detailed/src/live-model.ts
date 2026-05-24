@@ -26,9 +26,9 @@ const hostCpuRegex = /^sensor\.ugos_bridge_host_(.+?)_cpu_usage_percent$/;
 const projectCpuRegex = /^sensor\.ugos_bridge_project_(.+?)_cpu_usage_percent$/;
 const legacyHostCpuRegex = /^sensor\.([a-z0-9_]+)_\1_cpu(?:_|$)/;
 const bridgeHostChildRegex =
-  /^(?:sensor|binary_sensor)\.ugos_bridge_host_(.+?)_(?:array|bond|disk|filesystem|gpu|network)_/;
+  /^(?:sensor|binary_sensor)\.ugos_bridge_host_(.+?)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_/;
 const haNamedHostChildRegex =
-  /^(?:sensor|binary_sensor)\.([a-z0-9_]+)_(?:array|bond|disk|filesystem|gpu|network)_[a-z0-9][a-z0-9_]*_[a-z0-9_]+(?:_\d+)?$/;
+  /^(?:sensor|binary_sensor)\.([a-z0-9_]+)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_[a-z0-9][a-z0-9_]*_[a-z0-9_]+(?:_\d+)?$/;
 const containerEntityRegex =
   /^(?:sensor|binary_sensor)\.ugos_bridge_container_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/;
 const processEntityRegex =
@@ -82,6 +82,14 @@ interface TemperatureSnapshot {
   value: number;
 }
 
+interface HostLoadMetric {
+  value: number;
+  valuePercent: number;
+  valueText: string;
+  unit: 'load' | 'percent';
+  statusText: string;
+}
+
 interface StateScanCache {
   keys?: string[];
   entries?: Array<[string, HassEntityLike]>;
@@ -100,6 +108,25 @@ interface EntityDerivedCache {
   parsedNumber?: number | null;
   textState?: string | null;
 }
+
+type HostMetric =
+  | 'cpu'
+  | 'load1'
+  | 'cpufreq'
+  | 'memoryUsedBytes'
+  | 'memoryUsedPercent'
+  | 'swapUsedPercent'
+  | 'uptime';
+
+const hostMetricAttributeKeys: Record<HostMetric, string> = {
+  cpu: 'cpu_usage_percent',
+  load1: 'load_1',
+  cpufreq: 'cpu_frequency_mhz',
+  memoryUsedBytes: 'memory_used_bytes',
+  memoryUsedPercent: 'memory_used_percent',
+  swapUsedPercent: 'swap_used_percent',
+  uptime: 'uptime_seconds'
+};
 
 const stateScanCaches = new WeakMap<Record<string, HassEntityLike>, StateScanCache>();
 const entityDerivedCaches = new WeakMap<HassEntityLike, EntityDerivedCache>();
@@ -237,7 +264,7 @@ const getEntityDerivedCache = (entity: HassEntityLike | undefined): EntityDerive
 
   let cache = entityDerivedCaches.get(entity);
   const friendlyName = typeof entity.attributes.friendly_name === 'string' ? entity.attributes.friendly_name : '';
-  const unit = typeof entity.attributes.unit_of_measurement === 'string' ? entity.attributes.unit_of_measurement : undefined;
+  const unit = normalizeUnit(typeof entity.attributes.unit_of_measurement === 'string' ? entity.attributes.unit_of_measurement : undefined);
   if (!cache || cache.friendlyName !== friendlyName || cache.unit !== unit) {
     cache = {
       friendlyName,
@@ -279,13 +306,14 @@ export const buildLiveDashboardModel = (
   const hostPrefix = `ugos_bridge_host_${hostSlug}`;
   const hostCpuEntityId = resolveHostMetricEntityId(states, hostSlug, 'cpu');
   const hostMemoryEntityId = resolveHostMetricEntityId(states, hostSlug, 'memoryUsedBytes');
-  const cpuPercent = getNumberState(states, hostCpuEntityId) ?? 0;
-  const load1 = getNumberState(states, resolveHostMetricEntityId(states, hostSlug, 'load1')) ?? 0;
-  const cpuFrequencyMHz = getNumberState(states, resolveHostMetricEntityId(states, hostSlug, 'cpufreq'));
-  const uptimeSeconds = getNumberState(states, resolveHostMetricEntityId(states, hostSlug, 'uptime')) ?? 0;
-  const memoryUsedBytes = getNumberState(states, hostMemoryEntityId) ?? 0;
-  const memoryUsedPercent = getNumberState(states, resolveHostMetricEntityId(states, hostSlug, 'memoryUsedPercent')) ?? 0;
-  const swapUsedPercent = getNumberState(states, resolveHostMetricEntityId(states, hostSlug, 'swapUsedPercent')) ?? 0;
+  const cpuPercent = getHostMetricValue(states, hostSlug, 'cpu') ?? 0;
+  const loadMetric = getHostLoadMetric(states, hostSlug);
+  const load1 = loadMetric.value;
+  const cpuFrequencyMHz = getHostMetricValue(states, hostSlug, 'cpufreq');
+  const uptimeSeconds = getHostMetricValue(states, hostSlug, 'uptime') ?? 0;
+  const memoryUsedBytes = getHostMetricValue(states, hostSlug, 'memoryUsedBytes') ?? 0;
+  const memoryUsedPercent = getHostMetricValue(states, hostSlug, 'memoryUsedPercent') ?? 0;
+  const swapUsedPercent = getHostMetricValue(states, hostSlug, 'swapUsedPercent') ?? 0;
   const memoryTotalBytes = resolveMemoryTotalBytes(memoryUsedBytes, memoryUsedPercent, config?.memoryTotalBytes);
   const hostName = resolveHostDisplayName(states, hostSlug, config?.host);
   const cpuCores = buildCpuCoreDetails(states, hostCpuEntityId);
@@ -322,13 +350,18 @@ export const buildLiveDashboardModel = (
       ? getNumberState(states, primaryGpuMaxEntityId)
       : undefined;
   const gpuTemperature = pickTemperature(temperatures, ['gpu', 'graphics', 'igpu', 'intel']);
-  const gpuEngines = buildGpuEngineDetails(
-    states,
-    primaryGpuBusyEntityId ?? primaryGpuCurrentEntityId ?? primaryGpuMaxEntityId
-  );
+  const gpuDetailEntityIds =
+    primaryGpuSlug !== undefined
+      ? resolveGpuDetailEntityIds(states, hostSlug, hostPrefix, primaryGpuSlug, [
+          primaryGpuBusyEntityId,
+          primaryGpuCurrentEntityId,
+          primaryGpuMaxEntityId
+        ])
+      : [];
+  const gpuEngines = buildGpuEngineDetails(states, gpuDetailEntityIds);
   const gpuStats = buildGpuStatDetails(
     states,
-    primaryGpuBusyEntityId ?? primaryGpuCurrentEntityId ?? primaryGpuMaxEntityId
+    gpuDetailEntityIds
   );
 
   const filesystems = collectFilesystems(states, hostSlug);
@@ -442,7 +475,10 @@ export const buildLiveDashboardModel = (
       title: 'System Load',
       accent: THEME_COLORS.softBlue,
       value: load1,
-      statusText: loadLabel(load1),
+      valuePercent: loadMetric.valuePercent,
+      valueText: loadMetric.valueText,
+      unit: loadMetric.unit,
+      statusText: loadMetric.statusText,
       series: loadSeries
     },
     {
@@ -465,6 +501,7 @@ export const buildLiveDashboardModel = (
     gpuSeries,
     gpuTemperature,
     load1,
+    loadValueText: loadMetric.valueText,
     memoryTotalBytes,
     memoryUsedBytes,
     memoryUsedPercent,
@@ -523,6 +560,7 @@ const buildHardwareDetails = ({
   gpuSeries,
   gpuTemperature,
   load1,
+  loadValueText,
   memoryTotalBytes,
   memoryUsedBytes,
   memoryUsedPercent,
@@ -540,6 +578,7 @@ const buildHardwareDetails = ({
   gpuSeries: number[];
   gpuTemperature?: number;
   load1: number;
+  loadValueText: string;
   memoryTotalBytes: number;
   memoryUsedBytes: number;
   memoryUsedPercent: number;
@@ -556,7 +595,7 @@ const buildHardwareDetails = ({
       utilizationPercent: cpuPercent,
       series: cpuSeries,
       detailRows: [
-        { label: 'Load (1m)', value: load1.toFixed(2) },
+        { label: 'Load (1m)', value: loadValueText },
         { label: 'Frequency', value: cpuFrequencyMHz ? `${Math.round(cpuFrequencyMHz)} MHz` : 'Unavailable' },
         { label: 'Temperature', value: cpuTemperature !== undefined ? `${Math.round(cpuTemperature)}\u00B0C` : 'Unavailable' },
         { label: 'Uptime', value: humanizeUptime(uptimeSeconds) }
@@ -935,51 +974,62 @@ const buildRamBreakdown = (
 
 const buildGpuEngineDetails = (
   states: Record<string, HassEntityLike>,
-  gpuEntityId: string | undefined
+  gpuEntityIds: string[]
 ): GpuEngineDetail[] => {
-  const items: GpuEngineDetail[] = [];
+  const itemsByKey = new Map<string, GpuEngineDetail>();
 
-  getObjectArrayAttribute(states[gpuEntityId ?? ''], 'engines').forEach((item, index) => {
+  for (const entityId of gpuEntityIds) {
+    getObjectArrayAttribute(states[entityId], 'engines').forEach((item, index) => {
       const name = readString(item, ['name', 'Name']);
       const busyPercent = readNumber(item, ['busy_percent', 'BusyPercent']);
       if (!name || busyPercent === undefined) {
         return;
       }
 
-      items.push({
-        key: slugify(name) || `engine_${index}`,
+      const key = slugify(name) || `engine_${index}`;
+      const detail = {
+        key,
         label: normalizeGpuEngineLabel(name),
         busyPercent,
         semaPercent: readNumber(item, ['sema_percent', 'SemaPercent']),
         waitPercent: readNumber(item, ['wait_percent', 'WaitPercent'])
-      });
+      };
+      const previous = itemsByKey.get(key);
+      if (!previous || detail.busyPercent > previous.busyPercent) {
+        itemsByKey.set(key, detail);
+      }
     });
+  }
 
-  return items.sort((left, right) => right.busyPercent - left.busyPercent || left.label.localeCompare(right.label));
+  return Array.from(itemsByKey.values()).sort(
+    (left, right) => right.busyPercent - left.busyPercent || left.label.localeCompare(right.label)
+  );
 };
 
 const buildGpuStatDetails = (
   states: Record<string, HassEntityLike>,
-  gpuEntityId: string | undefined
+  gpuEntityIds: string[]
 ): GpuStatDetail[] => {
-  const items: GpuStatDetail[] = [];
+  const itemsByKey = new Map<string, GpuStatDetail>();
 
-  getObjectArrayAttribute(states[gpuEntityId ?? ''], 'stats').forEach((item, index) => {
-    const value = readNumber(item, ['value', 'Value']);
-    if (value === undefined) {
-      return;
-    }
+  for (const entityId of gpuEntityIds) {
+    getObjectArrayAttribute(states[entityId], 'stats').forEach((item, index) => {
+      const value = readNumber(item, ['value', 'Value']);
+      if (value === undefined) {
+        return;
+      }
 
-    const key = readString(item, ['key', 'Key']) ?? `stat_${index}`;
-    items.push({
-      key,
-      label: readString(item, ['label', 'Label']) ?? normalizeGpuStatLabel(key),
-      value,
-      unit: readString(item, ['unit', 'Unit'])
+      const key = readString(item, ['key', 'Key']) ?? `stat_${index}`;
+      itemsByKey.set(key, {
+        key,
+        label: readString(item, ['label', 'Label']) ?? normalizeGpuStatLabel(key),
+        value,
+        unit: readString(item, ['unit', 'Unit'])
+      });
     });
-  });
+  }
 
-  return items;
+  return Array.from(itemsByKey.values());
 };
 
 const buildTopProcesses = (states: Record<string, HassEntityLike>): ProcessDetail[] => {
@@ -1181,6 +1231,14 @@ const collectArrays = (states: Record<string, HassEntityLike>, hostSlug: string)
   return arrays.sort((left, right) => left.name.localeCompare(right.name));
 };
 
+const getHostRootSensorEntries = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string
+): Array<[string, HassEntityLike]> =>
+  getComputedResult(states, `hostRootEntries:${hostSlug}`, () =>
+    getStateEntries(states).filter(([entityId]) => isHostRootSensorEntity(entityId, hostSlug))
+  );
+
 const collectTemperatureSnapshots = (states: Record<string, HassEntityLike>, hostSlug: string): TemperatureSnapshot[] => {
   return getComputedResult(states, `temperatures:${hostSlug}`, () => {
     const entityPrefixes = [
@@ -1216,7 +1274,7 @@ const collectTemperatureSnapshots = (states: Record<string, HassEntityLike>, hos
 const resolveHostSlug = (states: Record<string, HassEntityLike>, configuredHost: string | undefined): string | null => {
   return getComputedResult(states, `hostSlug:${configuredHost ?? ''}`, () => {
     if (configuredHost) {
-      const preferredSlug = slugify(configuredHost);
+      const preferredSlug = normalizeConfiguredHostSlug(configuredHost);
       if (hasEntityPrefix(states, preferredSlug) || hasBridgeHostEntityPrefix(states, preferredSlug)) {
         return preferredSlug;
       }
@@ -1231,9 +1289,40 @@ const resolveHostSlug = (states: Record<string, HassEntityLike>, configuredHost:
       return hostSlugs[0];
     }
 
-    const preferredSlug = slugify(configuredHost);
+    const preferredSlug = normalizeConfiguredHostSlug(configuredHost);
     return hostSlugs.find((slug) => slug === preferredSlug) ?? hostSlugs[0];
   });
+};
+
+const normalizeConfiguredHostSlug = (configuredHost: string): string => {
+  let slug = slugify(configuredHost);
+  for (const prefix of ['sensor_', 'binary_sensor_']) {
+    if (slug.startsWith(prefix)) {
+      slug = slug.slice(prefix.length);
+      break;
+    }
+  }
+
+  if (slug.startsWith('ugos_bridge_host_')) {
+    slug = slug.slice('ugos_bridge_host_'.length);
+  }
+
+  const metricSuffixes = [
+    '_cpu_usage_percent',
+    '_cpu_frequency_mhz',
+    '_load_1',
+    '_memory_used_bytes',
+    '_memory_used_percent',
+    '_swap_used_percent',
+    '_uptime_seconds'
+  ];
+  for (const suffix of metricSuffixes) {
+    if (slug.endsWith(suffix)) {
+      return slug.slice(0, -suffix.length);
+    }
+  }
+
+  return slug;
 };
 
 const resolveHostDisplayName = (
@@ -1315,6 +1404,7 @@ const collectProjectSlugs = (states: Record<string, HassEntityLike>): string[] =
 
 const collectDiskSlugs = (states: Record<string, HassEntityLike>, hostSlug: string, hostPrefix: string): string[] => {
   return getComputedResult(states, `diskSlugs:${hostSlug}:${hostPrefix}`, () => {
+    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'disk', isLikelyDiskSlug);
     const exactSlugs = [
       ...collectEntitySlugs(states, new RegExp(`^sensor\\.${escapeRegExp(hostPrefix)}_disk_(.+?)_size_bytes$`)),
       ...collectEntitySlugs(states, /^sensor\.ugos_bridge_disk_(.+?)_size_bytes$/),
@@ -1341,12 +1431,14 @@ const collectDiskSlugs = (states: Record<string, HassEntityLike>, hostSlug: stri
       .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => isLikelyDiskSlug(slug));
 
-    return Array.from(new Set([...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
+    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
   });
 };
 
 const collectFilesystemSlugs = (states: Record<string, HassEntityLike>, hostSlug: string): string[] => {
   return getComputedResult(states, `filesystemSlugs:${hostSlug}`, () => {
+    const hostPrefix = `ugos_bridge_host_${hostSlug}`;
+    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'filesystem', (slug) => Boolean(slug));
     const exactSlugs = [
       ...collectEntitySlugs(states, new RegExp(`^sensor\\.ugos_bridge_host_${escapeRegExp(hostSlug)}_filesystem_(.+?)_used_bytes$`)),
       ...collectEntitySlugs(states, /^sensor\.ugos_bridge_filesystem_(.+?)_used_bytes$/),
@@ -1368,12 +1460,13 @@ const collectFilesystemSlugs = (states: Record<string, HassEntityLike>, hostSlug
       .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => Boolean(slug));
 
-    return Array.from(new Set([...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
+    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
   });
 };
 
 const collectNetworkSlugs = (states: Record<string, HassEntityLike>, hostSlug: string, hostPrefix: string): string[] => {
   return getComputedResult(states, `networkSlugs:${hostSlug}:${hostPrefix}`, () => {
+    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'network', isLikelyNetworkSlug);
     const exactSlugs = [
       ...collectEntitySlugs(states, new RegExp(`^sensor\\.${escapeRegExp(hostPrefix)}_network_(.+?)_rx_bytes_per_second$`)),
       ...collectEntitySlugs(states, /^sensor\.ugos_bridge_network_(.+?)_rx_bytes_per_second$/),
@@ -1400,12 +1493,13 @@ const collectNetworkSlugs = (states: Record<string, HassEntityLike>, hostSlug: s
       .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => isLikelyNetworkSlug(slug));
 
-    return Array.from(new Set([...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
+    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
   });
 };
 
 const collectBondSlugs = (states: Record<string, HassEntityLike>, hostSlug: string, hostPrefix: string): string[] => {
   return getComputedResult(states, `bondSlugs:${hostSlug}:${hostPrefix}`, () => {
+    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'bond', isLikelyBondSlug);
     const exactSlugs = [
       ...collectEntitySlugs(states, new RegExp(`^sensor\\.${escapeRegExp(hostPrefix)}_bond_(.+?)_speed_mbps$`)),
       ...collectEntitySlugs(states, /^sensor\.ugos_bridge_bond_(.+?)_speed_mbps$/),
@@ -1432,7 +1526,7 @@ const collectBondSlugs = (states: Record<string, HassEntityLike>, hostSlug: stri
       .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => isLikelyBondSlug(slug));
 
-    return Array.from(new Set([...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
+    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
   });
 };
 
@@ -1488,20 +1582,38 @@ const trafficLineColor = (slug: string, index: number): string => {
 
 const collectGpuSlugs = (states: Record<string, HassEntityLike>, hostSlug: string, hostPrefix: string): string[] => {
   return getComputedResult(states, `gpuSlugs:${hostSlug}:${hostPrefix}`, () => {
+    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'gpu', (slug) => Boolean(slug));
     const exactSlugs = [
-      ...collectEntitySlugs(states, new RegExp(`^sensor\\.${escapeRegExp(hostPrefix)}_gpu_(.+?)_current_mhz$`)),
-      ...collectEntitySlugs(states, /^sensor\.ugos_bridge_gpu_(.+?)_current_mhz$/)
+      ...collectEntitySlugs(
+        states,
+        new RegExp(`^sensor\\.${escapeRegExp(hostPrefix)}_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\\d+)?$`)
+      ),
+      ...collectEntitySlugs(states, /^sensor\.ugos_bridge_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\d+)?$/)
     ];
     const legacySlugs = getStateKeys(states)
-      .map((entityId) => entityId.match(new RegExp(`^sensor\\.${escapeRegExp(hostSlug)}_gpu_([^_]+)_`))?.[1])
+      .map((entityId) =>
+        entityId.match(new RegExp(`^sensor\\.${escapeRegExp(hostSlug)}_gpu_([^_]+)_`))?.[1]
+      )
+      .filter((slug): slug is string => Boolean(slug));
+    const payloadSlugs = getStateValues(states)
+      .filter(
+        (entity) =>
+          getObjectArrayAttribute(entity, 'engines').length > 0 ||
+          getObjectArrayAttribute(entity, 'stats').length > 0 ||
+          getNumberAttribute(entity, 'busy_percent') !== undefined ||
+          getNumberAttribute(entity, 'current_mhz') !== undefined
+      )
+      .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => Boolean(slug));
 
-    return Array.from(new Set([...exactSlugs, ...legacySlugs])).sort();
+    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...payloadSlugs])).sort();
   });
 };
 
 const collectArraySlugs = (states: Record<string, HassEntityLike>, hostSlug: string): string[] => {
   return getComputedResult(states, `arraySlugs:${hostSlug}`, () => {
+    const hostPrefix = `ugos_bridge_host_${hostSlug}`;
+    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'array', isLikelyArraySlug);
     const exactSlugs = [
       ...collectEntitySlugs(states, new RegExp(`^sensor\\.ugos_bridge_host_${escapeRegExp(hostSlug)}_array_(.+?)_size_bytes$`)),
       ...collectEntitySlugs(states, /^sensor\.ugos_bridge_array_(.+?)_size_bytes$/),
@@ -1528,21 +1640,14 @@ const collectArraySlugs = (states: Record<string, HassEntityLike>, hostSlug: str
       .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => isLikelyArraySlug(slug));
 
-    return Array.from(new Set([...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
+    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
   });
 };
 
 const resolveHostMetricEntityId = (
   states: Record<string, HassEntityLike>,
   hostSlug: string,
-  metric:
-    | 'cpu'
-    | 'load1'
-    | 'cpufreq'
-    | 'memoryUsedBytes'
-    | 'memoryUsedPercent'
-    | 'swapUsedPercent'
-    | 'uptime'
+  metric: HostMetric
 ): string | undefined => {
   return resolveCachedEntityId(states, `hostMetric:${hostSlug}:${metric}`, () => {
     const exactMap: Record<typeof metric, string> = {
@@ -1559,9 +1664,7 @@ const resolveHostMetricEntityId = (
       return exactMap[metric];
     }
 
-    const entries = getComputedResult(states, `hostRootEntries:${hostSlug}`, () =>
-      getStateEntries(states).filter(([entityId]) => isHostRootSensorEntity(entityId, hostSlug))
-    );
+    const entries = getHostRootSensorEntries(states, hostSlug);
     switch (metric) {
       case 'cpu':
         return findBestEntityId(entries, { entityIncludes: ['_cpu'], friendlyIncludes: ['cpu'], unit: '%' });
@@ -1579,6 +1682,84 @@ const resolveHostMetricEntityId = (
         return findBestEntityId(entries, { entityIncludes: ['uptime'], friendlyIncludes: ['uptime'], unit: 's' });
     }
   });
+};
+
+const getHostMetricValue = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string,
+  metric: HostMetric
+): number | undefined => {
+  const entityId = resolveHostMetricEntityId(states, hostSlug, metric);
+  const attributeKey = hostMetricAttributeKeys[metric];
+  const attributeCandidates = [
+    entityId ? states[entityId] : undefined,
+    states[resolveHostMetricEntityId(states, hostSlug, 'cpu') ?? ''],
+    states[resolveHostMetricEntityId(states, hostSlug, 'memoryUsedBytes') ?? '']
+  ];
+
+  for (const entity of attributeCandidates) {
+    const value = getNumberAttribute(entity, attributeKey);
+    if (isPlausibleHostMetricValue(states, hostSlug, metric, value)) {
+      return value;
+    }
+  }
+
+  for (const [, entity] of getHostRootSensorEntries(states, hostSlug)) {
+    const value = getNumberAttribute(entity, attributeKey);
+    if (isPlausibleHostMetricValue(states, hostSlug, metric, value)) {
+      return value;
+    }
+  }
+
+  const stateValue = getNumberState(states, entityId);
+  return isPlausibleHostMetricValue(states, hostSlug, metric, stateValue) ? stateValue : undefined;
+};
+
+const getHostLoadMetric = (states: Record<string, HassEntityLike>, hostSlug: string): HostLoadMetric => {
+  const entityId = resolveHostMetricEntityId(states, hostSlug, 'load1');
+  const entity = states[entityId ?? ''];
+  const value = getHostMetricValue(states, hostSlug, 'load1') ?? 0;
+  const isPercent = getUnit(entity) === '%' || isBridgeHostLoadEntity(entityId, entity);
+  const valuePercent = isPercent ? value : value * 100;
+
+  return {
+    value,
+    valuePercent: clampPercent(valuePercent),
+    valueText: isPercent ? formatLoadPercent(value) : value.toFixed(2),
+    unit: isPercent ? 'percent' : 'load',
+    statusText: isPercent ? loadPercentLabel(valuePercent) : loadLabel(value)
+  };
+};
+
+const isBridgeHostLoadEntity = (entityId: string | undefined, entity: HassEntityLike | undefined): boolean => {
+  const entityText = entityId?.toLowerCase() ?? '';
+  const friendlyText = getFriendlyNameLower(entity);
+  return (
+    entityText.endsWith('_load_1') ||
+    entityText.includes('_load_1m') ||
+    friendlyText.includes('load 1m') ||
+    friendlyText.includes('load (1m)')
+  );
+};
+
+const isPlausibleHostMetricValue = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string,
+  metric: HostMetric,
+  value: number | undefined
+): value is number => {
+  if (value === undefined || !Number.isFinite(value) || value < 0) {
+    return false;
+  }
+
+  if (metric !== 'load1') {
+    return true;
+  }
+
+  const cpuEntity = states[resolveHostMetricEntityId(states, hostSlug, 'cpu') ?? ''];
+  const coreCount = getObjectArrayAttribute(cpuEntity, 'cpu_cores').length;
+  const maxExpectedLoad = Math.max(coreCount * 64, 1024);
+  return value <= maxExpectedLoad;
 };
 
 const resolveDiskMetricEntityId = (
@@ -2083,6 +2264,53 @@ const resolveGpuMetricEntityId = (
   });
 };
 
+const resolveGpuDetailEntityIds = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string,
+  hostPrefix: string,
+  gpuSlug: string,
+  preferredEntityIds: Array<string | undefined>
+): string[] => {
+  const preferred = preferredEntityIds.filter((entityId): entityId is string => isUsableEntityState(states[entityId ?? '']));
+  const discovered = getGpuEntityEntries(states, hostSlug, hostPrefix, gpuSlug)
+    .filter(
+      ([, entity]) =>
+        getObjectArrayAttribute(entity, 'engines').length > 0 ||
+        getObjectArrayAttribute(entity, 'stats').length > 0
+    )
+    .map(([entityId]) => entityId);
+
+  return Array.from(new Set([...preferred, ...discovered]));
+};
+
+const getGpuEntityEntries = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string,
+  hostPrefix: string,
+  gpuSlug: string
+): Array<[string, HassEntityLike]> =>
+  getComputedResult(states, `gpuEntries:${hostSlug}:${hostPrefix}:${gpuSlug}`, () => {
+    const prefixes = [
+      `sensor.${hostPrefix}_gpu_${gpuSlug}_`,
+      `sensor.${hostSlug}_gpu_${gpuSlug}_`,
+      `sensor.ugos_bridge_gpu_${gpuSlug}_`
+    ];
+    const prefixedEntries = getEntriesByPrefixes(states, prefixes);
+    const payloadEntries = getPayloadNamedEntries(states, 'gpu', gpuSlug);
+    const namedEntries = getStateEntries(states).filter(
+      ([entityId, entity]) =>
+        entityId.startsWith('sensor.') &&
+        slugify(getStringAttribute(entity, 'name') ?? '') === gpuSlug &&
+        (getObjectArrayAttribute(entity, 'engines').length > 0 ||
+          getObjectArrayAttribute(entity, 'stats').length > 0 ||
+          getNumberAttribute(entity, 'busy_percent') !== undefined ||
+          getNumberAttribute(entity, 'current_mhz') !== undefined ||
+          getNumberAttribute(entity, 'max_mhz') !== undefined)
+    );
+
+    return Array.from(new Map([...prefixedEntries, ...payloadEntries, ...namedEntries]).entries());
+  });
+
 const resolveProjectMetricEntityId = (
   states: Record<string, HassEntityLike>,
   projectSlug: string,
@@ -2269,6 +2497,23 @@ const loadLabel = (load1: number): string => {
   return 'Good';
 };
 
+const loadPercentLabel = (valuePercent: number): string => {
+  if (valuePercent >= 90) {
+    return 'High';
+  }
+  if (valuePercent >= 70) {
+    return 'Busy';
+  }
+  return 'Good';
+};
+
+const clampPercent = (value: number): number => Math.max(0, Math.min(100, value));
+
+const formatLoadPercent = (value: number): string => {
+  const digits = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(digits)}%`;
+};
+
 const hasEntityPrefix = (states: Record<string, HassEntityLike>, slug: string): boolean =>
   getComputedResult(states, `hasEntityPrefix:${slug}`, () =>
     getStateKeys(states).some((entityId) => entityId.startsWith(`sensor.${slug}_`) || entityId.startsWith(`binary_sensor.${slug}_`))
@@ -2355,7 +2600,7 @@ const collectWatchedEntityIds = (
 
 const isHostRootSensorEntity = (entityId: string, hostSlug: string): boolean =>
   entityId.startsWith(`sensor.${hostSlug}_`) &&
-  !['_disk_', '_filesystem_', '_network_', '_bond_', '_gpu_', '_array_', '_cooling_'].some((token) =>
+  !['_array_', '_bond_', '_cooling_', '_disk_', '_filesystem_', '_gpu_', '_health_', '_network_', '_software_', '_ups_'].some((token) =>
     entityId.includes(token)
   );
 
@@ -2418,6 +2663,30 @@ const collectEntitySlugs = (states: Record<string, HassEntityLike>, matcher: Reg
       )
     ).sort()
   );
+
+const collectComponentEntitySlugs = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string,
+  hostPrefix: string,
+  component: 'array' | 'bond' | 'disk' | 'filesystem' | 'gpu' | 'network',
+  isLikelySlug: (value: string) => boolean
+): string[] =>
+  getComputedResult(states, `componentSlugs:${hostSlug}:${hostPrefix}:${component}`, () => {
+    const matchers = [
+      new RegExp(`^(?:sensor|binary_sensor)\\.${escapeRegExp(hostPrefix)}_${component}_([^_]+)_`),
+      new RegExp(`^(?:sensor|binary_sensor)\\.${escapeRegExp(hostSlug)}_${component}_([^_]+)_`),
+      new RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_${component}_([^_]+)_`)
+    ];
+
+    return Array.from(
+      new Set(
+        getStateKeys(states)
+          .flatMap((entityId) => matchers.map((matcher) => matcher.exec(entityId)?.[1]).filter((slug): slug is string => Boolean(slug)))
+          .map((slug) => slugify(slug))
+          .filter((slug) => Boolean(slug) && isLikelySlug(slug))
+      )
+    ).sort();
+  });
 
 const isUsableEntityState = (entity: HassEntityLike | undefined): boolean =>
   entity !== undefined && entity.state !== 'unknown' && entity.state !== 'unavailable';
@@ -2579,6 +2848,18 @@ const getParsedNumber = (entity: HassEntityLike | undefined): number | undefined
 };
 
 const isBinaryOn = (entity: HassEntityLike | undefined): boolean => entity?.state === 'on';
+
+function normalizeUnit(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  if (normalized === '\u00B0C' || normalized === '\u00BAC' || normalized === '\u00C2\u00B0C' || normalized === '\u0412\u00B0C') {
+    return '\u00B0C';
+  }
+  return normalized || undefined;
+}
 
 const getUnit = (entity: HassEntityLike | undefined): string | undefined => {
   return getEntityDerivedCache(entity)?.unit;

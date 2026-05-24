@@ -99,6 +99,18 @@ type Metrics struct {
 	hostFanSpeed           *prometheus.GaugeVec
 	hostCoolingState       *prometheus.GaugeVec
 	hostCoolingPercent     *prometheus.GaugeVec
+	hostUPSInfo            *prometheus.GaugeVec
+	hostUPSStatus          *prometheus.GaugeVec
+	hostUPSOnline          *prometheus.GaugeVec
+	hostUPSOnBattery       *prometheus.GaugeVec
+	hostUPSLowBattery      *prometheus.GaugeVec
+	hostUPSCharge          *prometheus.GaugeVec
+	hostUPSRuntime         *prometheus.GaugeVec
+	hostUPSVoltage         *prometheus.GaugeVec
+	hostUPSLoad            *prometheus.GaugeVec
+	hostUPSPower           *prometheus.GaugeVec
+	hostUPSFrequency       *prometheus.GaugeVec
+	hostUPSTemperature     *prometheus.GaugeVec
 	hostProcessCount       *prometheus.GaugeVec
 	hostProcessCPU         *prometheus.GaugeVec
 	hostProcessMemory      *prometheus.GaugeVec
@@ -472,6 +484,54 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			Name: "ugos_bridge_host_cooling_device_percent",
 			Help: "Host thermal cooling device state normalized to percent when max_state is available.",
 		}, []string{"host", "device", "type"}),
+		hostUPSInfo: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_info",
+			Help: "Static UPS metadata discovered through NUT.",
+		}, []string{"host", "ups", "manufacturer", "model", "serial"}),
+		hostUPSStatus: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_status_info",
+			Help: "UPS status as a labeled info-style gauge.",
+		}, []string{"host", "ups", "status"}),
+		hostUPSOnline: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_online",
+			Help: "Whether the UPS reports online utility power.",
+		}, []string{"host", "ups"}),
+		hostUPSOnBattery: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_on_battery",
+			Help: "Whether the UPS reports running on battery.",
+		}, []string{"host", "ups"}),
+		hostUPSLowBattery: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_low_battery",
+			Help: "Whether the UPS reports a low battery condition.",
+		}, []string{"host", "ups"}),
+		hostUPSCharge: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_battery_charge_percent",
+			Help: "UPS battery charge percent.",
+		}, []string{"host", "ups"}),
+		hostUPSRuntime: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_battery_runtime_seconds",
+			Help: "Estimated UPS battery runtime in seconds.",
+		}, []string{"host", "ups"}),
+		hostUPSVoltage: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_voltage",
+			Help: "UPS voltage values by type.",
+		}, []string{"host", "ups", "type"}),
+		hostUPSLoad: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_load_percent",
+			Help: "UPS load percent.",
+		}, []string{"host", "ups"}),
+		hostUPSPower: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_power_watts",
+			Help: "UPS power values in watts by type.",
+		}, []string{"host", "ups", "type"}),
+		hostUPSFrequency: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_line_frequency_hz",
+			Help: "UPS line frequency in Hz.",
+		}, []string{"host", "ups"}),
+		hostUPSTemperature: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "ugos_bridge_host_ups_temperature_celsius",
+			Help: "UPS temperature in degrees Celsius.",
+		}, []string{"host", "ups"}),
 		hostProcessCount: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "ugos_bridge_host_process_group_count",
 			Help: "Number of OS processes in a grouped host software entry. Exported for the top host software groups by CPU usage.",
@@ -624,6 +684,18 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 		m.hostFanSpeed,
 		m.hostCoolingState,
 		m.hostCoolingPercent,
+		m.hostUPSInfo,
+		m.hostUPSStatus,
+		m.hostUPSOnline,
+		m.hostUPSOnBattery,
+		m.hostUPSLowBattery,
+		m.hostUPSCharge,
+		m.hostUPSRuntime,
+		m.hostUPSVoltage,
+		m.hostUPSLoad,
+		m.hostUPSPower,
+		m.hostUPSFrequency,
+		m.hostUPSTemperature,
 		m.hostProcessCount,
 		m.hostProcessCPU,
 		m.hostProcessMemory,
@@ -734,6 +806,18 @@ func (m *Metrics) Update(snapshot model.Snapshot, err error) {
 	m.hostFanSpeed.Reset()
 	m.hostCoolingState.Reset()
 	m.hostCoolingPercent.Reset()
+	m.hostUPSInfo.Reset()
+	m.hostUPSStatus.Reset()
+	m.hostUPSOnline.Reset()
+	m.hostUPSOnBattery.Reset()
+	m.hostUPSLowBattery.Reset()
+	m.hostUPSCharge.Reset()
+	m.hostUPSRuntime.Reset()
+	m.hostUPSVoltage.Reset()
+	m.hostUPSLoad.Reset()
+	m.hostUPSPower.Reset()
+	m.hostUPSFrequency.Reset()
+	m.hostUPSTemperature.Reset()
 	m.hostProcessCount.Reset()
 	m.hostProcessCPU.Reset()
 	m.hostProcessMemory.Reset()
@@ -996,6 +1080,47 @@ func (m *Metrics) Update(snapshot model.Snapshot, err error) {
 		m.hostCoolingState.WithLabelValues(hostName, cooling.Name, cooling.Type, "max").Set(float64(cooling.MaxState))
 		if cooling.MaxState > 0 {
 			m.hostCoolingPercent.WithLabelValues(hostName, cooling.Name, cooling.Type).Set(cooling.Percent)
+		}
+	}
+
+	for _, ups := range snapshot.Host.UPSs {
+		labels := []string{hostName, ups.Name}
+		m.hostUPSInfo.WithLabelValues(hostName, ups.Name, ups.Manufacturer, ups.Model, ups.Serial).Set(1)
+		if ups.Status != "" {
+			m.hostUPSStatus.WithLabelValues(hostName, ups.Name, ups.Status).Set(1)
+		}
+		m.hostUPSOnline.WithLabelValues(labels...).Set(boolToFloat(ups.Online))
+		m.hostUPSOnBattery.WithLabelValues(labels...).Set(boolToFloat(ups.OnBattery))
+		m.hostUPSLowBattery.WithLabelValues(labels...).Set(boolToFloat(ups.LowBattery))
+		if ups.BatteryChargeAvailable {
+			m.hostUPSCharge.WithLabelValues(labels...).Set(ups.BatteryChargePercent)
+		}
+		if ups.BatteryRuntimeAvailable {
+			m.hostUPSRuntime.WithLabelValues(labels...).Set(ups.BatteryRuntimeSeconds)
+		}
+		if ups.BatteryVoltageAvailable {
+			m.hostUPSVoltage.WithLabelValues(append(labels, "battery")...).Set(ups.BatteryVoltage)
+		}
+		if ups.InputVoltageAvailable {
+			m.hostUPSVoltage.WithLabelValues(append(labels, "input")...).Set(ups.InputVoltage)
+		}
+		if ups.OutputVoltageAvailable {
+			m.hostUPSVoltage.WithLabelValues(append(labels, "output")...).Set(ups.OutputVoltage)
+		}
+		if ups.LoadPercentAvailable {
+			m.hostUPSLoad.WithLabelValues(labels...).Set(ups.LoadPercent)
+		}
+		if ups.RealPowerWattsAvailable {
+			m.hostUPSPower.WithLabelValues(append(labels, "real")...).Set(ups.RealPowerWatts)
+		}
+		if ups.NominalRealPowerWattsAvailable {
+			m.hostUPSPower.WithLabelValues(append(labels, "nominal_real")...).Set(ups.NominalRealPowerWatts)
+		}
+		if ups.LineFrequencyHzAvailable {
+			m.hostUPSFrequency.WithLabelValues(labels...).Set(ups.LineFrequencyHz)
+		}
+		if ups.TemperatureCelsiusAvailable {
+			m.hostUPSTemperature.WithLabelValues(labels...).Set(ups.TemperatureCelsius)
 		}
 	}
 

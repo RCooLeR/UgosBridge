@@ -117,6 +117,7 @@ type HostSnapshot struct {
 	GPUs        []GPUSnapshot
 	Sensors     []SensorSnapshot
 	Cooling     []CoolingDeviceSnapshot
+	UPSs        []UPSSnapshot
 	Processes   []ProcessSnapshot
 	VMs         []VirtualMachineSnapshot
 }
@@ -301,6 +302,37 @@ type CoolingDeviceSnapshot struct {
 	CurState int64
 	MaxState int64
 	Percent  float64
+}
+
+type UPSSnapshot struct {
+	Name                           string  `json:"name"`
+	Model                          string  `json:"model"`
+	Manufacturer                   string  `json:"manufacturer"`
+	Serial                         string  `json:"serial"`
+	Status                         string  `json:"status"`
+	Online                         bool    `json:"online"`
+	OnBattery                      bool    `json:"on_battery"`
+	LowBattery                     bool    `json:"low_battery"`
+	BatteryChargePercent           float64 `json:"battery_charge_percent"`
+	BatteryRuntimeSeconds          float64 `json:"battery_runtime_seconds"`
+	BatteryVoltage                 float64 `json:"battery_voltage"`
+	InputVoltage                   float64 `json:"input_voltage"`
+	OutputVoltage                  float64 `json:"output_voltage"`
+	LoadPercent                    float64 `json:"load_percent"`
+	RealPowerWatts                 float64 `json:"real_power_watts"`
+	NominalRealPowerWatts          float64 `json:"nominal_real_power_watts"`
+	LineFrequencyHz                float64 `json:"line_frequency_hz"`
+	TemperatureCelsius             float64 `json:"temperature_celsius"`
+	BatteryChargeAvailable         bool    `json:"battery_charge_available"`
+	BatteryRuntimeAvailable        bool    `json:"battery_runtime_available"`
+	BatteryVoltageAvailable        bool    `json:"battery_voltage_available"`
+	InputVoltageAvailable          bool    `json:"input_voltage_available"`
+	OutputVoltageAvailable         bool    `json:"output_voltage_available"`
+	LoadPercentAvailable           bool    `json:"load_percent_available"`
+	RealPowerWattsAvailable        bool    `json:"real_power_watts_available"`
+	NominalRealPowerWattsAvailable bool    `json:"nominal_real_power_watts_available"`
+	LineFrequencyHzAvailable       bool    `json:"line_frequency_hz_available"`
+	TemperatureCelsiusAvailable    bool    `json:"temperature_celsius_available"`
 }
 
 type ProcessSnapshot struct {

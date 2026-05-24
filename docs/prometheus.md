@@ -251,12 +251,41 @@ Health and cooling metrics:
 | `ugos_bridge_host_cooling_device_state` | `host`, `device`, `type`, `state` |
 | `ugos_bridge_host_cooling_device_percent` | `host`, `device`, `type` |
 
+Temperature values are smoothed by the bridge over
+`UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW` (`2m` by default). Set the window
+to `0s` if your alerting rules should use raw sensor samples.
+
+UPS metrics are exported when `UGOS_BRIDGE_HOST_UPS_ENABLED=true` and `upsc`
+returns data:
+
+| Metric | Labels |
+| --- | --- |
+| `ugos_bridge_host_ups_info` | `host`, `ups`, `manufacturer`, `model`, `serial` |
+| `ugos_bridge_host_ups_status_info` | `host`, `ups`, `status` |
+| `ugos_bridge_host_ups_online` | `host`, `ups` |
+| `ugos_bridge_host_ups_on_battery` | `host`, `ups` |
+| `ugos_bridge_host_ups_low_battery` | `host`, `ups` |
+| `ugos_bridge_host_ups_battery_charge_percent` | `host`, `ups` |
+| `ugos_bridge_host_ups_battery_runtime_seconds` | `host`, `ups` |
+| `ugos_bridge_host_ups_voltage` | `host`, `ups`, `type` |
+| `ugos_bridge_host_ups_load_percent` | `host`, `ups` |
+| `ugos_bridge_host_ups_power_watts` | `host`, `ups`, `type` |
+| `ugos_bridge_host_ups_line_frequency_hz` | `host`, `ups` |
+| `ugos_bridge_host_ups_temperature_celsius` | `host`, `ups` |
+
+UPS voltage metrics are emitted only when the NUT value passes basic sanity
+checks. Low battery-voltage values are normalized for NUT drivers that report
+12V-class batteries as `1.2` or `1.3`; implausible AC output values such as `20`
+are skipped.
+
 Useful queries:
 
 ```promql
 max by (host) (ugos_bridge_host_temperature_celsius)
 max by (gpu) (ugos_bridge_host_gpu_busy_percent)
 ugos_bridge_host_fan_speed_rpm
+ugos_bridge_host_ups_on_battery == 1
+ugos_bridge_host_ups_low_battery == 1
 ```
 
 ## Process Groups

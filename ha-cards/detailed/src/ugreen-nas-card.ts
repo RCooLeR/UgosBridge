@@ -206,8 +206,8 @@ export class UgreenNasCard extends LitElement {
                 ${svgIcon(this.summaryIcon(summary.kind), summary.accent)}
                 <span>${summary.title}</span>
               </div>
-              <div class="mini-value">${summary.value.toFixed(2)}</div>
-              ${this.renderLineIndicator(this.loadIndicatorPercent(summary.value), summary.accent)}
+              <div class="mini-value">${summary.valueText}</div>
+              ${this.renderLineIndicator(summary.valuePercent, summary.accent)}
               <div class="mini-footer positive">${summary.statusText}</div>
             </div>
           `;
@@ -218,8 +218,8 @@ export class UgreenNasCard extends LitElement {
               ${svgIcon(this.summaryIcon(summary.kind), summary.accent)}
               <span>${summary.title}</span>
             </div>
-            <div class="mini-value">${summary.value.toFixed(2)}</div>
-            ${this.renderLineIndicator(this.loadIndicatorPercent(summary.value), summary.accent)}
+            <div class="mini-value">${summary.valueText}</div>
+            ${this.renderLineIndicator(summary.valuePercent, summary.accent)}
             <div class="mini-footer positive">${summary.statusText}</div>
           </div>
         `;
@@ -810,10 +810,6 @@ export class UgreenNasCard extends LitElement {
         <span style=${`width:${width}%; background:${accent}; box-shadow:0 0 14px ${accent}55;`}></span>
       </div>
     `;
-  }
-
-  private loadIndicatorPercent(loadValue: number): number {
-    return clamp(loadValue * 100, 0, 100);
   }
 
   private renderLogo(logo: ProjectLogo): TemplateResult {

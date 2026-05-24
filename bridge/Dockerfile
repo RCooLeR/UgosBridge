@@ -45,7 +45,7 @@ FROM debian:bookworm-slim
 ARG TARGETARCH
 
 RUN apt-get update \
-    && packages="ca-certificates libvirt-clients" \
+    && packages="ca-certificates libvirt-clients nut-client" \
     && if [ "$TARGETARCH" = "amd64" ]; then packages="$packages intel-gpu-tools"; fi \
     && apt-get install --no-install-recommends -y $packages \
     && rm -rf /var/lib/apt/lists/*

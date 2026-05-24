@@ -31,36 +31,42 @@ type FilesystemMount struct {
 }
 
 type Config struct {
-	ProcFS             string
-	SysFS              string
-	HostnamePath       string
-	HostnameOverride   string
-	Filesystems        []FilesystemMount
-	NetworkInclude     []string
-	DRIPath            string
-	IntelGPUTopEnabled bool
-	IntelGPUTopPath    string
-	IntelGPUTopDevice  string
-	IntelGPUTopPeriod  time.Duration
-	VMsEnabled         bool
-	VirshPath          string
-	VirshURI           string
-	VirshTimeout       time.Duration
-	VMNameOverrides    map[string]string
+	ProcFS                   string
+	SysFS                    string
+	HostnamePath             string
+	HostnameOverride         string
+	Filesystems              []FilesystemMount
+	NetworkInclude           []string
+	DRIPath                  string
+	TemperatureAverageWindow time.Duration
+	UPSEnabled               bool
+	UPSCommand               string
+	UPSTargets               []string
+	UPSTimeout               time.Duration
+	IntelGPUTopEnabled       bool
+	IntelGPUTopPath          string
+	IntelGPUTopDevice        string
+	IntelGPUTopPeriod        time.Duration
+	VMsEnabled               bool
+	VirshPath                string
+	VirshURI                 string
+	VirshTimeout             time.Duration
+	VMNameOverrides          map[string]string
 }
 
 type Collector struct {
-	cfg            Config
-	proc           procfs.FS
-	block          blockdevice.FS
-	networkInclude []*regexp.Regexp
-	mu             sync.Mutex
-	lastAt         time.Time
-	lastCPU        cpuSnapshot
-	lastNet        map[string]procfs.NetDevLine
-	lastDisk       map[string]diskSample
-	lastProc       map[int]processSample
-	lastVM         map[string]vmSample
+	cfg                Config
+	proc               procfs.FS
+	block              blockdevice.FS
+	networkInclude     []*regexp.Regexp
+	mu                 sync.Mutex
+	lastAt             time.Time
+	lastCPU            cpuSnapshot
+	lastNet            map[string]procfs.NetDevLine
+	lastDisk           map[string]diskSample
+	lastProc           map[int]processSample
+	lastVM             map[string]vmSample
+	temperatureSamples map[string][]temperatureSample
 }
 
 type cpuSnapshot struct {
@@ -74,6 +80,11 @@ type diskSample struct {
 	readIOs    uint64
 	writeIOs   uint64
 	ioMillis   uint64
+}
+
+type temperatureSample struct {
+	at    time.Time
+	value float64
 }
 
 type mountEntry struct {
@@ -136,6 +147,12 @@ func New(cfg Config) (*Collector, error) {
 	if cfg.IntelGPUTopPeriod <= 0 {
 		cfg.IntelGPUTopPeriod = time.Second
 	}
+	if strings.TrimSpace(cfg.UPSCommand) == "" {
+		cfg.UPSCommand = "upsc"
+	}
+	if cfg.UPSTimeout <= 0 {
+		cfg.UPSTimeout = 3 * time.Second
+	}
 	if strings.TrimSpace(cfg.VirshPath) == "" {
 		cfg.VirshPath = "virsh"
 	}
@@ -159,14 +176,15 @@ func New(cfg Config) (*Collector, error) {
 	}
 
 	return &Collector{
-		cfg:            cfg,
-		proc:           proc,
-		block:          blockFS,
-		networkInclude: networkInclude,
-		lastNet:        map[string]procfs.NetDevLine{},
-		lastDisk:       map[string]diskSample{},
-		lastProc:       map[int]processSample{},
-		lastVM:         map[string]vmSample{},
+		cfg:                cfg,
+		proc:               proc,
+		block:              blockFS,
+		networkInclude:     networkInclude,
+		lastNet:            map[string]procfs.NetDevLine{},
+		lastDisk:           map[string]diskSample{},
+		lastProc:           map[int]processSample{},
+		lastVM:             map[string]vmSample{},
+		temperatureSamples: map[string][]temperatureSample{},
 	}, nil
 }
 
@@ -256,7 +274,9 @@ func (c *Collector) Collect(ctx context.Context) (model.HostSnapshot, error) {
 	snapshot.Bonds = c.collectBonds()
 	snapshot.GPUs = c.collectGPUs()
 	snapshot.Sensors = c.collectSensors()
+	c.smoothTemperatureSensors(now, snapshot.Sensors)
 	snapshot.Cooling = c.collectCoolingDevices()
+	snapshot.UPSs = c.collectUPSs(ctx)
 
 	return snapshot, nil
 }
@@ -793,6 +813,63 @@ func (c *Collector) collectSensors() []model.SensorSnapshot {
 	return result
 }
 
+func (c *Collector) smoothTemperatureSensors(now time.Time, sensors []model.SensorSnapshot) {
+	window := c.cfg.TemperatureAverageWindow
+	if window <= 0 {
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.temperatureSamples == nil {
+		c.temperatureSamples = map[string][]temperatureSample{}
+	}
+
+	seen := map[string]struct{}{}
+	cutoff := now.Add(-window)
+	for idx := range sensors {
+		if sensors[idx].Kind != "temperature" {
+			continue
+		}
+
+		key := temperatureSensorKey(sensors[idx])
+		seen[key] = struct{}{}
+		samples := append(c.temperatureSamples[key], temperatureSample{at: now, value: sensors[idx].Value})
+		keepFrom := 0
+		for keepFrom < len(samples) && samples[keepFrom].at.Before(cutoff) {
+			keepFrom++
+		}
+		samples = samples[keepFrom:]
+		c.temperatureSamples[key] = samples
+
+		var total float64
+		for _, sample := range samples {
+			total += sample.value
+		}
+		if len(samples) > 0 {
+			sensors[idx].Value = total / float64(len(samples))
+		}
+	}
+
+	for key := range c.temperatureSamples {
+		if _, ok := seen[key]; !ok {
+			delete(c.temperatureSamples, key)
+		}
+	}
+}
+
+func temperatureSensorKey(sensor model.SensorSnapshot) string {
+	return strings.Join([]string{
+		sensor.Source,
+		sensor.Chip,
+		sensor.Name,
+		sensor.Label,
+		sensor.DeviceType,
+		sensor.DeviceName,
+	}, "\x00")
+}
+
 func (c *Collector) collectCoolingDevices() []model.CoolingDeviceSnapshot {
 	matches, err := filepath.Glob(filepath.Join(c.cfg.SysFS, "class", "thermal", "cooling_device*"))
 	if err != nil {
@@ -825,6 +902,211 @@ func (c *Collector) collectCoolingDevices() []model.CoolingDeviceSnapshot {
 
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result
+}
+
+func (c *Collector) collectUPSs(ctx context.Context) []model.UPSSnapshot {
+	if !c.cfg.UPSEnabled {
+		return nil
+	}
+
+	targets := c.cfg.UPSTargets
+	if len(targets) == 0 {
+		targets = c.listUPSTargets(ctx)
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+
+	result := make([]model.UPSSnapshot, 0, len(targets))
+	for _, target := range targets {
+		values, err := c.readUPSTarget(ctx, target)
+		if err != nil {
+			continue
+		}
+		result = append(result, buildUPSSnapshot(target, values))
+	}
+
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	return result
+}
+
+func (c *Collector) listUPSTargets(ctx context.Context) []string {
+	output, err := c.runUPSCommand(ctx, "-l")
+	if err != nil {
+		return nil
+	}
+
+	targets := make([]string, 0)
+	for _, line := range strings.Split(output, "\n") {
+		target := strings.TrimSpace(line)
+		if target == "" || strings.HasPrefix(target, "Init SSL") {
+			continue
+		}
+		targets = append(targets, target)
+	}
+	return targets
+}
+
+func (c *Collector) readUPSTarget(ctx context.Context, target string) (map[string]string, error) {
+	output, err := c.runUPSCommand(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+
+	values := map[string]string{}
+	for _, line := range strings.Split(output, "\n") {
+		key, value, ok := strings.Cut(line, ":")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+		if key != "" {
+			values[key] = value
+		}
+	}
+	if len(values) == 0 {
+		return nil, fmt.Errorf("no UPS variables returned for %s", target)
+	}
+	return values, nil
+}
+
+func (c *Collector) runUPSCommand(ctx context.Context, args ...string) (string, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, c.cfg.UPSTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(timeoutCtx, c.cfg.UPSCommand, args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
+func buildUPSSnapshot(target string, values map[string]string) model.UPSSnapshot {
+	status := values["ups.status"]
+	statusFields := strings.Fields(status)
+	ups := model.UPSSnapshot{
+		Name:         firstNonEmpty(values["ups.id"], upsTargetName(target)),
+		Model:        firstNonEmpty(values["device.model"], values["ups.model"]),
+		Manufacturer: firstNonEmpty(values["device.mfr"], values["ups.mfr"], values["ups.vendorid"]),
+		Serial:       firstNonEmpty(values["device.serial"], values["ups.serial"]),
+		Status:       status,
+		Online:       containsStatus(statusFields, "OL"),
+		OnBattery:    containsStatus(statusFields, "OB"),
+		LowBattery:   containsStatus(statusFields, "LB"),
+	}
+
+	ups.BatteryChargePercent, ups.BatteryChargeAvailable = parseUPSFloat(values["battery.charge"])
+	ups.BatteryRuntimeSeconds, ups.BatteryRuntimeAvailable = parseUPSFloat(values["battery.runtime"])
+	ups.BatteryVoltage, ups.BatteryVoltageAvailable = parseUPSFloat(values["battery.voltage"])
+	ups.InputVoltage, ups.InputVoltageAvailable = parseUPSFloat(values["input.voltage"])
+	ups.OutputVoltage, ups.OutputVoltageAvailable = parseUPSFloat(values["output.voltage"])
+	if ups.BatteryVoltageAvailable {
+		ups.BatteryVoltage = normalizeUPSBatteryVoltage(ups.BatteryVoltage)
+		if !validUPSBatteryVoltage(ups.BatteryVoltage, values) {
+			ups.BatteryVoltage, ups.BatteryVoltageAvailable = 0, false
+		}
+	}
+	if ups.InputVoltageAvailable && !validUPSMainsVoltage(ups.InputVoltage, values, "input.voltage.nominal") {
+		ups.InputVoltage, ups.InputVoltageAvailable = 0, false
+	}
+	if ups.OutputVoltageAvailable && !validUPSOutputVoltage(ups.OutputVoltage, ups.InputVoltage, ups.InputVoltageAvailable, values) {
+		ups.OutputVoltage, ups.OutputVoltageAvailable = 0, false
+	}
+	ups.LoadPercent, ups.LoadPercentAvailable = parseUPSFloat(values["ups.load"])
+	ups.RealPowerWatts, ups.RealPowerWattsAvailable = firstUPSFloat(values, "ups.realpower", "ups.power")
+	ups.NominalRealPowerWatts, ups.NominalRealPowerWattsAvailable = firstUPSFloat(values, "ups.realpower.nominal", "ups.power.nominal")
+	ups.LineFrequencyHz, ups.LineFrequencyHzAvailable = firstUPSFloat(values, "input.frequency", "output.frequency")
+	ups.TemperatureCelsius, ups.TemperatureCelsiusAvailable = firstUPSFloat(values, "ups.temperature", "battery.temperature")
+
+	return ups
+}
+
+func upsTargetName(target string) string {
+	name, _, _ := strings.Cut(target, "@")
+	if strings.TrimSpace(name) == "" {
+		return strings.TrimSpace(target)
+	}
+	return strings.TrimSpace(name)
+}
+
+func containsStatus(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func firstUPSFloat(values map[string]string, keys ...string) (float64, bool) {
+	for _, key := range keys {
+		if value, ok := parseUPSFloat(values[key]); ok {
+			return value, true
+		}
+	}
+	return 0, false
+}
+
+func parseUPSFloat(value string) (float64, bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return 0, false
+	}
+	parsed, err := strconv.ParseFloat(trimmed, 64)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
+}
+
+func normalizeUPSBatteryVoltage(value float64) float64 {
+	if value > 0 && value < 6 {
+		return value * 10
+	}
+	return value
+}
+
+func validUPSBatteryVoltage(value float64, values map[string]string) bool {
+	if value < 6 || value > 1000 {
+		return false
+	}
+	if nominal, ok := firstUPSFloat(values, "battery.voltage.nominal"); ok {
+		nominal = normalizeUPSBatteryVoltage(nominal)
+		if nominal < 6 {
+			return false
+		}
+		return withinUPSVoltageRange(value, nominal)
+	}
+	return true
+}
+
+func validUPSMainsVoltage(value float64, values map[string]string, nominalKey string) bool {
+	if value <= 0 || value > 1000 {
+		return false
+	}
+	if nominal, ok := firstUPSFloat(values, nominalKey); ok && nominal >= 80 {
+		return withinUPSVoltageRange(value, nominal)
+	}
+	return value >= 80
+}
+
+func validUPSOutputVoltage(value float64, inputVoltage float64, inputVoltageAvailable bool, values map[string]string) bool {
+	if value <= 0 || value > 1000 {
+		return false
+	}
+	if nominal, ok := firstUPSFloat(values, "output.voltage.nominal", "input.voltage.nominal"); ok && nominal >= 80 {
+		return withinUPSVoltageRange(value, nominal)
+	}
+	if inputVoltageAvailable && inputVoltage >= 80 {
+		return withinUPSVoltageRange(value, inputVoltage)
+	}
+	return value >= 80
+}
+
+func withinUPSVoltageRange(value float64, reference float64) bool {
+	return value >= reference*0.5 && value <= reference*1.5
 }
 
 func (c *Collector) collectHwmonSensors() []model.SensorSnapshot {

@@ -189,9 +189,9 @@ export const buildMiniDashboardModel = (
       label: 'Load',
       icon: 'pulse',
       accent: THEME_COLORS.softBlue,
-      value: load ? load.value.toFixed(2) : '0.00',
+      value: load?.valueText ?? '0.00',
       secondary: load?.statusText ?? 'Unavailable',
-      progress: clampProgress(load ? load.value : 0)
+      progress: clampProgress((load?.valuePercent ?? 0) / 100)
     },
     buildVolumeTile('nvme', 'NVMe Volume', THEME_COLORS.cyan, volumes.nvme.totalBytes, volumes.nvme.usedBytes),
     buildVolumeTile('sata', 'SATA Volume', THEME_COLORS.green, volumes.sata.totalBytes, volumes.sata.usedBytes),

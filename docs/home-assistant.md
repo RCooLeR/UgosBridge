@@ -21,7 +21,7 @@ MQTT and discovery are controlled by these settings:
 | `UGOS_BRIDGE_MQTT_RETAIN` | `false` | Retain flag used for state and discovery publishes. |
 | `UGOS_BRIDGE_MQTT_EXPIRE_AFTER` | unset | Adds `expire_after` to numeric sensor discovery payloads when greater than zero. |
 
-Host, storage, network, GPU, cooling, health, process, and VM devices only appear
+Host, storage, network, GPU, UPS, cooling, health, process, and VM devices only appear
 when host metrics are enabled and the related data is available. Docker project
 and container devices appear in Docker-only mode.
 
@@ -60,6 +60,7 @@ State topics use the configured MQTT topic prefix:
 | GPU | `<topic_prefix>/host/gpus/<gpu_slug>/state` |
 | Hardware health sensor | `<topic_prefix>/host/sensors/<sensor_slug>/state` |
 | Cooling device | `<topic_prefix>/host/cooling/<cooling_slug>/state` |
+| UPS | `<topic_prefix>/host/ups/<ups_slug>/state` |
 
 Discovery config topics use this pattern:
 
@@ -166,6 +167,7 @@ entity or if a conflict already exists. The stable identifier from the bridge is
 | Hardware health chip | `<host_device_id>_health_<chip_slug>` | Host device |
 | Disk health sensor | `<host_device_id>_disk_<disk_slug>` | Host device |
 | Cooling device | `<host_device_id>_cooling_<cooling_slug>` | Host device |
+| UPS | `<host_device_id>_ups_<ups_slug>` | Host device |
 
 Disk temperature sensors are attached to the disk device when the collector can
 map the sysfs sensor to a disk. Otherwise, temperature and fan sensors are grouped
@@ -207,7 +209,7 @@ State topic:
 | --- | --- | --- | --- | --- | --- | --- |
 | CPU | `sensor` | `cpu_usage_percent` | `cpu_usage_percent` | `%` | | `measurement` |
 | CPU Frequency | `sensor` | `cpu_frequency_mhz` | `cpu_frequency_mhz` | `MHz` | | `measurement` |
-| Load 1m | `sensor` | `load_1` | `load_1` | | | `measurement` |
+| Load 1m | `sensor` | `load_1` | `load_1` | `%` | | `measurement` |
 | Memory Used | `sensor` | `memory_used_bytes` | `memory_used_bytes` | `B` | `data_size` | `measurement` |
 | Memory Used | `sensor` | `memory_used_percent` | `memory_used_percent` | `%` | | `measurement` |
 | Swap Used | `sensor` | `swap_used_percent` | `swap_used_percent` | `%` | | `measurement` |
@@ -215,6 +217,8 @@ State topic:
 
 The host state payload also carries extra JSON attributes such as CPU cores,
 total/free/available/cached/buffer memory, swap bytes, and `collected_at`.
+`Load 1m` is exposed as the bridge's one-minute load value and displayed as a
+percent-style gauge by the bundled Lovelace cards.
 
 ### Docker Project Devices
 
@@ -630,6 +634,8 @@ State topic:
 | Fan Speed | `sensor` | `fan_speed_rpm` | `fan_speed_rpm` | `rpm` | | `measurement` |
 
 Only sensor kinds `temperature` and `fan` are published to Home Assistant.
+Temperature values use the same rolling average as Prometheus, controlled by
+`UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW`.
 
 ### Cooling Device Devices
 
@@ -659,6 +665,52 @@ State topic:
 
 `cooling_percent` is created only when the cooling device reports a maximum state
 greater than zero.
+
+### UPS Devices
+
+UPS devices are created when `UGOS_BRIDGE_HOST_UPS_ENABLED=true` and the bridge
+can read one or more NUT `upsc` targets.
+
+Device ID:
+
+```text
+<host_device_id>_ups_<ups_slug>
+```
+
+Parent:
+
+```text
+<host_device_id>
+```
+
+State topic:
+
+```text
+<topic_prefix>/host/ups/<ups_slug>/state
+```
+
+| Entity | Component | Object ID | Value key or template | Unit | Device class | State class |
+| --- | --- | --- | --- | --- | --- | --- |
+| Status | `sensor` | `status` | `status` | | | |
+| Online | `binary_sensor` | `online` | `{{ value_json.online }}` with `1` / `0` | | | |
+| On Battery | `binary_sensor` | `on_battery` | `{{ value_json.on_battery }}` with `1` / `0` | | | |
+| Low Battery | `binary_sensor` | `low_battery` | `{{ value_json.low_battery }}` with `1` / `0` | | `problem` | |
+| Battery Charge | `sensor` | `battery_charge_percent` | `battery_charge_percent` | `%` | `battery` | `measurement` |
+| Battery Runtime | `sensor` | `battery_runtime_seconds` | `battery_runtime_seconds` | `s` | `duration` | `measurement` |
+| Battery Voltage | `sensor` | `battery_voltage` | `battery_voltage` | `V` | `voltage` | `measurement` |
+| Input Voltage | `sensor` | `input_voltage` | `input_voltage` | `V` | `voltage` | `measurement` |
+| Output Voltage | `sensor` | `output_voltage` | `output_voltage` | `V` | `voltage` | `measurement` |
+| Load | `sensor` | `load_percent` | `load_percent` | `%` | | `measurement` |
+| Real Power | `sensor` | `real_power_watts` | `real_power_watts` | `W` | `power` | `measurement` |
+| Nominal Real Power | `sensor` | `nominal_real_power_watts` | `nominal_real_power_watts` | `W` | `power` | `measurement` |
+| Line Frequency | `sensor` | `line_frequency_hz` | `line_frequency_hz` | `Hz` | `frequency` | `measurement` |
+| Temperature | `sensor` | `temperature_celsius` | `temperature_celsius` | `°C` | `temperature` | `measurement` |
+
+Numeric entities are created only when the UPS exposes the matching NUT
+variable. Status and the three binary sensors are always created for each UPS.
+Low battery-voltage values are normalized for NUT drivers that report 12V-class
+batteries as `1.2` or `1.3`; AC voltage entities are skipped when the raw NUT
+value is clearly implausible for the reported UPS.
 
 ## Full ID Example
 

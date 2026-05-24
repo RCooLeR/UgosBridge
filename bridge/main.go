@@ -63,44 +63,49 @@ func buildVersion() string {
 }
 
 type config struct {
-	ListenAddress          string
-	MetricsPath            string
-	ScrapeInterval         time.Duration
-	DockerHost             string
-	DockerTimeout          time.Duration
-	ProjectLabel           string
-	StandaloneProjectName  string
-	ContainerConcurrency   int
-	DetailedContainerStats bool
-	MQTTEnabled            bool
-	MQTTBroker             string
-	MQTTClientID           string
-	MQTTUsername           string
-	MQTTPassword           string
-	MQTTTopicPrefix        string
-	DiscoveryPrefix        string
-	MQTTQoS                byte
-	MQTTRetain             bool
-	MQTTInterval           time.Duration
-	MQTTConnectTimeout     time.Duration
-	HomeAssistantExpiresIn time.Duration
-	HostMetricsEnabled     bool
-	HostProcFS             string
-	HostSysFS              string
-	HostNameOverride       string
-	HostHostnamePath       string
-	HostFilesystems        []hostcollector.FilesystemMount
-	HostNetworkInclude     []string
-	HostDRIPath            string
-	HostIntelGPUTopEnabled bool
-	HostIntelGPUTopPath    string
-	HostIntelGPUTopDevice  string
-	HostIntelGPUTopPeriod  time.Duration
-	HostVMsEnabled         bool
-	HostVirshPath          string
-	HostVirshURI           string
-	HostVirshTimeout       time.Duration
-	HostVMNameOverrides    map[string]string
+	ListenAddress                string
+	MetricsPath                  string
+	ScrapeInterval               time.Duration
+	DockerHost                   string
+	DockerTimeout                time.Duration
+	ProjectLabel                 string
+	StandaloneProjectName        string
+	ContainerConcurrency         int
+	DetailedContainerStats       bool
+	MQTTEnabled                  bool
+	MQTTBroker                   string
+	MQTTClientID                 string
+	MQTTUsername                 string
+	MQTTPassword                 string
+	MQTTTopicPrefix              string
+	DiscoveryPrefix              string
+	MQTTQoS                      byte
+	MQTTRetain                   bool
+	MQTTInterval                 time.Duration
+	MQTTConnectTimeout           time.Duration
+	HomeAssistantExpiresIn       time.Duration
+	HostMetricsEnabled           bool
+	HostProcFS                   string
+	HostSysFS                    string
+	HostNameOverride             string
+	HostHostnamePath             string
+	HostFilesystems              []hostcollector.FilesystemMount
+	HostNetworkInclude           []string
+	HostDRIPath                  string
+	HostTemperatureAverageWindow time.Duration
+	HostUPSEnabled               bool
+	HostUPSCommand               string
+	HostUPSTargets               []string
+	HostUPSTimeout               time.Duration
+	HostIntelGPUTopEnabled       bool
+	HostIntelGPUTopPath          string
+	HostIntelGPUTopDevice        string
+	HostIntelGPUTopPeriod        time.Duration
+	HostVMsEnabled               bool
+	HostVirshPath                string
+	HostVirshURI                 string
+	HostVirshTimeout             time.Duration
+	HostVMNameOverrides          map[string]string
 }
 
 type snapshotStore struct {
@@ -153,6 +158,11 @@ func buildFlags() []cli.Flag {
 		&cli.StringFlag{Name: "host-filesystems", Value: "/:/rootfs,/volume1:/volume1,/volume2:/volume2", EnvVars: envVars("HOST_FILESYSTEMS", "UGOS_BRIDGE_HOST_FILESYSTEMS")},
 		&cli.StringFlag{Name: "host-network-include", Value: "eth.*,bond.*", EnvVars: envVars("HOST_NETWORK_INCLUDE", "UGOS_BRIDGE_HOST_NETWORK_INCLUDE")},
 		&cli.StringFlag{Name: "host-dri-path", Value: "/dev/dri", EnvVars: envVars("HOST_DRI_PATH", "UGOS_BRIDGE_HOST_DRI_PATH")},
+		&cli.DurationFlag{Name: "host-temperature-average-window", Value: 2 * time.Minute, EnvVars: envVars("UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW")},
+		&cli.BoolFlag{Name: "host-ups-enabled", EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_ENABLED")},
+		&cli.StringFlag{Name: "host-ups-command", Value: "upsc", EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_COMMAND")},
+		&cli.StringFlag{Name: "host-ups-targets", EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_TARGETS")},
+		&cli.DurationFlag{Name: "host-ups-timeout", Value: 3 * time.Second, EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_TIMEOUT")},
 		&cli.BoolFlag{Name: "host-intel-gpu-top-enabled", EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_ENABLED")},
 		&cli.StringFlag{Name: "host-intel-gpu-top-path", Value: "intel_gpu_top", EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_PATH")},
 		&cli.StringFlag{Name: "host-intel-gpu-top-device", EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_DEVICE")},
@@ -203,44 +213,49 @@ func configFromCLI(c *cli.Context) (config, error) {
 	}
 
 	return config{
-		ListenAddress:          c.String("listen-address"),
-		MetricsPath:            c.String("metrics-path"),
-		ScrapeInterval:         c.Duration("scrape-interval"),
-		DockerHost:             c.String("docker-host"),
-		DockerTimeout:          c.Duration("docker-timeout"),
-		ProjectLabel:           c.String("project-label"),
-		StandaloneProjectName:  c.String("standalone-project-name"),
-		ContainerConcurrency:   concurrency,
-		DetailedContainerStats: c.Bool("detailed-container-stats"),
-		MQTTEnabled:            c.Bool("mqtt-enabled"),
-		MQTTBroker:             c.String("mqtt-broker"),
-		MQTTClientID:           c.String("mqtt-client-id"),
-		MQTTUsername:           c.String("mqtt-username"),
-		MQTTPassword:           c.String("mqtt-password"),
-		MQTTTopicPrefix:        c.String("mqtt-topic-prefix"),
-		DiscoveryPrefix:        c.String("homeassistant-discovery-prefix"),
-		MQTTQoS:                byte(qos),
-		MQTTRetain:             c.Bool("mqtt-retain"),
-		MQTTInterval:           mqttInterval,
-		MQTTConnectTimeout:     c.Duration("mqtt-connect-timeout"),
-		HomeAssistantExpiresIn: expireAfter,
-		HostMetricsEnabled:     c.Bool("host-metrics-enabled"),
-		HostProcFS:             c.String("host-procfs"),
-		HostSysFS:              c.String("host-sysfs"),
-		HostNameOverride:       c.String("host-name"),
-		HostHostnamePath:       c.String("host-hostname-path"),
-		HostFilesystems:        hostFilesystems,
-		HostNetworkInclude:     hostNetworkInclude,
-		HostDRIPath:            c.String("host-dri-path"),
-		HostIntelGPUTopEnabled: c.Bool("host-intel-gpu-top-enabled"),
-		HostIntelGPUTopPath:    c.String("host-intel-gpu-top-path"),
-		HostIntelGPUTopDevice:  c.String("host-intel-gpu-top-device"),
-		HostIntelGPUTopPeriod:  c.Duration("host-intel-gpu-top-period"),
-		HostVMsEnabled:         c.Bool("host-virtual-machines-enabled"),
-		HostVirshPath:          c.String("host-virsh-path"),
-		HostVirshURI:           c.String("host-virsh-uri"),
-		HostVirshTimeout:       c.Duration("host-virsh-timeout"),
-		HostVMNameOverrides:    vmNameOverrides,
+		ListenAddress:                c.String("listen-address"),
+		MetricsPath:                  c.String("metrics-path"),
+		ScrapeInterval:               c.Duration("scrape-interval"),
+		DockerHost:                   c.String("docker-host"),
+		DockerTimeout:                c.Duration("docker-timeout"),
+		ProjectLabel:                 c.String("project-label"),
+		StandaloneProjectName:        c.String("standalone-project-name"),
+		ContainerConcurrency:         concurrency,
+		DetailedContainerStats:       c.Bool("detailed-container-stats"),
+		MQTTEnabled:                  c.Bool("mqtt-enabled"),
+		MQTTBroker:                   c.String("mqtt-broker"),
+		MQTTClientID:                 c.String("mqtt-client-id"),
+		MQTTUsername:                 c.String("mqtt-username"),
+		MQTTPassword:                 c.String("mqtt-password"),
+		MQTTTopicPrefix:              c.String("mqtt-topic-prefix"),
+		DiscoveryPrefix:              c.String("homeassistant-discovery-prefix"),
+		MQTTQoS:                      byte(qos),
+		MQTTRetain:                   c.Bool("mqtt-retain"),
+		MQTTInterval:                 mqttInterval,
+		MQTTConnectTimeout:           c.Duration("mqtt-connect-timeout"),
+		HomeAssistantExpiresIn:       expireAfter,
+		HostMetricsEnabled:           c.Bool("host-metrics-enabled"),
+		HostProcFS:                   c.String("host-procfs"),
+		HostSysFS:                    c.String("host-sysfs"),
+		HostNameOverride:             c.String("host-name"),
+		HostHostnamePath:             c.String("host-hostname-path"),
+		HostFilesystems:              hostFilesystems,
+		HostNetworkInclude:           hostNetworkInclude,
+		HostDRIPath:                  c.String("host-dri-path"),
+		HostTemperatureAverageWindow: c.Duration("host-temperature-average-window"),
+		HostUPSEnabled:               c.Bool("host-ups-enabled"),
+		HostUPSCommand:               c.String("host-ups-command"),
+		HostUPSTargets:               parseCSV(c.String("host-ups-targets")),
+		HostUPSTimeout:               c.Duration("host-ups-timeout"),
+		HostIntelGPUTopEnabled:       c.Bool("host-intel-gpu-top-enabled"),
+		HostIntelGPUTopPath:          c.String("host-intel-gpu-top-path"),
+		HostIntelGPUTopDevice:        c.String("host-intel-gpu-top-device"),
+		HostIntelGPUTopPeriod:        c.Duration("host-intel-gpu-top-period"),
+		HostVMsEnabled:               c.Bool("host-virtual-machines-enabled"),
+		HostVirshPath:                c.String("host-virsh-path"),
+		HostVirshURI:                 c.String("host-virsh-uri"),
+		HostVirshTimeout:             c.Duration("host-virsh-timeout"),
+		HostVMNameOverrides:          vmNameOverrides,
 	}, nil
 }
 
@@ -266,22 +281,27 @@ func run(cfg config) error {
 	var hostCollector *hostcollector.Collector
 	if cfg.HostMetricsEnabled {
 		hostCollector, err = hostcollector.New(hostcollector.Config{
-			ProcFS:             cfg.HostProcFS,
-			SysFS:              cfg.HostSysFS,
-			HostnameOverride:   cfg.HostNameOverride,
-			HostnamePath:       cfg.HostHostnamePath,
-			Filesystems:        cfg.HostFilesystems,
-			NetworkInclude:     cfg.HostNetworkInclude,
-			DRIPath:            cfg.HostDRIPath,
-			IntelGPUTopEnabled: cfg.HostIntelGPUTopEnabled,
-			IntelGPUTopPath:    cfg.HostIntelGPUTopPath,
-			IntelGPUTopDevice:  cfg.HostIntelGPUTopDevice,
-			IntelGPUTopPeriod:  cfg.HostIntelGPUTopPeriod,
-			VMsEnabled:         cfg.HostVMsEnabled,
-			VirshPath:          cfg.HostVirshPath,
-			VirshURI:           cfg.HostVirshURI,
-			VirshTimeout:       cfg.HostVirshTimeout,
-			VMNameOverrides:    cfg.HostVMNameOverrides,
+			ProcFS:                   cfg.HostProcFS,
+			SysFS:                    cfg.HostSysFS,
+			HostnameOverride:         cfg.HostNameOverride,
+			HostnamePath:             cfg.HostHostnamePath,
+			Filesystems:              cfg.HostFilesystems,
+			NetworkInclude:           cfg.HostNetworkInclude,
+			DRIPath:                  cfg.HostDRIPath,
+			TemperatureAverageWindow: cfg.HostTemperatureAverageWindow,
+			UPSEnabled:               cfg.HostUPSEnabled,
+			UPSCommand:               cfg.HostUPSCommand,
+			UPSTargets:               cfg.HostUPSTargets,
+			UPSTimeout:               cfg.HostUPSTimeout,
+			IntelGPUTopEnabled:       cfg.HostIntelGPUTopEnabled,
+			IntelGPUTopPath:          cfg.HostIntelGPUTopPath,
+			IntelGPUTopDevice:        cfg.HostIntelGPUTopDevice,
+			IntelGPUTopPeriod:        cfg.HostIntelGPUTopPeriod,
+			VMsEnabled:               cfg.HostVMsEnabled,
+			VirshPath:                cfg.HostVirshPath,
+			VirshURI:                 cfg.HostVirshURI,
+			VirshTimeout:             cfg.HostVirshTimeout,
+			VMNameOverrides:          cfg.HostVMNameOverrides,
 		})
 		if err != nil {
 			return err

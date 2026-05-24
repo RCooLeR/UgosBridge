@@ -104,7 +104,7 @@ var vmSensors = map[string]sensorDefinition{
 var hostSensors = map[string]sensorDefinition{
 	"cpu":       {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement"},
 	"cpufreq":   {NameSuffix: "CPU Frequency", ObjectID: "cpu_frequency_mhz", ValueKey: "cpu_frequency_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement"},
-	"load1":     {NameSuffix: "Load 1m", ObjectID: "load_1", ValueKey: "load_1", Icon: "mdi:gauge", StateClass: "measurement"},
+	"load1":     {NameSuffix: "Load 1m", ObjectID: "load_1", ValueKey: "load_1", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement"},
 	"memory":    {NameSuffix: "Memory Used", ObjectID: "memory_used_bytes", ValueKey: "memory_used_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"memorypct": {NameSuffix: "Memory Used", ObjectID: "memory_used_percent", ValueKey: "memory_used_percent", Unit: "%", Icon: "mdi:memory", StateClass: "measurement"},
 	"swappct":   {NameSuffix: "Swap Used", ObjectID: "swap_used_percent", ValueKey: "swap_used_percent", Unit: "%", Icon: "mdi:swap-horizontal", StateClass: "measurement"},
@@ -181,6 +181,20 @@ var coolingSensors = map[string]sensorDefinition{
 	"max":     {NameSuffix: "Cooling Max State", ObjectID: "cooling_max_state", ValueKey: "cooling_max_state", Icon: "mdi:fan", StateClass: "measurement"},
 }
 
+var upsSensors = map[string]sensorDefinition{
+	"status":        {NameSuffix: "Status", ObjectID: "status", ValueKey: "status", Icon: "mdi:power-plug-battery"},
+	"charge":        {NameSuffix: "Battery Charge", ObjectID: "battery_charge_percent", ValueKey: "battery_charge_percent", Unit: "%", Icon: "mdi:battery", DeviceClass: "battery", StateClass: "measurement"},
+	"runtime":       {NameSuffix: "Battery Runtime", ObjectID: "battery_runtime_seconds", ValueKey: "battery_runtime_seconds", Unit: "s", Icon: "mdi:timer-outline", DeviceClass: "duration", StateClass: "measurement"},
+	"battery_volt":  {NameSuffix: "Battery Voltage", ObjectID: "battery_voltage", ValueKey: "battery_voltage", Unit: "V", Icon: "mdi:sine-wave", DeviceClass: "voltage", StateClass: "measurement"},
+	"input_volt":    {NameSuffix: "Input Voltage", ObjectID: "input_voltage", ValueKey: "input_voltage", Unit: "V", Icon: "mdi:transmission-tower-import", DeviceClass: "voltage", StateClass: "measurement"},
+	"output_volt":   {NameSuffix: "Output Voltage", ObjectID: "output_voltage", ValueKey: "output_voltage", Unit: "V", Icon: "mdi:transmission-tower-export", DeviceClass: "voltage", StateClass: "measurement"},
+	"load":          {NameSuffix: "Load", ObjectID: "load_percent", ValueKey: "load_percent", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement"},
+	"power":         {NameSuffix: "Real Power", ObjectID: "real_power_watts", ValueKey: "real_power_watts", Unit: "W", Icon: "mdi:flash", DeviceClass: "power", StateClass: "measurement"},
+	"nominal_power": {NameSuffix: "Nominal Real Power", ObjectID: "nominal_real_power_watts", ValueKey: "nominal_real_power_watts", Unit: "W", Icon: "mdi:flash-outline", DeviceClass: "power", StateClass: "measurement"},
+	"frequency":     {NameSuffix: "Line Frequency", ObjectID: "line_frequency_hz", ValueKey: "line_frequency_hz", Unit: "Hz", Icon: "mdi:sine-wave", DeviceClass: "frequency", StateClass: "measurement"},
+	"temperature":   {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement"},
+}
+
 var containerBinarySensors = map[string]binarySensorDefinition{
 	"running": {NameSuffix: "Running", ObjectID: "running", ValueTemplate: "{{ value_json.running }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:docker"},
 }
@@ -208,6 +222,12 @@ var bondSlaveBinarySensors = map[string]binarySensorDefinition{
 
 var arrayBinarySensors = map[string]binarySensorDefinition{
 	"degraded": {NameSuffix: "Degraded", ObjectID: "degraded", ValueTemplate: "{{ 'ON' if value_json.degraded_disks|int > 0 else 'OFF' }}", PayloadOn: "ON", PayloadOff: "OFF", DeviceClass: "problem", Icon: "mdi:alert"},
+}
+
+var upsBinarySensors = map[string]binarySensorDefinition{
+	"online":      {NameSuffix: "Online", ObjectID: "online", ValueTemplate: "{{ value_json.online }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:power-plug"},
+	"on_battery":  {NameSuffix: "On Battery", ObjectID: "on_battery", ValueTemplate: "{{ value_json.on_battery }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:battery-arrow-down"},
+	"low_battery": {NameSuffix: "Low Battery", ObjectID: "low_battery", ValueTemplate: "{{ value_json.low_battery }}", PayloadOn: "1", PayloadOff: "0", DeviceClass: "problem", Icon: "mdi:battery-alert"},
 }
 
 func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
@@ -946,6 +966,81 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		}
 	}
 
+	for _, ups := range hostSnapshot.UPSs {
+		slug := slugify(ups.Name)
+		stateTopic := fmt.Sprintf("%s/host/ups/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
+		payload := map[string]any{
+			"name":         ups.Name,
+			"model":        ups.Model,
+			"manufacturer": ups.Manufacturer,
+			"serial":       ups.Serial,
+			"status":       ups.Status,
+			"online":       boolToInt(ups.Online),
+			"on_battery":   boolToInt(ups.OnBattery),
+			"low_battery":  boolToInt(ups.LowBattery),
+			"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
+		}
+		if ups.BatteryChargeAvailable {
+			payload["battery_charge_percent"] = ups.BatteryChargePercent
+		}
+		if ups.BatteryRuntimeAvailable {
+			payload["battery_runtime_seconds"] = ups.BatteryRuntimeSeconds
+		}
+		if ups.BatteryVoltageAvailable {
+			payload["battery_voltage"] = ups.BatteryVoltage
+		}
+		if ups.InputVoltageAvailable {
+			payload["input_voltage"] = ups.InputVoltage
+		}
+		if ups.OutputVoltageAvailable {
+			payload["output_voltage"] = ups.OutputVoltage
+		}
+		if ups.LoadPercentAvailable {
+			payload["load_percent"] = ups.LoadPercent
+		}
+		if ups.RealPowerWattsAvailable {
+			payload["real_power_watts"] = ups.RealPowerWatts
+		}
+		if ups.NominalRealPowerWattsAvailable {
+			payload["nominal_real_power_watts"] = ups.NominalRealPowerWatts
+		}
+		if ups.LineFrequencyHzAvailable {
+			payload["line_frequency_hz"] = ups.LineFrequencyHz
+		}
+		if ups.TemperatureCelsiusAvailable {
+			payload["temperature_celsius"] = ups.TemperatureCelsius
+		}
+		if err := p.publishJSON(stateTopic, payload); err != nil {
+			return err
+		}
+
+		device := deviceDescriptor{
+			ID:           fmt.Sprintf("%s_ups_%s", hostDeviceID, slug),
+			Name:         fmt.Sprintf("%s UPS %s", hostSnapshot.Name, ups.Name),
+			ViaDeviceID:  hostDeviceID,
+			Manufacturer: ups.Manufacturer,
+			Model:        firstNonEmpty(ups.Model, "UPS"),
+		}
+		entityName := fmt.Sprintf("%s %s", hostSnapshot.Name, ups.Name)
+		for key, def := range upsSensors {
+			if !upsSensorAvailable(ups, key) {
+				continue
+			}
+			entityKey := fmt.Sprintf("ups:%s:%s", slug, key)
+			discoveryTopic := p.discoveryTopic("sensor", "ups_"+slug, def.ObjectID)
+			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
+				return err
+			}
+		}
+		for key, def := range upsBinarySensors {
+			entityKey := fmt.Sprintf("ups_binary:%s:%s", slug, key)
+			discoveryTopic := p.discoveryTopic("binary_sensor", "ups_"+slug, def.ObjectID)
+			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1105,6 +1200,35 @@ func boolToInt(value bool) int {
 		return 1
 	}
 	return 0
+}
+
+func upsSensorAvailable(ups model.UPSSnapshot, key string) bool {
+	switch key {
+	case "status":
+		return true
+	case "charge":
+		return ups.BatteryChargeAvailable
+	case "runtime":
+		return ups.BatteryRuntimeAvailable
+	case "battery_volt":
+		return ups.BatteryVoltageAvailable
+	case "input_volt":
+		return ups.InputVoltageAvailable
+	case "output_volt":
+		return ups.OutputVoltageAvailable
+	case "load":
+		return ups.LoadPercentAvailable
+	case "power":
+		return ups.RealPowerWattsAvailable
+	case "nominal_power":
+		return ups.NominalRealPowerWattsAvailable
+	case "frequency":
+		return ups.LineFrequencyHzAvailable
+	case "temperature":
+		return ups.TemperatureCelsiusAvailable
+	default:
+		return false
+	}
 }
 
 func percentage(used uint64, total uint64) float64 {

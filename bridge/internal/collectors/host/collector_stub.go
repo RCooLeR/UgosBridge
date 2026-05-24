@@ -16,22 +16,27 @@ type FilesystemMount struct {
 }
 
 type Config struct {
-	ProcFS             string
-	SysFS              string
-	HostnamePath       string
-	HostnameOverride   string
-	Filesystems        []FilesystemMount
-	NetworkInclude     []string
-	DRIPath            string
-	IntelGPUTopEnabled bool
-	IntelGPUTopPath    string
-	IntelGPUTopDevice  string
-	IntelGPUTopPeriod  time.Duration
-	VMsEnabled         bool
-	VirshPath          string
-	VirshURI           string
-	VirshTimeout       time.Duration
-	VMNameOverrides    map[string]string
+	ProcFS                   string
+	SysFS                    string
+	HostnamePath             string
+	HostnameOverride         string
+	Filesystems              []FilesystemMount
+	NetworkInclude           []string
+	DRIPath                  string
+	TemperatureAverageWindow time.Duration
+	UPSEnabled               bool
+	UPSCommand               string
+	UPSTargets               []string
+	UPSTimeout               time.Duration
+	IntelGPUTopEnabled       bool
+	IntelGPUTopPath          string
+	IntelGPUTopDevice        string
+	IntelGPUTopPeriod        time.Duration
+	VMsEnabled               bool
+	VirshPath                string
+	VirshURI                 string
+	VirshTimeout             time.Duration
+	VMNameOverrides          map[string]string
 }
 
 type Collector struct{}

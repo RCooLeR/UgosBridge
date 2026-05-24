@@ -160,6 +160,11 @@ Configure host paths with:
 | `UGOS_BRIDGE_HOST_FILESYSTEMS` | `/:/rootfs,/volume1:/volume1,/volume2:/volume2` | Host mountpoint to container path mapping. |
 | `UGOS_BRIDGE_HOST_NETWORK_INCLUDE` | `eth.*,bond.*` | Interface include regex list. |
 | `UGOS_BRIDGE_HOST_DRI_PATH` | `/dev/dri` | Mounted DRM device path for GPU discovery. |
+| `UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW` | `2m` | Rolling window used to smooth temperature sensors. Set `0s` to publish raw readings. |
+| `UGOS_BRIDGE_HOST_UPS_ENABLED` | `false` | Enable UPS collection through NUT `upsc`. |
+| `UGOS_BRIDGE_HOST_UPS_COMMAND` | `upsc` | UPS command to execute. |
+| `UGOS_BRIDGE_HOST_UPS_TARGETS` | | Comma-separated UPS targets such as `ups@localhost`. When empty, the bridge runs `upsc -l`. |
+| `UGOS_BRIDGE_HOST_UPS_TIMEOUT` | `3s` | Timeout for each UPS command. |
 
 Set `UGOS_BRIDGE_HOST_NAME` if the hostname inside the container is not the NAS
 hostname you want in metrics and Home Assistant.
@@ -310,6 +315,10 @@ Temperature and fan data comes from:
 - `/sys/class/hwmon`
 - `/sys/class/thermal/thermal_zone*`
 
+Temperature readings are exported as a rolling average over
+`UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW` to avoid short hardware sensor
+spikes creating noisy alerts. Fan readings remain raw.
+
 Cooling-device state comes from:
 
 ```text
@@ -318,6 +327,35 @@ Cooling-device state comes from:
 
 Cooling percentage is calculated only when a cooling device exposes a valid
 maximum state.
+
+## UPS Data
+
+UPS monitoring is optional and uses Network UPS Tools through the `upsc`
+command.
+
+Enable it with:
+
+```text
+UGOS_BRIDGE_HOST_UPS_ENABLED=true
+UGOS_BRIDGE_HOST_UPS_TARGETS=ups@host.docker.internal
+```
+
+If `UGOS_BRIDGE_HOST_UPS_TARGETS` is empty, the bridge asks `upsc -l` for local
+UPS names and then reads each one. Configure explicit targets when the UPS
+server is remote or when automatic listing is not available. Use
+`ups@localhost` only when the bridge shares the host network namespace or when
+the NUT server runs in the same container. On Linux Docker, add
+`host.docker.internal:host-gateway` to `extra_hosts` or use the NAS host IP.
+
+For each UPS, the bridge publishes available identity, status, battery charge,
+runtime, voltages, load, real power, line frequency, and temperature values.
+Online, on-battery, and low-battery status are also exported as boolean metrics
+and Home Assistant binary sensors.
+
+Some NUT drivers expose scaled or placeholder voltage values. The bridge
+normalizes low battery voltages such as `1.3` to `13V` for drivers that also
+report low nominal battery voltage values such as `1.2`, while still suppressing
+implausible AC input or output voltages.
 
 ## Virtual Machines
 

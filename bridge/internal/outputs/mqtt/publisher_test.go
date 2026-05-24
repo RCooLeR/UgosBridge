@@ -166,6 +166,86 @@ func TestHealthSensorsUseUniqueEntityIDsPerSensor(t *testing.T) {
 	}
 }
 
+func TestHostLoadSensorUsesPercentUnit(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+
+	snapshot := model.Snapshot{
+		CollectedAt: time.Date(2026, 4, 27, 23, 30, 0, 0, time.UTC),
+		Host: &model.HostSnapshot{
+			Name: "dxp6800_pro",
+			CPU:  model.HostCPUSnapshot{Load1: 5.29},
+		},
+	}
+
+	if err := publisher.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost returned error: %v", err)
+	}
+
+	load := configPayload(t, client, publisher.discoveryTopic("sensor", "host_dxp6800_pro", "load_1"))
+	if load["unit_of_measurement"] != "%" {
+		t.Fatalf("load unit = %#v, want %%", load["unit_of_measurement"])
+	}
+}
+
+func TestUPSPublishesHomeAssistantEntities(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+
+	snapshot := model.Snapshot{
+		CollectedAt: time.Date(2026, 4, 27, 23, 30, 0, 0, time.UTC),
+		Host: &model.HostSnapshot{
+			Name: "dxp6800_pro",
+			UPSs: []model.UPSSnapshot{
+				{
+					Name:                   "ups",
+					Manufacturer:           "APC",
+					Model:                  "Back-UPS",
+					Serial:                 "ABC123",
+					Status:                 "OL CHRG",
+					Online:                 true,
+					BatteryChargePercent:   97,
+					BatteryChargeAvailable: true,
+					LoadPercent:            18,
+					LoadPercentAvailable:   true,
+				},
+			},
+		},
+	}
+
+	if err := publisher.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost returned error: %v", err)
+	}
+
+	state := configPayload(t, client, "ugos_bridge/host/ups/ups/state")
+	if state["battery_charge_percent"] != float64(97) {
+		t.Fatalf("battery charge payload = %#v, want 97", state["battery_charge_percent"])
+	}
+	if state["online"] != float64(1) {
+		t.Fatalf("online payload = %#v, want 1", state["online"])
+	}
+
+	charge := configPayload(t, client, publisher.discoveryTopic("sensor", "ups_ups", "battery_charge_percent"))
+	if viaDevice(t, charge) != "ugos_bridge_host_dxp6800_pro" {
+		t.Fatalf("UPS charge via_device = %q, want host parent", viaDevice(t, charge))
+	}
+
+	online := configPayload(t, client, publisher.discoveryTopic("binary_sensor", "ups_ups", "online"))
+	if online["value_template"] != "{{ value_json.online }}" {
+		t.Fatalf("online value_template = %#v", online["value_template"])
+	}
+}
+
 func TestBondSlaveEntitiesDoNotReuseNetworkEntityIDs(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
 	publisher := &MQTTPublisher{

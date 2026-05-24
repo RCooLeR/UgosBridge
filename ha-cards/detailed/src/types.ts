@@ -76,6 +76,9 @@ export interface MemorySummaryCard extends BaseSummaryCard {
 export interface LoadSummaryCard extends BaseSummaryCard {
   kind: 'system-load';
   value: number;
+  valuePercent: number;
+  valueText: string;
+  unit: 'load' | 'percent';
   statusText: string;
 }
 
