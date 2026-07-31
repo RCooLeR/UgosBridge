@@ -49,7 +49,8 @@ services:
       UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX: "homeassistant"
       UGOS_BRIDGE_MQTT_INTERVAL: "60"
       UGOS_BRIDGE_MQTT_RETAIN: "true"
-      UGOS_BRIDGE_MQTT_EXPIRE_AFTER: "360"
+      UGOS_BRIDGE_MQTT_ENTITY_GRACE: "180"
+      # UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST: "dockerd,containerd"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro

@@ -83,7 +83,8 @@ type config struct {
 	MQTTRetain                   bool
 	MQTTInterval                 time.Duration
 	MQTTConnectTimeout           time.Duration
-	HomeAssistantExpiresIn       time.Duration
+	MQTTProcessAllowlist         []string
+	HomeAssistantEntityGrace     time.Duration
 	HostMetricsEnabled           bool
 	HostProcFS                   string
 	HostSysFS                    string
@@ -149,7 +150,8 @@ func buildFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "mqtt-retain", Value: true, EnvVars: envVars("MQTT_RETAIN", "UGOS_BRIDGE_MQTT_RETAIN")},
 		&cli.StringFlag{Name: "mqtt-interval", Value: "15s", EnvVars: envVars("UGOS_BRIDGE_MQTT_INTERVAL")},
 		&cli.DurationFlag{Name: "mqtt-connect-timeout", Value: 10 * time.Second, EnvVars: envVars("MQTT_CONNECT_TIMEOUT", "UGOS_BRIDGE_MQTT_CONNECT_TIMEOUT")},
-		&cli.StringFlag{Name: "homeassistant-expire-after", Value: "45s", EnvVars: envVars("HOMEASSISTANT_EXPIRE_AFTER", "UGOS_BRIDGE_MQTT_EXPIRE_AFTER")},
+		&cli.StringFlag{Name: "mqtt-process-allowlist", EnvVars: envVars("UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST")},
+		&cli.StringFlag{Name: "homeassistant-entity-grace", Aliases: []string{"homeassistant-expire-after"}, Value: "45s", EnvVars: envVars("UGOS_BRIDGE_MQTT_ENTITY_GRACE", "HOMEASSISTANT_EXPIRE_AFTER", "UGOS_BRIDGE_MQTT_EXPIRE_AFTER")},
 		&cli.BoolFlag{Name: "host-metrics-enabled", EnvVars: envVars("HOST_METRICS_ENABLED", "UGOS_BRIDGE_HOST_METRICS_ENABLED")},
 		&cli.StringFlag{Name: "host-procfs", Value: "/host/proc", EnvVars: envVars("HOST_PROCFS", "UGOS_BRIDGE_HOST_PROCFS")},
 		&cli.StringFlag{Name: "host-sysfs", Value: "/host/sys", EnvVars: envVars("HOST_SYSFS", "UGOS_BRIDGE_HOST_SYSFS")},
@@ -192,15 +194,19 @@ func configFromCLI(c *cli.Context) (config, error) {
 	if err != nil {
 		return config{}, fmt.Errorf("mqtt-interval: %w", err)
 	}
-	expireAfter, err := parseFlexibleDuration(c.String("homeassistant-expire-after"))
+	entityGraceRaw := c.String("homeassistant-entity-grace")
+	if c.IsSet("homeassistant-expire-after") {
+		entityGraceRaw = c.String("homeassistant-expire-after")
+	}
+	entityGrace, err := parseFlexibleDuration(entityGraceRaw)
 	if err != nil {
-		return config{}, fmt.Errorf("homeassistant-expire-after: %w", err)
+		return config{}, fmt.Errorf("homeassistant-entity-grace: %w", err)
 	}
 	if mqttInterval <= 0 {
 		return config{}, fmt.Errorf("mqtt-interval must be greater than zero")
 	}
-	if expireAfter <= 0 {
-		return config{}, fmt.Errorf("homeassistant-expire-after must be greater than zero")
+	if entityGrace <= 0 {
+		return config{}, fmt.Errorf("homeassistant-entity-grace must be greater than zero")
 	}
 	hostFilesystems, err := parseFilesystemMounts(c.String("host-filesystems"))
 	if err != nil {
@@ -233,7 +239,8 @@ func configFromCLI(c *cli.Context) (config, error) {
 		MQTTRetain:                   c.Bool("mqtt-retain"),
 		MQTTInterval:                 mqttInterval,
 		MQTTConnectTimeout:           c.Duration("mqtt-connect-timeout"),
-		HomeAssistantExpiresIn:       expireAfter,
+		MQTTProcessAllowlist:         parseCSV(c.String("mqtt-process-allowlist")),
+		HomeAssistantEntityGrace:     entityGrace,
 		HostMetricsEnabled:           c.Bool("host-metrics-enabled"),
 		HostProcFS:                   c.String("host-procfs"),
 		HostSysFS:                    c.String("host-sysfs"),
@@ -315,18 +322,21 @@ func run(cfg config) error {
 		if cfg.MQTTBroker == "" {
 			return fmt.Errorf("mqtt is enabled but mqtt-broker is empty")
 		}
+		unavailableAfter := pollCount(cfg.HomeAssistantEntityGrace, cfg.MQTTInterval)
 		publisher, err = mqttoutput.NewMQTTPublisher(mqttoutput.MQTTConfig{
-			Broker:             cfg.MQTTBroker,
-			ClientID:           cfg.MQTTClientID,
-			Username:           cfg.MQTTUsername,
-			Password:           cfg.MQTTPassword,
-			TopicPrefix:        cfg.MQTTTopicPrefix,
-			DiscoveryPrefix:    cfg.DiscoveryPrefix,
-			QoS:                cfg.MQTTQoS,
-			Retain:             cfg.MQTTRetain,
-			ConnectTimeout:     cfg.MQTTConnectTimeout,
-			ExpireAfterSeconds: int(cfg.HomeAssistantExpiresIn.Seconds()),
-			Log:                logger,
+			Broker:           cfg.MQTTBroker,
+			ClientID:         cfg.MQTTClientID,
+			Username:         cfg.MQTTUsername,
+			Password:         cfg.MQTTPassword,
+			TopicPrefix:      cfg.MQTTTopicPrefix,
+			DiscoveryPrefix:  cfg.DiscoveryPrefix,
+			QoS:              cfg.MQTTQoS,
+			Retain:           cfg.MQTTRetain,
+			ConnectTimeout:   cfg.MQTTConnectTimeout,
+			ProcessAllowlist: cfg.MQTTProcessAllowlist,
+			UnavailableAfter: unavailableAfter,
+			RemoveAfter:      unavailableAfter * 10,
+			Log:              logger,
 		})
 		if err != nil {
 			return err
@@ -433,6 +443,17 @@ func parseFlexibleDuration(raw string) (time.Duration, error) {
 		return 0, fmt.Errorf("use Go duration format like 15s or plain seconds like 60")
 	}
 	return duration, nil
+}
+
+func pollCount(window time.Duration, interval time.Duration) int {
+	if interval <= 0 {
+		return 2
+	}
+	count := int((window + interval - 1) / interval)
+	if count < 2 {
+		return 2
+	}
+	return count
 }
 
 func preferredHostName(current string, override string) string {

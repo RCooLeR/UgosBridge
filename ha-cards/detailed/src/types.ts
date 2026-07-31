@@ -127,6 +127,7 @@ export interface DriveInfo {
   status: HealthStatus;
   mediaType?: string;
   diskSlug?: string;
+  deviceName?: string;
   deviceModel?: string;
 }
 

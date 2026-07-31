@@ -1,12 +1,14 @@
 package mqttoutput
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -19,18 +21,25 @@ var nonAlphaNum = regexp.MustCompile(`[^a-z0-9]+`)
 
 var ErrNotConnected = errors.New("mqtt broker is not connected")
 
+const (
+	defaultUnavailableAfter = 3
+	defaultRemoveAfter      = 30
+)
+
 type MQTTConfig struct {
-	Broker             string
-	ClientID           string
-	Username           string
-	Password           string
-	TopicPrefix        string
-	DiscoveryPrefix    string
-	QoS                byte
-	Retain             bool
-	ConnectTimeout     time.Duration
-	ExpireAfterSeconds int
-	Log                zerolog.Logger
+	Broker           string
+	ClientID         string
+	Username         string
+	Password         string
+	TopicPrefix      string
+	DiscoveryPrefix  string
+	QoS              byte
+	Retain           bool
+	ConnectTimeout   time.Duration
+	ProcessAllowlist []string
+	UnavailableAfter int
+	RemoveAfter      int
+	Log              zerolog.Logger
 }
 
 type MQTTPublisher struct {
@@ -38,13 +47,25 @@ type MQTTPublisher struct {
 	cfg                MQTTConfig
 	log                zerolog.Logger
 	availabilityTopic  string
+	availabilityOnline string
 	mu                 sync.Mutex
+	replayPending      atomic.Bool
 	discoveredEntities map[string]publishedEntity
+	lastPayloads       map[string]string
+	preparedPayloads   map[string]preparedPayload
 }
 
 type publishedEntity struct {
-	discoveryTopic string
-	stateTopic     string
+	discoveryTopic    string
+	stateTopic        string
+	availabilityTopic string
+	missingPolls      int
+}
+
+type preparedPayload struct {
+	values          map[string]any
+	attributes      map[string]any
+	attributesTopic string
 }
 
 type sensorDefinition struct {
@@ -56,12 +77,13 @@ type sensorDefinition struct {
 	DeviceClass    string
 	StateClass     string
 	EntityCategory string
+	Attributes     bool
 }
 
 type binarySensorDefinition struct {
 	NameSuffix     string
 	ObjectID       string
-	ValueTemplate  string
+	ValueKey       string
 	PayloadOn      string
 	PayloadOff     string
 	DeviceClass    string
@@ -79,20 +101,20 @@ type deviceDescriptor struct {
 }
 
 var projectSensors = map[string]sensorDefinition{
-	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement"},
+	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
 	"memory":  {NameSuffix: "Memory", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"total":   {NameSuffix: "Total Containers", ObjectID: "total_containers", ValueKey: "total_containers", Icon: "mdi:docker", StateClass: "measurement"},
 	"running": {NameSuffix: "Running Containers", ObjectID: "running_containers", ValueKey: "running_containers", Icon: "mdi:play-circle", StateClass: "measurement"},
 }
 
 var containerSensors = map[string]sensorDefinition{
-	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement"},
+	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
 	"memory":  {NameSuffix: "Memory", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"running": {NameSuffix: "Running", ObjectID: "running", ValueKey: "running", Icon: "mdi:play-circle", StateClass: "measurement"},
 }
 
 var vmSensors = map[string]sensorDefinition{
-	"cpu":            {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement"},
+	"cpu":            {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
 	"memory":         {NameSuffix: "Memory Used", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"memory_current": {NameSuffix: "Memory Current", ObjectID: "memory_current_bytes", ValueKey: "memory_current_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"running":        {NameSuffix: "Running", ObjectID: "running", ValueKey: "running", Icon: "mdi:play-circle", StateClass: "measurement"},
@@ -102,10 +124,10 @@ var vmSensors = map[string]sensorDefinition{
 }
 
 var hostSensors = map[string]sensorDefinition{
-	"cpu":       {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement"},
+	"cpu":       {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
 	"cpufreq":   {NameSuffix: "CPU Frequency", ObjectID: "cpu_frequency_mhz", ValueKey: "cpu_frequency_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement"},
 	"load1":     {NameSuffix: "Load 1m", ObjectID: "load_1", ValueKey: "load_1", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement"},
-	"memory":    {NameSuffix: "Memory Used", ObjectID: "memory_used_bytes", ValueKey: "memory_used_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
+	"memory":    {NameSuffix: "Memory Used", ObjectID: "memory_used_bytes", ValueKey: "memory_used_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"memorypct": {NameSuffix: "Memory Used", ObjectID: "memory_used_percent", ValueKey: "memory_used_percent", Unit: "%", Icon: "mdi:memory", StateClass: "measurement"},
 	"swappct":   {NameSuffix: "Swap Used", ObjectID: "swap_used_percent", ValueKey: "swap_used_percent", Unit: "%", Icon: "mdi:swap-horizontal", StateClass: "measurement"},
 	"uptime":    {NameSuffix: "Uptime", ObjectID: "uptime_seconds", ValueKey: "uptime_seconds", Unit: "s", Icon: "mdi:clock-outline", DeviceClass: "duration", StateClass: "measurement"},
@@ -113,13 +135,13 @@ var hostSensors = map[string]sensorDefinition{
 
 var processSensors = map[string]sensorDefinition{
 	"count":    {NameSuffix: "Process Count", ObjectID: "process_count", ValueKey: "process_count", Icon: "mdi:counter", StateClass: "measurement"},
-	"cpu":      {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement"},
+	"cpu":      {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
 	"memory":   {NameSuffix: "Memory", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"cpu_time": {NameSuffix: "CPU Time", ObjectID: "cpu_time_seconds", ValueKey: "cpu_time_seconds", Unit: "s", Icon: "mdi:timer-outline", StateClass: "measurement"},
 }
 
 var filesystemSensors = map[string]sensorDefinition{
-	"used":     {NameSuffix: "Used", ObjectID: "used_bytes", ValueKey: "used_bytes", Unit: "B", Icon: "mdi:harddisk", DeviceClass: "data_size", StateClass: "measurement"},
+	"used":     {NameSuffix: "Used", ObjectID: "used_bytes", ValueKey: "used_bytes", Unit: "B", Icon: "mdi:harddisk", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"free":     {NameSuffix: "Free", ObjectID: "free_bytes", ValueKey: "free_bytes", Unit: "B", Icon: "mdi:harddisk", DeviceClass: "data_size", StateClass: "measurement"},
 	"used_pct": {NameSuffix: "Used", ObjectID: "used_percent", ValueKey: "used_percent", Unit: "%", Icon: "mdi:chart-donut", StateClass: "measurement"},
 }
@@ -128,7 +150,7 @@ var diskSensors = map[string]sensorDefinition{
 	"read_bps":  {NameSuffix: "Read Throughput", ObjectID: "read_bytes_per_second", ValueKey: "read_bytes_per_second", Unit: "B/s", Icon: "mdi:download", DeviceClass: "data_rate", StateClass: "measurement"},
 	"write_bps": {NameSuffix: "Write Throughput", ObjectID: "write_bytes_per_second", ValueKey: "write_bytes_per_second", Unit: "B/s", Icon: "mdi:upload", DeviceClass: "data_rate", StateClass: "measurement"},
 	"busy":      {NameSuffix: "Busy", ObjectID: "busy_percent", ValueKey: "busy_percent", Unit: "%", Icon: "mdi:harddisk", StateClass: "measurement"},
-	"size":      {NameSuffix: "Size", ObjectID: "size_bytes", ValueKey: "size_bytes", Unit: "B", Icon: "mdi:database", DeviceClass: "data_size", StateClass: "measurement"},
+	"size":      {NameSuffix: "Size", ObjectID: "size_bytes", ValueKey: "size_bytes", Unit: "B", Icon: "mdi:database", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"model":     {NameSuffix: "Model", ObjectID: "model", ValueKey: "model", Icon: "mdi:information-outline"},
 	"vendor":    {NameSuffix: "Vendor", ObjectID: "vendor", ValueKey: "vendor", Icon: "mdi:factory"},
 	"serial":    {NameSuffix: "Serial", ObjectID: "serial", ValueKey: "serial", Icon: "mdi:barcode"},
@@ -136,14 +158,14 @@ var diskSensors = map[string]sensorDefinition{
 }
 
 var networkSensors = map[string]sensorDefinition{
-	"rx_bps":  {NameSuffix: "RX Throughput", ObjectID: "rx_bytes_per_second", ValueKey: "rx_bytes_per_second", Unit: "B/s", Icon: "mdi:download-network", DeviceClass: "data_rate", StateClass: "measurement"},
+	"rx_bps":  {NameSuffix: "RX Throughput", ObjectID: "rx_bytes_per_second", ValueKey: "rx_bytes_per_second", Unit: "B/s", Icon: "mdi:download-network", DeviceClass: "data_rate", StateClass: "measurement", Attributes: true},
 	"tx_bps":  {NameSuffix: "TX Throughput", ObjectID: "tx_bytes_per_second", ValueKey: "tx_bytes_per_second", Unit: "B/s", Icon: "mdi:upload-network", DeviceClass: "data_rate", StateClass: "measurement"},
 	"speed":   {NameSuffix: "Link Speed", ObjectID: "speed_mbps", ValueKey: "speed_mbps", Unit: "Mbit/s", Icon: "mdi:speedometer", StateClass: "measurement"},
 	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueKey: "carrier", Icon: "mdi:lan-connect", StateClass: "measurement"},
 }
 
 var bondSensors = map[string]sensorDefinition{
-	"speed":        {NameSuffix: "Link Speed", ObjectID: "speed_mbps", ValueKey: "speed_mbps", Unit: "Mbit/s", Icon: "mdi:speedometer", StateClass: "measurement"},
+	"speed":        {NameSuffix: "Link Speed", ObjectID: "speed_mbps", ValueKey: "speed_mbps", Unit: "Mbit/s", Icon: "mdi:speedometer", StateClass: "measurement", Attributes: true},
 	"mode":         {NameSuffix: "Mode", ObjectID: "mode", ValueKey: "mode", Icon: "mdi:call-split"},
 	"active_slave": {NameSuffix: "Active Slave", ObjectID: "active_slave", ValueKey: "active_slave", Icon: "mdi:transit-connection-variant"},
 	"mii_status":   {NameSuffix: "MII Status", ObjectID: "mii_status", ValueKey: "mii_status", Icon: "mdi:lan"},
@@ -151,7 +173,7 @@ var bondSensors = map[string]sensorDefinition{
 }
 
 var bondSlaveSensors = map[string]sensorDefinition{
-	"speed":      {NameSuffix: "Link Speed", ObjectID: "speed_mbps", ValueKey: "speed_mbps", Unit: "Mbit/s", Icon: "mdi:speedometer", StateClass: "measurement"},
+	"speed":      {NameSuffix: "Link Speed", ObjectID: "speed_mbps", ValueKey: "speed_mbps", Unit: "Mbit/s", Icon: "mdi:speedometer", StateClass: "measurement", Attributes: true},
 	"mii_status": {NameSuffix: "MII Status", ObjectID: "mii_status", ValueKey: "mii_status", Icon: "mdi:lan"},
 }
 
@@ -160,29 +182,29 @@ var arraySensors = map[string]sensorDefinition{
 	"active":   {NameSuffix: "Active Disks", ObjectID: "active_disks", ValueKey: "active_disks", Icon: "mdi:harddisk", StateClass: "measurement"},
 	"total":    {NameSuffix: "Total Disks", ObjectID: "total_disks", ValueKey: "total_disks", Icon: "mdi:harddisk-plus", StateClass: "measurement"},
 	"sync":     {NameSuffix: "Sync Progress", ObjectID: "sync_completed_percent", ValueKey: "sync_completed_percent", Unit: "%", Icon: "mdi:progress-clock", StateClass: "measurement"},
-	"size":     {NameSuffix: "Size", ObjectID: "size_bytes", ValueKey: "size_bytes", Unit: "B", Icon: "mdi:database", DeviceClass: "data_size", StateClass: "measurement"},
+	"size":     {NameSuffix: "Size", ObjectID: "size_bytes", ValueKey: "size_bytes", Unit: "B", Icon: "mdi:database", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"level":    {NameSuffix: "Level", ObjectID: "level", ValueKey: "level", Icon: "mdi:layers-triple-outline"},
 }
 
 var gpuSensors = map[string]sensorDefinition{
 	"busy":    {NameSuffix: "Busy", ObjectID: "busy_percent", ValueKey: "busy_percent", Unit: "%", Icon: "mdi:gpu", StateClass: "measurement"},
-	"current": {NameSuffix: "Current Frequency", ObjectID: "current_mhz", ValueKey: "current_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement"},
+	"current": {NameSuffix: "Current Frequency", ObjectID: "current_mhz", ValueKey: "current_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement", Attributes: true},
 	"max":     {NameSuffix: "Max Frequency", ObjectID: "max_mhz", ValueKey: "max_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement"},
 }
 
 var healthSensors = map[string]sensorDefinition{
-	"temperature": {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement"},
-	"fan":         {NameSuffix: "Fan Speed", ObjectID: "fan_speed_rpm", ValueKey: "fan_speed_rpm", Unit: "rpm", Icon: "mdi:fan", StateClass: "measurement"},
+	"temperature": {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement", Attributes: true},
+	"fan":         {NameSuffix: "Fan Speed", ObjectID: "fan_speed_rpm", ValueKey: "fan_speed_rpm", Unit: "rpm", Icon: "mdi:fan", StateClass: "measurement", Attributes: true},
 }
 
 var coolingSensors = map[string]sensorDefinition{
 	"percent": {NameSuffix: "Cooling Level", ObjectID: "cooling_percent", ValueKey: "cooling_percent", Unit: "%", Icon: "mdi:fan-chevron-up", StateClass: "measurement"},
-	"state":   {NameSuffix: "Cooling State", ObjectID: "cooling_state", ValueKey: "cooling_state", Icon: "mdi:fan", StateClass: "measurement"},
+	"state":   {NameSuffix: "Cooling State", ObjectID: "cooling_state", ValueKey: "cooling_state", Icon: "mdi:fan", StateClass: "measurement", Attributes: true},
 	"max":     {NameSuffix: "Cooling Max State", ObjectID: "cooling_max_state", ValueKey: "cooling_max_state", Icon: "mdi:fan", StateClass: "measurement"},
 }
 
 var upsSensors = map[string]sensorDefinition{
-	"status":        {NameSuffix: "Status", ObjectID: "status", ValueKey: "status", Icon: "mdi:power-plug-battery"},
+	"status":        {NameSuffix: "Status", ObjectID: "status", ValueKey: "status", Icon: "mdi:power-plug-battery", Attributes: true},
 	"charge":        {NameSuffix: "Battery Charge", ObjectID: "battery_charge_percent", ValueKey: "battery_charge_percent", Unit: "%", Icon: "mdi:battery", DeviceClass: "battery", StateClass: "measurement"},
 	"runtime":       {NameSuffix: "Battery Runtime", ObjectID: "battery_runtime_seconds", ValueKey: "battery_runtime_seconds", Unit: "s", Icon: "mdi:timer-outline", DeviceClass: "duration", StateClass: "measurement"},
 	"battery_volt":  {NameSuffix: "Battery Voltage", ObjectID: "battery_voltage", ValueKey: "battery_voltage", Unit: "V", Icon: "mdi:sine-wave", DeviceClass: "voltage", StateClass: "measurement"},
@@ -196,38 +218,38 @@ var upsSensors = map[string]sensorDefinition{
 }
 
 var containerBinarySensors = map[string]binarySensorDefinition{
-	"running": {NameSuffix: "Running", ObjectID: "running", ValueTemplate: "{{ value_json.running }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:docker"},
+	"running": {NameSuffix: "Running", ObjectID: "running", ValueKey: "running", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:docker"},
 }
 
 var vmBinarySensors = map[string]binarySensorDefinition{
-	"running": {NameSuffix: "Running", ObjectID: "running", ValueTemplate: "{{ value_json.running }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:desktop-tower-monitor"},
+	"running": {NameSuffix: "Running", ObjectID: "running", ValueKey: "running", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:desktop-tower-monitor"},
 }
 
 var filesystemBinarySensors = map[string]binarySensorDefinition{
-	"readonly": {NameSuffix: "Read Only", ObjectID: "read_only", ValueTemplate: "{{ value_json.read_only }}", PayloadOn: "1", PayloadOff: "0", DeviceClass: "problem", Icon: "mdi:file-lock"},
+	"readonly": {NameSuffix: "Read Only", ObjectID: "read_only", ValueKey: "read_only", PayloadOn: "1", PayloadOff: "0", DeviceClass: "problem", Icon: "mdi:file-lock"},
 }
 
 var networkBinarySensors = map[string]binarySensorDefinition{
-	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueTemplate: "{{ value_json.carrier }}", PayloadOn: "1", PayloadOff: "0", DeviceClass: "connectivity"},
+	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueKey: "carrier", PayloadOn: "1", PayloadOff: "0", DeviceClass: "connectivity"},
 }
 
 var bondBinarySensors = map[string]binarySensorDefinition{
-	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueTemplate: "{{ value_json.carrier }}", PayloadOn: "1", PayloadOff: "0", DeviceClass: "connectivity"},
+	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueKey: "carrier", PayloadOn: "1", PayloadOff: "0", DeviceClass: "connectivity"},
 }
 
 var bondSlaveBinarySensors = map[string]binarySensorDefinition{
-	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueTemplate: "{{ value_json.carrier }}", PayloadOn: "1", PayloadOff: "0", DeviceClass: "connectivity"},
-	"active":  {NameSuffix: "Active", ObjectID: "active", ValueTemplate: "{{ value_json.active }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:check-network"},
+	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueKey: "carrier", PayloadOn: "1", PayloadOff: "0", DeviceClass: "connectivity"},
+	"active":  {NameSuffix: "Active", ObjectID: "active", ValueKey: "active", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:check-network"},
 }
 
 var arrayBinarySensors = map[string]binarySensorDefinition{
-	"degraded": {NameSuffix: "Degraded", ObjectID: "degraded", ValueTemplate: "{{ 'ON' if value_json.degraded_disks|int > 0 else 'OFF' }}", PayloadOn: "ON", PayloadOff: "OFF", DeviceClass: "problem", Icon: "mdi:alert"},
+	"degraded": {NameSuffix: "Degraded", ObjectID: "degraded", ValueKey: "degraded_disks", PayloadOn: "ON", PayloadOff: "OFF", DeviceClass: "problem", Icon: "mdi:alert"},
 }
 
 var upsBinarySensors = map[string]binarySensorDefinition{
-	"online":      {NameSuffix: "Online", ObjectID: "online", ValueTemplate: "{{ value_json.online }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:power-plug"},
-	"on_battery":  {NameSuffix: "On Battery", ObjectID: "on_battery", ValueTemplate: "{{ value_json.on_battery }}", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:battery-arrow-down"},
-	"low_battery": {NameSuffix: "Low Battery", ObjectID: "low_battery", ValueTemplate: "{{ value_json.low_battery }}", PayloadOn: "1", PayloadOff: "0", DeviceClass: "problem", Icon: "mdi:battery-alert"},
+	"online":      {NameSuffix: "Online", ObjectID: "online", ValueKey: "online", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:power-plug"},
+	"on_battery":  {NameSuffix: "On Battery", ObjectID: "on_battery", ValueKey: "on_battery", PayloadOn: "1", PayloadOff: "0", Icon: "mdi:battery-arrow-down"},
+	"low_battery": {NameSuffix: "Low Battery", ObjectID: "low_battery", ValueKey: "low_battery", PayloadOn: "1", PayloadOff: "0", DeviceClass: "problem", Icon: "mdi:battery-alert"},
 }
 
 func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
@@ -248,7 +270,10 @@ func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
 		cfg:                cfg,
 		log:                cfg.Log,
 		availabilityTopic:  fmt.Sprintf("%s/status", trimSlashes(cfg.TopicPrefix)),
+		availabilityOnline: newAvailabilityPayload(cfg.ClientID),
 		discoveredEntities: map[string]publishedEntity{},
+		lastPayloads:       map[string]string{},
+		preparedPayloads:   map[string]preparedPayload{},
 	}
 
 	opts := mqtt.NewClientOptions()
@@ -264,7 +289,8 @@ func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
 	opts.SetOrderMatters(false)
 	opts.SetWill(p.availabilityTopic, "offline", cfg.QoS, true)
 	opts.OnConnect = func(client mqtt.Client) {
-		token := client.Publish(p.availabilityTopic, cfg.QoS, true, "online")
+		p.replayPending.Store(true)
+		token := client.Publish(p.availabilityTopic, cfg.QoS, true, p.availablePayload())
 		token.Wait()
 		if token.Error() != nil {
 			p.log.Error().Err(token.Error()).Msg("failed to publish MQTT availability")
@@ -306,6 +332,10 @@ func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
 	if p.client == nil || !p.client.IsConnectionOpen() {
 		return fmt.Errorf("%w: %q", ErrNotConnected, p.cfg.Broker)
 	}
+	if p.replayPending.Swap(false) {
+		p.lastPayloads = map[string]string{}
+	}
+	p.preparedPayloads = map[string]preparedPayload{}
 
 	currentEntities := map[string]publishedEntity{}
 
@@ -325,17 +355,37 @@ func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
 	}
 
 	for key, entity := range p.discoveredEntities {
-		if _, ok := currentEntities[key]; ok {
+		if current, ok := currentEntities[key]; ok {
+			p.discoveredEntities[key] = current
 			continue
 		}
-		if err := p.publishRaw(entity.discoveryTopic, ""); err != nil {
+
+		entity.missingPolls++
+		if entity.missingPolls == p.unavailableAfter() {
+			if err := p.publishRawIfChanged(entity.availabilityTopic, "offline"); err != nil {
+				return err
+			}
+		}
+		if entity.missingPolls < p.removeAfter() {
+			p.discoveredEntities[key] = entity
+			continue
+		}
+
+		if err := p.publishRetainedRawIfChanged(entity.discoveryTopic, ""); err != nil {
+			return err
+		}
+		if err := p.publishRetainedRawIfChanged(entity.stateTopic, ""); err != nil {
+			return err
+		}
+		if err := p.publishRetainedRawIfChanged(entity.availabilityTopic, ""); err != nil {
 			return err
 		}
 		delete(p.discoveredEntities, key)
 	}
-
 	for key, entity := range currentEntities {
-		p.discoveredEntities[key] = entity
+		if _, ok := p.discoveredEntities[key]; !ok {
+			p.discoveredEntities[key] = entity
+		}
 	}
 
 	return nil
@@ -343,35 +393,32 @@ func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
 
 func (p *MQTTPublisher) publishProjects(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
 	for _, project := range snapshot.Projects {
-		if err := p.publishProjectState(currentEntities, project.Name, project.CPUPercent, project.MemoryUsageBytes, project.TotalContainers, project.RunningContainers, "Project", "Project", projectContainerAttributes(snapshot.Containers, project.Name), snapshot.CollectedAt); err != nil {
+		if err := p.publishProjectState(currentEntities, project.Name, project.CPUPercent, project.MemoryUsageBytes, project.TotalContainers, project.RunningContainers, "Project", "Project"); err != nil {
 			return err
 		}
 	}
 	if snapshot.Host != nil && len(snapshot.Host.VMs) > 0 {
 		total, running, cpu, memory := virtualMachineProjectTotals(snapshot.Host.VMs)
-		if err := p.publishProjectState(currentEntities, "Virtual machines", cpu, memory, total, running, "Virtual Machine Project", "Virtual Machines", virtualMachineAttributes(snapshot.Host.VMs), snapshot.CollectedAt); err != nil {
+		if err := p.publishProjectState(currentEntities, "Virtual machines", cpu, memory, total, running, "Virtual Machine Project", "Virtual Machines"); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *MQTTPublisher) publishProjectState(currentEntities map[string]publishedEntity, name string, cpuPercent float64, memoryBytes uint64, total int, running int, modelName string, entityPrefix string, children []map[string]any, collectedAt time.Time) error {
+func (p *MQTTPublisher) publishProjectState(currentEntities map[string]publishedEntity, name string, cpuPercent float64, memoryBytes uint64, total int, running int, modelName string, entityPrefix string) error {
 	slug := slugify(name)
 	stateTopic := fmt.Sprintf("%s/projects/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-	payload := map[string]any{
-		"project":            name,
-		"project_slug":       slug,
+	values := map[string]any{
 		"cpu_usage_percent":  cpuPercent,
 		"memory_usage_bytes": memoryBytes,
 		"total_containers":   total,
 		"running_containers": running,
-		"containers":         children,
-		"collected_at":       collectedAt.Format(time.RFC3339),
 	}
-	if err := p.publishJSON(stateTopic, payload); err != nil {
-		return err
-	}
+	p.preparePayload(stateTopic, values, map[string]any{
+		"project":      name,
+		"project_slug": slug,
+	})
 
 	for key, def := range projectSensors {
 		entityKey := fmt.Sprintf("project:%s:%s", slug, key)
@@ -392,23 +439,22 @@ func (p *MQTTPublisher) publishContainers(snapshot model.Snapshot, currentEntiti
 	for _, container := range snapshot.Containers {
 		slug := slugify(container.Name)
 		stateTopic := fmt.Sprintf("%s/containers/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
+		values := map[string]any{
+			"cpu_usage_percent":  container.CPUPercent,
+			"memory_usage_bytes": container.MemoryUsageBytes,
+			"running":            boolToInt(container.Running),
+		}
+		p.preparePayload(stateTopic, values, map[string]any{
 			"container":          container.Name,
 			"container_slug":     slug,
 			"container_id":       shortID(container.ID),
 			"project":            container.Project,
 			"project_slug":       slugify(container.Project),
-			"cpu_usage_percent":  container.CPUPercent,
-			"memory_usage_bytes": container.MemoryUsageBytes,
+			"image":              container.Image,
 			"memory_limit_bytes": container.MemoryLimitBytes,
-			"running":            boolToInt(container.Running),
 			"state":              container.State,
 			"status":             container.Status,
-			"collected_at":       snapshot.CollectedAt.Format(time.RFC3339),
-		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		})
 
 		for key, def := range containerSensors {
 			entityKey := fmt.Sprintf("container:%s:%s", slug, key)
@@ -449,10 +495,24 @@ func (p *MQTTPublisher) publishVirtualMachines(snapshot model.Snapshot, currentE
 	for _, vm := range snapshot.Host.VMs {
 		slug := slugify(vm.UGOSVMID)
 		stateTopic := fmt.Sprintf("%s/virtual_machines/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := virtualMachinePayload(vm, snapshot.CollectedAt)
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
+		values := map[string]any{
+			"cpu_usage_percent":    vm.CPUPercent,
+			"memory_usage_bytes":   vmMemoryUsageBytes(vm),
+			"memory_current_bytes": vm.MemoryBytes,
+			"running":              boolToInt(vm.Running),
+			"vcpus":                vm.VCPUs,
+			"disk_read_bytes":      vm.DiskReadBytes,
+			"disk_write_bytes":     vm.DiskWriteBytes,
 		}
+		p.preparePayload(stateTopic, values, payloadWithout(virtualMachineContainerAttribute(vm),
+			"cpu_usage_percent",
+			"memory_usage_bytes",
+			"memory_current_bytes",
+			"running",
+			"vcpus",
+			"disk_read_bytes",
+			"disk_write_bytes",
+		))
 
 		device := deviceDescriptor{
 			ID:           fmt.Sprintf("ugos_bridge_vm_%s", slug),
@@ -485,29 +545,28 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	hostDeviceID := fmt.Sprintf("ugos_bridge_host_%s", hostSlug)
 	hostStateTopic := fmt.Sprintf("%s/host/state", trimSlashes(p.cfg.TopicPrefix))
 
-	hostPayload := map[string]any{
+	hostValues := map[string]any{
+		"cpu_usage_percent":   hostSnapshot.CPU.UsagePercent,
+		"cpu_frequency_mhz":   hostSnapshot.CPU.CurrentMHz,
+		"load_1":              hostSnapshot.CPU.Load1,
+		"memory_used_bytes":   hostSnapshot.Memory.UsedBytes,
+		"memory_used_percent": percentage(hostSnapshot.Memory.UsedBytes, hostSnapshot.Memory.TotalBytes),
+		"swap_used_percent":   percentage(hostSnapshot.Memory.SwapUsedBytes, hostSnapshot.Memory.SwapTotalBytes),
+		"uptime_seconds":      hostSnapshot.CPU.UptimeSeconds,
+	}
+	p.preparePayload(hostStateTopic, hostValues, map[string]any{
 		"host":                   hostSnapshot.Name,
-		"cpu_usage_percent":      hostSnapshot.CPU.UsagePercent,
-		"cpu_frequency_mhz":      hostSnapshot.CPU.CurrentMHz,
 		"cpu_cores":              cpuCoreAttributes(hostSnapshot.CPU.CoreUsage),
-		"load_1":                 hostSnapshot.CPU.Load1,
 		"memory_used_bytes":      hostSnapshot.Memory.UsedBytes,
 		"memory_total_bytes":     hostSnapshot.Memory.TotalBytes,
 		"memory_free_bytes":      hostSnapshot.Memory.FreeBytes,
 		"memory_available_bytes": hostSnapshot.Memory.AvailableBytes,
 		"memory_cached_bytes":    hostSnapshot.Memory.CachedBytes,
 		"memory_buffers_bytes":   hostSnapshot.Memory.BuffersBytes,
-		"memory_used_percent":    percentage(hostSnapshot.Memory.UsedBytes, hostSnapshot.Memory.TotalBytes),
-		"swap_used_percent":      percentage(hostSnapshot.Memory.SwapUsedBytes, hostSnapshot.Memory.SwapTotalBytes),
 		"swap_used_bytes":        hostSnapshot.Memory.SwapUsedBytes,
 		"swap_total_bytes":       hostSnapshot.Memory.SwapTotalBytes,
 		"swap_free_bytes":        hostSnapshot.Memory.SwapFreeBytes,
-		"uptime_seconds":         hostSnapshot.CPU.UptimeSeconds,
-		"collected_at":           snapshot.CollectedAt.Format(time.RFC3339),
-	}
-	if err := p.publishJSON(hostStateTopic, hostPayload); err != nil {
-		return err
-	}
+	})
 
 	for key, def := range hostSensors {
 		entityKey := fmt.Sprintf("host:%s:%s", hostSlug, key)
@@ -522,24 +581,16 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		}
 	}
 
-	processes := hostSnapshot.Processes
-	if len(processes) > 10 {
-		processes = processes[:10]
-	}
-	for _, process := range processes {
+	for _, process := range p.allowedProcesses(hostSnapshot.Processes) {
 		slug := slugify(process.Name)
 		stateTopic := fmt.Sprintf("%s/host/processes/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":               process.Name,
+		values := map[string]any{
 			"process_count":      process.ProcessCount,
 			"cpu_usage_percent":  process.CPUPercent,
 			"memory_usage_bytes": process.MemoryBytes,
 			"cpu_time_seconds":   process.CPUTimeSeconds,
-			"collected_at":       snapshot.CollectedAt.Format(time.RFC3339),
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{"name": process.Name})
 
 		for key, def := range processSensors {
 			entityKey := fmt.Sprintf("process:%s:%s", slug, key)
@@ -559,23 +610,21 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	for _, array := range hostSnapshot.Arrays {
 		slug := slugify(array.Name)
 		stateTopic := fmt.Sprintf("%s/host/arrays/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":                   array.Name,
+		values := map[string]any{
 			"degraded_disks":         array.DegradedDisks,
 			"active_disks":           array.DisksActive,
 			"total_disks":            array.DisksTotal,
 			"sync_completed_percent": array.SyncCompletedPercent,
 			"size_bytes":             array.SizeBytes,
-			"state":                  array.State,
 			"level":                  array.Level,
-			"members":                array.Members,
-			"mountpoints":            array.Mountpoints,
-			"sync_action":            array.SyncAction,
-			"collected_at":           snapshot.CollectedAt.Format(time.RFC3339),
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{
+			"name":        array.Name,
+			"state":       array.State,
+			"members":     array.Members,
+			"mountpoints": array.Mountpoints,
+			"sync_action": array.SyncAction,
+		})
 
 		for key, def := range arraySensors {
 			entityKey := fmt.Sprintf("array:%s:%s", slug, key)
@@ -608,19 +657,24 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	for _, fs := range hostSnapshot.Filesystems {
 		slug := slugify(fs.Name)
 		stateTopic := fmt.Sprintf("%s/host/filesystems/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":         fs.Name,
+		values := map[string]any{
 			"used_bytes":   fs.UsedBytes,
 			"free_bytes":   fs.FreeBytes,
 			"used_percent": percentage(fs.UsedBytes, fs.TotalBytes),
-			"source":       fs.Source,
-			"fstype":       fs.FSType,
 			"read_only":    boolToInt(fs.ReadOnly),
-			"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{
+			"name":            fs.Name,
+			"path":            fs.Path,
+			"source":          fs.Source,
+			"fstype":          fs.FSType,
+			"array":           fs.Array,
+			"total_bytes":     fs.TotalBytes,
+			"available_bytes": fs.AvailableBytes,
+			"files_total":     fs.FilesTotal,
+			"files_used":      fs.FilesUsed,
+			"files_free":      fs.FilesFree,
+		})
 
 		for key, def := range filesystemSensors {
 			entityKey := fmt.Sprintf("filesystem:%s:%s", slug, key)
@@ -658,11 +712,24 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		}
 	}
 
+	diskIDs := make(map[string]string, len(hostSnapshot.Disks))
 	for _, disk := range hostSnapshot.Disks {
-		slug := slugify(disk.Name)
+		slug := diskIdentitySlug(disk)
+		diskIDs[disk.Name] = slug
+		legacySlug := slugify(disk.Name)
+		if slug != legacySlug {
+			for _, def := range diskSensors {
+				if err := p.publishRetainedRawIfChanged(p.discoveryTopic("sensor", "disk_"+legacySlug, def.ObjectID), ""); err != nil {
+					return err
+				}
+			}
+			legacyStateTopic := fmt.Sprintf("%s/host/disks/%s/state", trimSlashes(p.cfg.TopicPrefix), legacySlug)
+			if err := p.publishRetainedRawIfChanged(legacyStateTopic, ""); err != nil {
+				return err
+			}
+		}
 		stateTopic := fmt.Sprintf("%s/host/disks/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":                   disk.Name,
+		values := map[string]any{
 			"read_bytes_per_second":  disk.ReadBytesPerSec,
 			"write_bytes_per_second": disk.WriteBytesPerSec,
 			"busy_percent":           disk.BusyPercent,
@@ -671,11 +738,16 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 			"vendor":                 disk.Vendor,
 			"serial":                 disk.Serial,
 			"type":                   disk.Type,
-			"collected_at":           snapshot.CollectedAt.Format(time.RFC3339),
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{
+			"name":     disk.Name,
+			"path":     disk.Path,
+			"identity": slug,
+			"model":    disk.Model,
+			"vendor":   disk.Vendor,
+			"serial":   disk.Serial,
+			"type":     disk.Type,
+		})
 
 		for key, def := range diskSensors {
 			entityKey := fmt.Sprintf("disk:%s:%s", slug, key)
@@ -696,20 +768,20 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		slug := slugify(bond.Name)
 		deviceID := fmt.Sprintf("%s_bond_%s", hostDeviceID, slug)
 		stateTopic := fmt.Sprintf("%s/host/bonds/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":         bond.Name,
+		values := map[string]any{
 			"speed_mbps":   bond.SpeedMbps,
 			"carrier":      boolToInt(bond.Carrier),
 			"mode":         bond.Mode,
 			"active_slave": bond.ActiveSlave,
 			"mii_status":   bond.MIIStatus,
 			"slave_count":  len(bond.Slaves),
-			"oper_state":   bond.OperState,
-			"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{
+			"name":       bond.Name,
+			"primary":    bond.Primary,
+			"oper_state": bond.OperState,
+			"slaves":     bondSlaveAttributes(bond.Slaves),
+		})
 
 		for key, def := range bondSensors {
 			entityKey := fmt.Sprintf("bond:%s:%s", slug, key)
@@ -741,19 +813,17 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		for _, slave := range bond.Slaves {
 			slaveSlug := slugify(slave.Name)
 			slaveStateTopic := fmt.Sprintf("%s/host/bonds/%s/slaves/%s/state", trimSlashes(p.cfg.TopicPrefix), slug, slaveSlug)
-			slavePayload := map[string]any{
-				"name":         slave.Name,
-				"speed_mbps":   slave.SpeedMbps,
-				"carrier":      boolToInt(slave.Carrier),
-				"active":       boolToInt(slave.Active),
-				"mii_status":   slave.MIIStatus,
-				"oper_state":   slave.OperState,
-				"duplex":       slave.Duplex,
-				"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
+			slaveValues := map[string]any{
+				"speed_mbps": slave.SpeedMbps,
+				"carrier":    boolToInt(slave.Carrier),
+				"active":     boolToInt(slave.Active),
+				"mii_status": slave.MIIStatus,
 			}
-			if err := p.publishJSON(slaveStateTopic, slavePayload); err != nil {
-				return err
-			}
+			p.preparePayload(slaveStateTopic, slaveValues, map[string]any{
+				"name":       slave.Name,
+				"oper_state": slave.OperState,
+				"duplex":     slave.Duplex,
+			})
 
 			for key, def := range bondSlaveSensors {
 				entityKey := fmt.Sprintf("bond_slave:%s:%s:%s", slug, slaveSlug, key)
@@ -791,19 +861,20 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 			viaDeviceID = fmt.Sprintf("%s_bond_%s", hostDeviceID, slugify(network.Master))
 		}
 		stateTopic := fmt.Sprintf("%s/host/networks/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":                network.Name,
+		values := map[string]any{
 			"rx_bytes_per_second": network.RxBytesPerSec,
 			"tx_bytes_per_second": network.TxBytesPerSec,
 			"speed_mbps":          network.SpeedMbps,
 			"carrier":             boolToInt(network.Carrier),
-			"oper_state":          network.OperState,
-			"duplex":              network.Duplex,
-			"collected_at":        snapshot.CollectedAt.Format(time.RFC3339),
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{
+			"name":       network.Name,
+			"master":     network.Master,
+			"mac":        network.MAC,
+			"oper_state": network.OperState,
+			"duplex":     network.Duplex,
+			"mtu":        network.MTU,
+		})
 
 		for key, def := range networkSensors {
 			if key == "carrier" {
@@ -839,24 +910,26 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	for _, gpu := range hostSnapshot.GPUs {
 		slug := slugify(gpu.Name)
 		stateTopic := fmt.Sprintf("%s/host/gpus/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":         gpu.Name,
-			"current_mhz":  gpu.CurrentMHz,
-			"max_mhz":      gpu.MaxMHz,
-			"boost_mhz":    gpu.BoostMHz,
-			"driver":       gpu.Driver,
-			"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
+		values := map[string]any{
+			"current_mhz": gpu.CurrentMHz,
+			"max_mhz":     gpu.MaxMHz,
+		}
+		attributes := map[string]any{
+			"name":      gpu.Name,
+			"boost_mhz": gpu.BoostMHz,
+			"driver":    gpu.Driver,
+			"vendor":    gpu.Vendor,
+			"device":    gpu.Device,
+			"card_path": gpu.CardPath,
 		}
 		if gpu.BusyAvailable {
-			payload["busy_percent"] = gpu.BusyPercent
+			values["busy_percent"] = gpu.BusyPercent
 		}
 		if gpu.IntelTop != nil {
-			payload["engines"] = gpuEngineAttributes(gpu.IntelTop.Engines)
-			payload["stats"] = gpuStatAttributes(gpu.IntelTop)
+			attributes["engines"] = gpuEngineAttributes(gpu.IntelTop.Engines)
+			attributes["stats"] = gpuStatAttributes(gpu.IntelTop)
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, attributes)
 
 		for key, def := range gpuSensors {
 			if key == "busy" && !gpu.BusyAvailable {
@@ -876,6 +949,13 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		}
 	}
 
+	genericSensorSlugs := map[string]struct{}{}
+	for _, sensor := range hostSnapshot.Sensors {
+		if sensor.DeviceType != "disk" || sensor.DeviceName == "" {
+			genericSensorSlugs[slugify(sensor.Source+"_"+sensor.Chip+"_"+sensor.Name)] = struct{}{}
+		}
+	}
+
 	for _, sensor := range hostSnapshot.Sensors {
 		def, ok := healthSensors[sensor.Kind]
 		if !ok {
@@ -883,26 +963,44 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 		}
 
 		chipSlug := slugify(sensor.Chip)
-		sensorSlug := slugify(sensor.Source + "_" + sensor.Chip + "_" + sensor.Name)
+		diskSlug := ""
+		if sensor.DeviceType == "disk" && sensor.DeviceName != "" {
+			diskSlug = firstNonEmpty(diskIDs[sensor.DeviceName], "name_"+slugify(sensor.DeviceName))
+		}
+		sensorIdentity := sensor.Source + "_" + sensor.Chip + "_" + sensor.Name
+		if diskSlug != "" {
+			sensorIdentity = sensor.Source + "_" + diskSlug + "_" + sensor.Chip + "_" + sensor.Name
+		}
+		sensorSlug := slugify(sensorIdentity)
+		if diskSlug != "" {
+			legacySensorSlug := slugify(sensor.Source + "_" + sensor.Chip + "_" + sensor.Name)
+			if _, usedByGenericSensor := genericSensorSlugs[legacySensorSlug]; legacySensorSlug != sensorSlug && !usedByGenericSensor {
+				if err := p.publishRetainedRawIfChanged(p.discoveryTopic("sensor", legacySensorSlug, def.ObjectID), ""); err != nil {
+					return err
+				}
+				legacyStateTopic := fmt.Sprintf("%s/host/sensors/%s/state", trimSlashes(p.cfg.TopicPrefix), legacySensorSlug)
+				if err := p.publishRetainedRawIfChanged(legacyStateTopic, ""); err != nil {
+					return err
+				}
+			}
+		}
 		stateTopic := fmt.Sprintf("%s/host/sensors/%s/state", trimSlashes(p.cfg.TopicPrefix), sensorSlug)
-		payload := map[string]any{
-			"name":         sensor.Name,
-			"label":        sensor.Label,
-			"chip":         sensor.Chip,
-			"source":       sensor.Source,
-			"device_type":  sensor.DeviceType,
-			"device_name":  sensor.DeviceName,
-			"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
+		values := map[string]any{}
+		attributes := map[string]any{
+			"name":        sensor.Name,
+			"label":       sensor.Label,
+			"chip":        sensor.Chip,
+			"source":      sensor.Source,
+			"device_type": sensor.DeviceType,
+			"device_name": sensor.DeviceName,
 		}
 		switch sensor.Kind {
 		case "temperature":
-			payload["temperature_celsius"] = sensor.Value
+			values["temperature_celsius"] = sensor.Value
 		case "fan":
-			payload["fan_speed_rpm"] = sensor.Value
+			values["fan_speed_rpm"] = sensor.Value
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, attributes)
 
 		entityKey := fmt.Sprintf("sensor:%s:%s", sensorSlug, sensor.Kind)
 		discoveryTopic := p.discoveryTopic("sensor", sensorSlug, def.ObjectID)
@@ -915,10 +1013,10 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 			Model:        displaySourceName(sensor.Source) + " Sensor",
 		}
 		entityName := fmt.Sprintf("%s %s", hostSnapshot.Name, sensor.Label)
-		if sensor.DeviceType == "disk" && sensor.DeviceName != "" {
+		if diskSlug != "" {
 			device = deviceDescriptor{
-				ID:           fmt.Sprintf("%s_disk_%s", hostDeviceID, slugify(sensor.DeviceName)),
-				EntityID:     fmt.Sprintf("%s_disk_%s_sensor_%s", hostDeviceID, slugify(sensor.DeviceName), sensorSlug),
+				ID:           fmt.Sprintf("%s_disk_%s", hostDeviceID, diskSlug),
+				EntityID:     fmt.Sprintf("%s_disk_%s_sensor_%s", hostDeviceID, diskSlug, sensorSlug),
 				Name:         fmt.Sprintf("%s Disk %s", hostSnapshot.Name, sensor.DeviceName),
 				ViaDeviceID:  hostDeviceID,
 				Manufacturer: "RCooLeR",
@@ -934,19 +1032,17 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	for _, cooling := range hostSnapshot.Cooling {
 		slug := slugify(cooling.Name)
 		stateTopic := fmt.Sprintf("%s/host/cooling/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
-			"name":              cooling.Name,
-			"type":              cooling.Type,
+		values := map[string]any{
 			"cooling_state":     cooling.CurState,
 			"cooling_max_state": cooling.MaxState,
-			"collected_at":      snapshot.CollectedAt.Format(time.RFC3339),
 		}
 		if cooling.MaxState > 0 {
-			payload["cooling_percent"] = cooling.Percent
+			values["cooling_percent"] = cooling.Percent
 		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		p.preparePayload(stateTopic, values, map[string]any{
+			"name": cooling.Name,
+			"type": cooling.Type,
+		})
 
 		for key, def := range coolingSensors {
 			if key == "percent" && cooling.MaxState <= 0 {
@@ -969,50 +1065,49 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	for _, ups := range hostSnapshot.UPSs {
 		slug := slugify(ups.Name)
 		stateTopic := fmt.Sprintf("%s/host/ups/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
-		payload := map[string]any{
+		values := map[string]any{
+			"status":      ups.Status,
+			"online":      boolToInt(ups.Online),
+			"on_battery":  boolToInt(ups.OnBattery),
+			"low_battery": boolToInt(ups.LowBattery),
+		}
+		if ups.BatteryChargeAvailable {
+			values["battery_charge_percent"] = ups.BatteryChargePercent
+		}
+		if ups.BatteryRuntimeAvailable {
+			values["battery_runtime_seconds"] = ups.BatteryRuntimeSeconds
+		}
+		if ups.BatteryVoltageAvailable {
+			values["battery_voltage"] = ups.BatteryVoltage
+		}
+		if ups.InputVoltageAvailable {
+			values["input_voltage"] = ups.InputVoltage
+		}
+		if ups.OutputVoltageAvailable {
+			values["output_voltage"] = ups.OutputVoltage
+		}
+		if ups.LoadPercentAvailable {
+			values["load_percent"] = ups.LoadPercent
+		}
+		if ups.RealPowerWattsAvailable {
+			values["real_power_watts"] = ups.RealPowerWatts
+		}
+		if ups.NominalRealPowerWattsAvailable {
+			values["nominal_real_power_watts"] = ups.NominalRealPowerWatts
+		}
+		if ups.LineFrequencyHzAvailable {
+			values["line_frequency_hz"] = ups.LineFrequencyHz
+		}
+		if ups.TemperatureCelsiusAvailable {
+			values["temperature_celsius"] = ups.TemperatureCelsius
+		}
+		p.preparePayload(stateTopic, values, map[string]any{
 			"name":         ups.Name,
 			"model":        ups.Model,
 			"manufacturer": ups.Manufacturer,
 			"serial":       ups.Serial,
 			"status":       ups.Status,
-			"online":       boolToInt(ups.Online),
-			"on_battery":   boolToInt(ups.OnBattery),
-			"low_battery":  boolToInt(ups.LowBattery),
-			"collected_at": snapshot.CollectedAt.Format(time.RFC3339),
-		}
-		if ups.BatteryChargeAvailable {
-			payload["battery_charge_percent"] = ups.BatteryChargePercent
-		}
-		if ups.BatteryRuntimeAvailable {
-			payload["battery_runtime_seconds"] = ups.BatteryRuntimeSeconds
-		}
-		if ups.BatteryVoltageAvailable {
-			payload["battery_voltage"] = ups.BatteryVoltage
-		}
-		if ups.InputVoltageAvailable {
-			payload["input_voltage"] = ups.InputVoltage
-		}
-		if ups.OutputVoltageAvailable {
-			payload["output_voltage"] = ups.OutputVoltage
-		}
-		if ups.LoadPercentAvailable {
-			payload["load_percent"] = ups.LoadPercent
-		}
-		if ups.RealPowerWattsAvailable {
-			payload["real_power_watts"] = ups.RealPowerWatts
-		}
-		if ups.NominalRealPowerWattsAvailable {
-			payload["nominal_real_power_watts"] = ups.NominalRealPowerWatts
-		}
-		if ups.LineFrequencyHzAvailable {
-			payload["line_frequency_hz"] = ups.LineFrequencyHz
-		}
-		if ups.TemperatureCelsiusAvailable {
-			payload["temperature_celsius"] = ups.TemperatureCelsius
-		}
-		if err := p.publishJSON(stateTopic, payload); err != nil {
-			return err
-		}
+		})
 
 		device := deviceDescriptor{
 			ID:           fmt.Sprintf("%s_ups_%s", hostDeviceID, slug),
@@ -1045,9 +1140,21 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 }
 
 func (p *MQTTPublisher) ensureSensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def sensorDefinition, device deviceDescriptor) error {
-	current[key] = publishedEntity{discoveryTopic: discoveryTopic, stateTopic: stateTopic}
-	if _, ok := p.discoveredEntities[key]; ok {
-		return nil
+	prepared, ok := p.preparedPayloads[stateTopic]
+	if !ok {
+		return fmt.Errorf("MQTT payload for %q was not prepared", stateTopic)
+	}
+	value, ok := prepared.values[def.ValueKey]
+	if !ok {
+		return fmt.Errorf("MQTT payload for %q has no %q value", stateTopic, def.ValueKey)
+	}
+
+	entityStateTopic := individualStateTopic(stateTopic, def.ObjectID)
+	entityAvailabilityTopic := individualAvailabilityTopic(entityStateTopic)
+	current[key] = publishedEntity{
+		discoveryTopic:    discoveryTopic,
+		stateTopic:        entityStateTopic,
+		availabilityTopic: entityAvailabilityTopic,
 	}
 
 	entityID := firstNonEmpty(device.EntityID, device.ID)
@@ -1067,23 +1174,20 @@ func (p *MQTTPublisher) ensureSensor(discoveryTopic string, stateTopic string, c
 	}
 
 	payload := map[string]any{
-		"name":                  strings.TrimSpace(fmt.Sprintf("%s %s", entityName, def.NameSuffix)),
-		"unique_id":             fmt.Sprintf("%s_%s", entityID, def.ObjectID),
-		"object_id":             fmt.Sprintf("%s_%s", entityID, def.ObjectID),
-		"state_topic":           stateTopic,
-		"json_attributes_topic": stateTopic,
-		"value_template":        fmt.Sprintf("{{ value_json.%s }}", def.ValueKey),
-		"availability_topic":    p.availabilityTopic,
-		"payload_available":     "online",
-		"payload_not_available": "offline",
-		"device":                devicePayload,
+		"name":              strings.TrimSpace(fmt.Sprintf("%s %s", entityName, def.NameSuffix)),
+		"unique_id":         fmt.Sprintf("%s_%s", entityID, def.ObjectID),
+		"object_id":         fmt.Sprintf("%s_%s", entityID, def.ObjectID),
+		"state_topic":       entityStateTopic,
+		"availability":      p.entityAvailability(entityAvailabilityTopic),
+		"availability_mode": "all",
+		"device":            devicePayload,
+	}
+	if def.Attributes && len(prepared.attributes) > 0 {
+		payload["json_attributes_topic"] = prepared.attributesTopic
 	}
 
 	if def.Icon != "" {
 		payload["icon"] = def.Icon
-	}
-	if p.cfg.ExpireAfterSeconds > 0 {
-		payload["expire_after"] = p.cfg.ExpireAfterSeconds
 	}
 	if def.Unit != "" {
 		payload["unit_of_measurement"] = def.Unit
@@ -1098,13 +1202,36 @@ func (p *MQTTPublisher) ensureSensor(discoveryTopic string, stateTopic string, c
 		payload["entity_category"] = def.EntityCategory
 	}
 
-	return p.publishJSON(discoveryTopic, payload)
+	if err := p.publishJSONIfChanged(discoveryTopic, payload); err != nil {
+		return err
+	}
+	if def.Attributes && len(prepared.attributes) > 0 {
+		if err := p.publishJSONIfChanged(prepared.attributesTopic, prepared.attributes); err != nil {
+			return err
+		}
+	}
+	if err := p.publishRawIfChanged(entityAvailabilityTopic, "online"); err != nil {
+		return err
+	}
+	return p.publishStateValueIfChanged(entityStateTopic, value)
 }
 
 func (p *MQTTPublisher) ensureBinarySensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def binarySensorDefinition, device deviceDescriptor) error {
-	current[key] = publishedEntity{discoveryTopic: discoveryTopic, stateTopic: stateTopic}
-	if _, ok := p.discoveredEntities[key]; ok {
-		return nil
+	prepared, ok := p.preparedPayloads[stateTopic]
+	if !ok {
+		return fmt.Errorf("MQTT payload for %q was not prepared", stateTopic)
+	}
+	value, ok := prepared.values[def.ValueKey]
+	if !ok {
+		return fmt.Errorf("MQTT payload for %q has no %q value", stateTopic, def.ValueKey)
+	}
+
+	entityStateTopic := individualStateTopic(stateTopic, def.ObjectID)
+	entityAvailabilityTopic := individualAvailabilityTopic(entityStateTopic)
+	current[key] = publishedEntity{
+		discoveryTopic:    discoveryTopic,
+		stateTopic:        entityStateTopic,
+		availabilityTopic: entityAvailabilityTopic,
 	}
 
 	entityID := firstNonEmpty(device.EntityID, device.ID)
@@ -1124,18 +1251,15 @@ func (p *MQTTPublisher) ensureBinarySensor(discoveryTopic string, stateTopic str
 	}
 
 	payload := map[string]any{
-		"name":                  strings.TrimSpace(fmt.Sprintf("%s %s", entityName, def.NameSuffix)),
-		"unique_id":             fmt.Sprintf("%s_%s", entityID, def.ObjectID),
-		"object_id":             fmt.Sprintf("%s_%s", entityID, def.ObjectID),
-		"state_topic":           stateTopic,
-		"json_attributes_topic": stateTopic,
-		"value_template":        def.ValueTemplate,
-		"payload_on":            firstNonEmpty(def.PayloadOn, "ON"),
-		"payload_off":           firstNonEmpty(def.PayloadOff, "OFF"),
-		"availability_topic":    p.availabilityTopic,
-		"payload_available":     "online",
-		"payload_not_available": "offline",
-		"device":                devicePayload,
+		"name":              strings.TrimSpace(fmt.Sprintf("%s %s", entityName, def.NameSuffix)),
+		"unique_id":         fmt.Sprintf("%s_%s", entityID, def.ObjectID),
+		"object_id":         fmt.Sprintf("%s_%s", entityID, def.ObjectID),
+		"state_topic":       entityStateTopic,
+		"payload_on":        firstNonEmpty(def.PayloadOn, "ON"),
+		"payload_off":       firstNonEmpty(def.PayloadOff, "OFF"),
+		"availability":      p.entityAvailability(entityAvailabilityTopic),
+		"availability_mode": "all",
+		"device":            devicePayload,
 	}
 	if def.Icon != "" {
 		payload["icon"] = def.Icon
@@ -1147,25 +1271,193 @@ func (p *MQTTPublisher) ensureBinarySensor(discoveryTopic string, stateTopic str
 		payload["entity_category"] = def.EntityCategory
 	}
 
-	return p.publishJSON(discoveryTopic, payload)
+	if err := p.publishJSONIfChanged(discoveryTopic, payload); err != nil {
+		return err
+	}
+	if err := p.publishRawIfChanged(entityAvailabilityTopic, "online"); err != nil {
+		return err
+	}
+	return p.publishRawIfChanged(entityStateTopic, binaryStatePayload(value, def))
 }
 
 func (p *MQTTPublisher) discoveryTopic(component string, slug string, objectID string) string {
 	return fmt.Sprintf("%s/%s/ugos_bridge_%s/%s/config", trimSlashes(p.cfg.DiscoveryPrefix), component, slug, objectID)
 }
 
-func (p *MQTTPublisher) publishJSON(topic string, payload any) error {
+func (p *MQTTPublisher) preparePayload(stateTopic string, values map[string]any, attributes map[string]any) {
+	if p.preparedPayloads == nil {
+		p.preparedPayloads = map[string]preparedPayload{}
+	}
+	delete(values, "collected_at")
+	delete(attributes, "collected_at")
+	p.preparedPayloads[stateTopic] = preparedPayload{
+		values:          values,
+		attributes:      attributes,
+		attributesTopic: strings.TrimSuffix(stateTopic, "/state") + "/attributes",
+	}
+}
+
+func (p *MQTTPublisher) entityAvailability(entityTopic string) []map[string]any {
+	return []map[string]any{
+		{
+			"topic":                 p.availabilityTopic,
+			"payload_available":     p.availablePayload(),
+			"payload_not_available": "offline",
+		},
+		{
+			"topic":                 entityTopic,
+			"payload_available":     "online",
+			"payload_not_available": "offline",
+		},
+	}
+}
+
+func (p *MQTTPublisher) availablePayload() string {
+	return firstNonEmpty(p.availabilityOnline, "online")
+}
+
+func (p *MQTTPublisher) unavailableAfter() int {
+	if p.cfg.UnavailableAfter < 2 {
+		return defaultUnavailableAfter
+	}
+	return p.cfg.UnavailableAfter
+}
+
+func (p *MQTTPublisher) removeAfter() int {
+	if p.cfg.RemoveAfter <= p.unavailableAfter() {
+		return p.unavailableAfter() * (defaultRemoveAfter / defaultUnavailableAfter)
+	}
+	return p.cfg.RemoveAfter
+}
+
+func (p *MQTTPublisher) allowedProcesses(processes []model.ProcessSnapshot) []model.ProcessSnapshot {
+	if len(p.cfg.ProcessAllowlist) == 0 {
+		return nil
+	}
+
+	allowed := make(map[string]struct{}, len(p.cfg.ProcessAllowlist))
+	for _, name := range p.cfg.ProcessAllowlist {
+		allowed[slugify(name)] = struct{}{}
+	}
+
+	result := make([]model.ProcessSnapshot, 0, len(allowed))
+	for _, process := range processes {
+		if _, ok := allowed[slugify(process.Name)]; ok {
+			result = append(result, process)
+		}
+	}
+	return result
+}
+
+func (p *MQTTPublisher) publishJSONIfChanged(topic string, payload any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-	return p.publishRaw(topic, string(body))
+	return p.publishRawIfChanged(topic, string(body))
 }
 
-func (p *MQTTPublisher) publishRaw(topic string, payload string) error {
-	token := p.client.Publish(topic, p.cfg.QoS, p.cfg.Retain, payload)
+func (p *MQTTPublisher) publishStateValueIfChanged(topic string, value any) error {
+	if text, ok := value.(string); ok {
+		if strings.TrimSpace(text) == "" {
+			text = "unknown"
+		}
+		return p.publishRawIfChanged(topic, text)
+	}
+
+	body, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return p.publishRawIfChanged(topic, string(body))
+}
+
+func (p *MQTTPublisher) publishRawIfChanged(topic string, payload string) error {
+	return p.publishRawWithRetainIfChanged(topic, payload, p.cfg.Retain)
+}
+
+func (p *MQTTPublisher) publishRetainedRawIfChanged(topic string, payload string) error {
+	return p.publishRawWithRetainIfChanged(topic, payload, true)
+}
+
+func (p *MQTTPublisher) publishRawWithRetainIfChanged(topic string, payload string, retained bool) error {
+	if p.lastPayloads == nil {
+		p.lastPayloads = map[string]string{}
+	}
+	if previous, ok := p.lastPayloads[topic]; ok && previous == payload {
+		return nil
+	}
+	if err := p.publishRawWithRetain(topic, payload, retained); err != nil {
+		return err
+	}
+	p.lastPayloads[topic] = payload
+	return nil
+}
+
+func (p *MQTTPublisher) publishRawWithRetain(topic string, payload string, retained bool) error {
+	token := p.client.Publish(topic, p.cfg.QoS, retained, payload)
 	token.Wait()
 	return token.Error()
+}
+
+func individualStateTopic(baseStateTopic string, objectID string) string {
+	return fmt.Sprintf("%s/%s/state", strings.TrimSuffix(baseStateTopic, "/state"), slugify(objectID))
+}
+
+func individualAvailabilityTopic(stateTopic string) string {
+	return strings.TrimSuffix(stateTopic, "/state") + "/availability"
+}
+
+func binaryStatePayload(value any, def binarySensorDefinition) string {
+	if truthy(value) {
+		return firstNonEmpty(def.PayloadOn, "ON")
+	}
+	return firstNonEmpty(def.PayloadOff, "OFF")
+}
+
+func truthy(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case int:
+		return typed != 0
+	case int8:
+		return typed != 0
+	case int16:
+		return typed != 0
+	case int32:
+		return typed != 0
+	case int64:
+		return typed != 0
+	case uint:
+		return typed != 0
+	case uint8:
+		return typed != 0
+	case uint16:
+		return typed != 0
+	case uint32:
+		return typed != 0
+	case uint64:
+		return typed != 0
+	case float32:
+		return typed != 0
+	case float64:
+		return typed != 0
+	case string:
+		switch strings.ToLower(strings.TrimSpace(typed)) {
+		case "", "0", "false", "off", "no":
+			return false
+		default:
+			return true
+		}
+	default:
+		return value != nil
+	}
+}
+
+func newAvailabilityPayload(clientID string) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", clientID, time.Now().UnixNano())))
+	return fmt.Sprintf("online_%x", sum[:6])
 }
 
 func slugify(value string) string {
@@ -1200,6 +1492,48 @@ func boolToInt(value bool) int {
 		return 1
 	}
 	return 0
+}
+
+func payloadWithout(payload map[string]any, keys ...string) map[string]any {
+	result := make(map[string]any, len(payload))
+	for key, value := range payload {
+		result[key] = value
+	}
+	for _, key := range keys {
+		delete(result, key)
+	}
+	delete(result, "collected_at")
+	return result
+}
+
+func diskIdentitySlug(disk model.DiskSnapshot) string {
+	if serial := strings.TrimSpace(disk.Serial); serial != "" {
+		return "serial_" + slugify(serial)
+	}
+	if path := strings.TrimSpace(disk.Path); path != "" {
+		sum := sha256.Sum256([]byte(path))
+		return fmt.Sprintf("path_%x", sum[:8])
+	}
+	return "name_" + slugify(disk.Name)
+}
+
+func bondSlaveAttributes(slaves []model.BondSlaveSnapshot) []map[string]any {
+	if len(slaves) == 0 {
+		return nil
+	}
+	result := make([]map[string]any, 0, len(slaves))
+	for _, slave := range slaves {
+		result = append(result, map[string]any{
+			"name":       slave.Name,
+			"mii_status": slave.MIIStatus,
+			"oper_state": slave.OperState,
+			"duplex":     slave.Duplex,
+			"speed_mbps": slave.SpeedMbps,
+			"carrier":    slave.Carrier,
+			"active":     slave.Active,
+		})
+	}
+	return result
 }
 
 func upsSensorAvailable(ups model.UPSSnapshot, key string) bool {
@@ -1292,18 +1626,6 @@ func gpuStatAttributes(stats *model.IntelGPUSnapshot) []map[string]any {
 	}
 }
 
-func projectContainerAttributes(containers []model.ContainerSnapshot, projectName string) []map[string]any {
-	projectSlug := slugify(projectName)
-	items := make([]map[string]any, 0)
-	for _, container := range containers {
-		if slugify(container.Project) != projectSlug {
-			continue
-		}
-		items = append(items, containerAttributes(container))
-	}
-	return items
-}
-
 func virtualMachineProjectTotals(vms []model.VirtualMachineSnapshot) (total int, running int, cpuPercent float64, memoryBytes uint64) {
 	for _, vm := range vms {
 		total++
@@ -1324,14 +1646,6 @@ func vmMemoryUsageBytes(vm model.VirtualMachineSnapshot) uint64 {
 		return vm.MemoryUsageBytes
 	}
 	return vm.MemoryBytes
-}
-
-func virtualMachineAttributes(vms []model.VirtualMachineSnapshot) []map[string]any {
-	items := make([]map[string]any, 0, len(vms))
-	for _, vm := range vms {
-		items = append(items, virtualMachineContainerAttribute(vm))
-	}
-	return items
 }
 
 func virtualMachineContainerAttribute(vm model.VirtualMachineSnapshot) map[string]any {
@@ -1365,37 +1679,11 @@ func virtualMachineContainerAttribute(vm model.VirtualMachineSnapshot) map[strin
 	}
 }
 
-func virtualMachinePayload(vm model.VirtualMachineSnapshot, collectedAt time.Time) map[string]any {
-	payload := virtualMachineContainerAttribute(vm)
-	payload["vm"] = vm.Name
-	payload["vm_slug"] = slugify(vm.UGOSVMID)
-	payload["collected_at"] = collectedAt.Format(time.RFC3339)
-	return payload
-}
-
 func vmStatus(vm model.VirtualMachineSnapshot) string {
 	if vm.State == "" || vm.State == "unknown" {
 		return "Unavailable"
 	}
 	return strings.ToUpper(vm.State[:1]) + vm.State[1:]
-}
-
-func containerAttributes(container model.ContainerSnapshot) map[string]any {
-	return map[string]any{
-		"name":               container.Name,
-		"container":          container.Name,
-		"container_slug":     slugify(container.Name),
-		"container_id":       shortID(container.ID),
-		"project":            container.Project,
-		"project_slug":       slugify(container.Project),
-		"image":              container.Image,
-		"cpu_usage_percent":  container.CPUPercent,
-		"memory_usage_bytes": container.MemoryUsageBytes,
-		"memory_limit_bytes": container.MemoryLimitBytes,
-		"running":            boolToInt(container.Running),
-		"state":              container.State,
-		"status":             container.Status,
-	}
 }
 
 func displaySourceName(source string) string {

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"testing"
+	"time"
 
 	"github.com/RCooLeR/UgosBridge/bridge/internal/model"
 	cli "github.com/urfave/cli/v2"
@@ -101,6 +102,29 @@ func TestConfigFromCLI_DetailedContainerStats(t *testing.T) {
 			t.Fatalf("DetailedContainerStats = false, want true")
 		}
 	})
+}
+
+func TestConfigFromCLI_MQTTProcessAllowlist(t *testing.T) {
+	cfg := mustConfigFromArgs(t, "--mqtt-process-allowlist", "Search Serv,dockerd")
+	if len(cfg.MQTTProcessAllowlist) != 2 || cfg.MQTTProcessAllowlist[0] != "Search Serv" || cfg.MQTTProcessAllowlist[1] != "dockerd" {
+		t.Fatalf("MQTTProcessAllowlist = %#v", cfg.MQTTProcessAllowlist)
+	}
+}
+
+func TestPollCountUsesAtLeastTwoPolls(t *testing.T) {
+	if got := pollCount(45*time.Second, 15*time.Second); got != 3 {
+		t.Fatalf("pollCount(45s, 15s) = %d, want 3", got)
+	}
+	if got := pollCount(5*time.Second, 15*time.Second); got != 2 {
+		t.Fatalf("pollCount(5s, 15s) = %d, want minimum 2", got)
+	}
+}
+
+func TestLegacyExpireAfterFlagSetsEntityGrace(t *testing.T) {
+	cfg := mustConfigFromArgs(t, "--homeassistant-expire-after", "60s")
+	if cfg.HomeAssistantEntityGrace != time.Minute {
+		t.Fatalf("HomeAssistantEntityGrace = %s, want 1m", cfg.HomeAssistantEntityGrace)
+	}
 }
 
 func mustConfigFromArgs(t *testing.T, args ...string) config {

@@ -691,12 +691,15 @@ func (c *Collector) collectDisksLocked(now time.Time, diskstats []blockdevice.Di
 		rotational, _ := readUintFile(filepath.Join(sysBase, "queue", "rotational"))
 		sizeBytes, _ := readUintFile(filepath.Join(sysBase, "size"))
 		sizeBytes *= 512
+		serial := strings.TrimSpace(readTextFile(filepath.Join(sysBase, "device", "serial")))
+		devicePath := stableDiskPath(sysBase, c.cfg.SysFS)
 
 		entry := model.DiskSnapshot{
 			Name:            stats.DeviceName,
+			Path:            devicePath,
 			Model:           strings.TrimSpace(readTextFile(filepath.Join(sysBase, "device", "model"))),
 			Vendor:          strings.TrimSpace(readTextFile(filepath.Join(sysBase, "device", "vendor"))),
-			Serial:          strings.TrimSpace(readTextFile(filepath.Join(sysBase, "device", "serial"))),
+			Serial:          serial,
 			Type:            diskType(stats.DeviceName, rotational == 1),
 			SizeBytes:       sizeBytes,
 			Rotational:      rotational == 1,
@@ -706,7 +709,14 @@ func (c *Collector) collectDisksLocked(now time.Time, diskstats []blockdevice.Di
 			WriteIOsTotal:   stats.WriteIOs,
 		}
 
-		if prev, ok := c.lastDisk[stats.DeviceName]; ok && elapsed > 0 {
+		identity := "name:" + stats.DeviceName
+		if devicePath != "" {
+			identity = "path:" + devicePath
+		}
+		if serial != "" {
+			identity = "serial:" + serial
+		}
+		if prev, ok := c.lastDisk[identity]; ok && elapsed > 0 {
 			entry.ReadBytesPerSec = rateUint64(entry.ReadBytesTotal, prev.readBytes, elapsed)
 			entry.WriteBytesPerSec = rateUint64(entry.WriteBytesTotal, prev.writeBytes, elapsed)
 			entry.ReadIOPS = rateUint64(entry.ReadIOsTotal, prev.readIOs, elapsed)
@@ -714,7 +724,7 @@ func (c *Collector) collectDisksLocked(now time.Time, diskstats []blockdevice.Di
 			entry.BusyPercent = percentUint64(stats.IOsTotalTicks, prev.ioMillis, elapsed*1000)
 		}
 
-		c.lastDisk[stats.DeviceName] = diskSample{
+		c.lastDisk[identity] = diskSample{
 			readBytes:  entry.ReadBytesTotal,
 			writeBytes: entry.WriteBytesTotal,
 			readIOs:    entry.ReadIOsTotal,
@@ -726,6 +736,40 @@ func (c *Collector) collectDisksLocked(now time.Time, diskstats []blockdevice.Di
 
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result
+}
+
+func stableDiskPath(sysBase string, sysFS string) string {
+	target, err := filepath.EvalSymlinks(filepath.Join(sysBase, "device"))
+	if err != nil {
+		target, err = filepath.EvalSymlinks(sysBase)
+	}
+	if err != nil {
+		return ""
+	}
+
+	if relative, relErr := filepath.Rel(filepath.Clean(sysFS), target); relErr == nil && relative != "." && !strings.HasPrefix(relative, "..") {
+		return normalizeDiskIdentityPath("/"+filepath.ToSlash(relative), sysBase)
+	}
+	return normalizeDiskIdentityPath(filepath.ToSlash(target), sysBase)
+}
+
+func normalizeDiskIdentityPath(path string, sysBase string) string {
+	parts := strings.Split(path, "/")
+	normalized := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if isNVMeController(part) {
+			continue
+		}
+		if strings.HasPrefix(part, "nvme") && isPhysicalDisk(part) {
+			namespaceID := strings.TrimSpace(readTextFile(filepath.Join(sysBase, "nsid")))
+			if _, err := strconv.ParseUint(namespaceID, 10, 64); err != nil {
+				namespaceID = "unknown"
+			}
+			part = "namespace_" + namespaceID
+		}
+		normalized = append(normalized, part)
+	}
+	return strings.Join(normalized, "/")
 }
 
 func (c *Collector) networkMaster(name string) string {

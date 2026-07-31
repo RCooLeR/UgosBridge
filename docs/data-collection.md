@@ -219,7 +219,7 @@ Disk data comes from sysfs block devices. The bridge skips non-physical helper
 devices where possible and collects:
 
 - disk name
-- vendor, model, serial, media type
+- vendor, model, serial, normalized sysfs identity path, and media type
 - size bytes
 - rotational flag
 - read and write counters
@@ -229,6 +229,11 @@ devices where possible and collects:
 
 Disk temperatures are collected through hardware sensor discovery when sysfs
 exposes a relationship between a sensor and a disk.
+
+Disk rate history and MQTT/Home Assistant identity prefer the hardware serial,
+then the normalized sysfs identity path, and use the kernel block name only as
+a final fallback. This keeps data attached to the same physical drive when
+Linux reorders names such as `nvme0n1` and `nvme1n1`.
 
 ## Arrays And Storage Pools
 

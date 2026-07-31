@@ -31,6 +31,8 @@ const haNamedHostChildRegex =
   /^(?:sensor|binary_sensor)\.([a-z0-9_]+)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_[a-z0-9][a-z0-9_]*_[a-z0-9_]+(?:_\d+)?$/;
 const containerEntityRegex =
   /^(?:sensor|binary_sensor)\.ugos_bridge_container_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/;
+const vmEntityRegex =
+  /^(?:sensor|binary_sensor)\.ugos_bridge_vm_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/;
 const processEntityRegex =
   /^sensor\.ugos_bridge_process_(.+?)_(process_count|cpu_usage_percent|memory_usage_bytes|cpu_time_seconds)$/;
 
@@ -643,7 +645,8 @@ const buildDrive = (
   hostName: string,
   diskSlug: string
 ): DriveInfo | null => {
-  const capacityBytes = getNumberState(states, resolveDiskMetricEntityId(states, hostSlug, diskSlug, 'size'));
+  const sizeEntityId = resolveDiskMetricEntityId(states, hostSlug, diskSlug, 'size');
+  const capacityBytes = getNumberState(states, sizeEntityId);
   const temperatureCelsius = getNumberState(states, resolveDiskMetricEntityId(states, hostSlug, diskSlug, 'temperature'));
   const readBytesPerSecond = getNumberState(states, resolveDiskMetricEntityId(states, hostSlug, diskSlug, 'read'));
   const writeBytesPerSecond = getNumberState(states, resolveDiskMetricEntityId(states, hostSlug, diskSlug, 'write'));
@@ -663,17 +666,19 @@ const buildDrive = (
   }
 
   const cleanModel = normalizeDiskModel(diskModel);
+  const deviceName = getStringAttribute(states[sizeEntityId ?? ''], 'name');
   const fallbackName =
     cleanupFriendlyName(
-      states[resolveDiskMetricEntityId(states, hostSlug, diskSlug, 'size') ?? ''],
+      states[sizeEntityId ?? ''],
       'Size',
       hostName
-    ) ?? toDisplayName(diskSlug);
+    ) ?? deviceName ?? toDisplayName(diskSlug);
+  const deviceLabel = deviceName ?? diskSlug;
 
   return {
     name:
       mediaType === 'hdd'
-        ? `${cleanModel ?? fallbackName} ${diskSlug.toUpperCase()}`
+        ? `${cleanModel ?? fallbackName} ${deviceLabel.toUpperCase()}`
         : cleanModel ?? fallbackName,
     model: mediaType ? mediaType.toUpperCase() : temperatureCelsius !== undefined ? 'Physical Disk' : 'Disk',
     capacityBytes: capacityBytes ?? 0,
@@ -684,6 +689,7 @@ const buildDrive = (
     status: deriveDriveStatus(temperatureCelsius),
     mediaType,
     diskSlug,
+    deviceName,
     deviceModel: cleanModel ?? undefined
   };
 };
@@ -824,6 +830,8 @@ const collectProjectContainers = (
   >();
 
   for (const [entityId, entity] of getStateEntries(states)) {
+    const entityMatch = containerEntityRegex.exec(entityId) ?? vmEntityRegex.exec(entityId);
+    const metric = entityMatch?.[2];
     const containerName = getStringAttribute(entity, 'container');
     const containerProject = normalizeProjectSlug(getStringAttribute(entity, 'project'));
     const image = getStringAttribute(entity, 'image');
@@ -838,12 +846,12 @@ const collectProjectContainers = (
       running !== undefined ||
       getNumberAttribute(entity, 'memory_current_bytes') !== undefined ||
       getNumberAttribute(entity, 'memory_limit_bytes') !== undefined ||
-      containerEntityRegex.test(entityId);
+      entityMatch !== null;
     if (!hasContainerPayload) {
       continue;
     }
 
-    const containerKey = slugify(containerName ?? getStringAttribute(entity, 'container_id') ?? entityId);
+    const containerKey = slugify(containerName ?? getStringAttribute(entity, 'container_id') ?? entityMatch?.[1] ?? entityId);
     const container = containersByKey.get(containerKey) ?? { key: containerKey };
 
     container.projectSlug =
@@ -857,12 +865,23 @@ const collectProjectContainers = (
       toDisplayName(containerKey);
     container.image = container.image ?? image ?? 'Unknown';
     container.status = container.status ?? status ?? 'Unavailable';
-    container.state = container.state ?? state ?? inferContainerState(entity);
+    container.state = container.state ?? state ?? (metric === 'running' ? inferContainerState(entity) : undefined);
     container.memoryCurrentBytes = container.memoryCurrentBytes ?? getNumberAttribute(entity, 'memory_current_bytes');
     container.memoryLimitBytes = container.memoryLimitBytes ?? getNumberAttribute(entity, 'memory_limit_bytes');
-    container.cpuPercent = getNumberAttribute(entity, 'cpu_usage_percent') ?? container.cpuPercent ?? 0;
-    container.memoryBytes = getNumberAttribute(entity, 'memory_usage_bytes') ?? container.memoryBytes ?? 0;
-    container.running = running ?? inferContainerRunning(entity, container.state) ?? container.running;
+    container.cpuPercent =
+      getNumberAttribute(entity, 'cpu_usage_percent') ??
+      (metric === 'cpu_usage_percent' ? parseNumber(entity.state) : undefined) ??
+      container.cpuPercent ??
+      0;
+    container.memoryBytes =
+      getNumberAttribute(entity, 'memory_usage_bytes') ??
+      (metric === 'memory_usage_bytes' ? parseNumber(entity.state) : undefined) ??
+      container.memoryBytes ??
+      0;
+    container.running =
+      running ??
+      (metric === 'running' ? inferContainerRunning(entity, container.state) : undefined) ??
+      container.running;
 
     containersByKey.set(containerKey, container);
   }
@@ -1036,6 +1055,9 @@ const buildTopProcesses = (states: Record<string, HassEntityLike>): ProcessDetai
   const processes = new Map<string, ProcessDetail>();
 
   for (const [entityId, entity] of getStateEntries(states)) {
+    const entityMatch = processEntityRegex.exec(entityId);
+    const metric = entityMatch?.[2];
+    const stateValue = parseNumber(entity.state);
     const processName = getStringAttribute(entity, 'name');
     const processCount = getNumberAttribute(entity, 'process_count');
     const cpuTimeSeconds = getNumberAttribute(entity, 'cpu_time_seconds');
@@ -1048,25 +1070,30 @@ const buildTopProcesses = (states: Record<string, HassEntityLike>): ProcessDetai
         getFriendlyNameLower(entity).includes('process') &&
         cpuPercent !== undefined &&
         memoryBytes !== undefined) ||
-      processEntityRegex.test(entityId);
+      entityMatch !== null;
     if (!looksLikeProcessEntity) {
       continue;
     }
 
-    const processKey = slugify(processName ?? entityId);
+    const processKey = slugify(processName ?? entityMatch?.[1] ?? entityId);
     const current = processes.get(processKey) ?? {
       key: processKey,
-      name: processName ?? cleanupFriendlyName(entity, '', '') ?? toDisplayName(processKey),
+      name: processName ?? cleanupFriendlyName(entity, '', '') ?? toDisplayName(entityMatch?.[1] ?? processKey),
       processCount: 0,
       cpuPercent: 0,
       memoryBytes: 0
     };
 
     current.name = processName ?? current.name;
-    current.processCount = Math.round(processCount ?? current.processCount);
-    current.cpuPercent = cpuPercent ?? current.cpuPercent;
-    current.memoryBytes = memoryBytes ?? current.memoryBytes;
-    current.cpuTimeSeconds = cpuTimeSeconds ?? current.cpuTimeSeconds;
+    current.processCount = Math.round(
+      processCount ?? (metric === 'process_count' ? stateValue : undefined) ?? current.processCount
+    );
+    current.cpuPercent =
+      cpuPercent ?? (metric === 'cpu_usage_percent' ? stateValue : undefined) ?? current.cpuPercent;
+    current.memoryBytes =
+      memoryBytes ?? (metric === 'memory_usage_bytes' ? stateValue : undefined) ?? current.memoryBytes;
+    current.cpuTimeSeconds =
+      cpuTimeSeconds ?? (metric === 'cpu_time_seconds' ? stateValue : undefined) ?? current.cpuTimeSeconds;
 
     processes.set(processKey, current);
   }
@@ -1089,10 +1116,10 @@ const mapArrayMembersToDriveSlugs = (members: string[], drives: DriveInfo[]): st
 
   const driveAliases = new Map<string, string>();
   drives
-    .map((drive) => drive.diskSlug)
-    .filter((slug): slug is string => Boolean(slug))
-    .forEach((driveSlug) => {
-      for (const alias of normalizeBlockDeviceCandidates(driveSlug)) {
+    .filter((drive) => Boolean(drive.diskSlug))
+    .forEach((drive) => {
+      const driveSlug = drive.diskSlug as string;
+      for (const alias of [driveSlug, drive.deviceName ?? ''].flatMap(normalizeBlockDeviceCandidates)) {
         driveAliases.set(alias, driveSlug);
       }
     });
@@ -1415,6 +1442,10 @@ const collectDiskSlugs = (states: Record<string, HassEntityLike>, hostSlug: stri
         )
       )
     ];
+    const discoveredSlugs = Array.from(new Set([...componentSlugs, ...exactSlugs])).sort();
+    if (discoveredSlugs.length > 0) {
+      return discoveredSlugs;
+    }
     const legacySlugs = getStateKeys(states)
       .map((entityId) => entityId.match(new RegExp(`^sensor\\.${escapeRegExp(hostSlug)}_disk_([^_]+)_`))?.[1])
       .filter((slug): slug is string => Boolean(slug));
@@ -2925,7 +2956,7 @@ const stripFriendlyHostPrefix = (friendlyName: string, hostSlug: string): string
 };
 
 const isLikelyDiskSlug = (value: string): boolean =>
-  /^(sd[a-z]+|hd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+|loop\d+)$/i.test(value);
+  /^(sd[a-z]+|hd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+|loop\d+|serial_[a-z0-9_]+|path_[a-f0-9]+|name_[a-z0-9_]+)$/i.test(value);
 
 const isLikelyArraySlug = (value: string): boolean => /^md\d+$/i.test(value);
 

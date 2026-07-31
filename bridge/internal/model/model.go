@@ -175,6 +175,7 @@ type FilesystemSnapshot struct {
 
 type DiskSnapshot struct {
 	Name             string
+	Path             string
 	Model            string
 	Vendor           string
 	Serial           string

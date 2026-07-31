@@ -98,36 +98,55 @@ func TestPublishSnapshotReturnsWhenConnectionIsNotOpen(t *testing.T) {
 	}
 }
 
-func TestPublishSnapshotClearsDiscoveryWithoutClearingState(t *testing.T) {
+func TestPublishSnapshotUsesUnavailableGraceBeforeRemovingDiscovery(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
 	publisher := &MQTTPublisher{
 		client: client,
 		cfg: MQTTConfig{
-			QoS:    1,
-			Retain: true,
+			QoS:              1,
+			Retain:           true,
+			UnavailableAfter: 3,
+			RemoveAfter:      5,
 		},
 		discoveredEntities: map[string]publishedEntity{
 			"process:python:cpu": {
-				discoveryTopic: "homeassistant/sensor/ugos_bridge_process_python/cpu_usage_percent/config",
-				stateTopic:     "ugos_bridge/host/processes/python/state",
+				discoveryTopic:    "homeassistant/sensor/ugos_bridge_process_python/cpu_usage_percent/config",
+				stateTopic:        "ugos_bridge/host/processes/python/cpu_usage_percent/state",
+				availabilityTopic: "ugos_bridge/host/processes/python/cpu_usage_percent/availability",
 			},
 		},
 	}
 
+	for poll := 1; poll <= 2; poll++ {
+		if err := publisher.PublishSnapshot(model.Snapshot{}); err != nil {
+			t.Fatalf("PublishSnapshot poll %d returned error: %v", poll, err)
+		}
+	}
+	if got := len(client.publishes); got != 0 {
+		t.Fatalf("expected no publishes during grace period, got %d", got)
+	}
+
 	if err := publisher.PublishSnapshot(model.Snapshot{}); err != nil {
-		t.Fatalf("PublishSnapshot returned error: %v", err)
+		t.Fatalf("PublishSnapshot unavailable poll returned error: %v", err)
 	}
-
 	if got := len(client.publishes); got != 1 {
-		t.Fatalf("expected 1 publish, got %d", got)
+		t.Fatalf("expected one unavailable publish, got %d", got)
+	}
+	if msg := client.publishes[0]; msg.topic != "ugos_bridge/host/processes/python/cpu_usage_percent/availability" || msg.payload != "offline" {
+		t.Fatalf("unexpected unavailable publish: %#v", msg)
 	}
 
-	msg := client.publishes[0]
-	if msg.topic != "homeassistant/sensor/ugos_bridge_process_python/cpu_usage_percent/config" {
-		t.Fatalf("unexpected discovery topic: %s", msg.topic)
+	if err := publisher.PublishSnapshot(model.Snapshot{}); err != nil {
+		t.Fatalf("PublishSnapshot fourth poll returned error: %v", err)
 	}
-	if msg.payload != "" {
-		t.Fatalf("expected empty discovery payload, got %q", msg.payload)
+	if err := publisher.PublishSnapshot(model.Snapshot{}); err != nil {
+		t.Fatalf("PublishSnapshot removal poll returned error: %v", err)
+	}
+	if got := len(client.publishes); got != 4 {
+		t.Fatalf("expected unavailable plus 3 retained cleanup publishes, got %d", got)
+	}
+	if msg := client.publishes[1]; msg.topic != "homeassistant/sensor/ugos_bridge_process_python/cpu_usage_percent/config" || msg.payload != "" {
+		t.Fatalf("unexpected discovery cleanup publish: %#v", msg)
 	}
 }
 
@@ -193,6 +212,204 @@ func TestHostLoadSensorUsesPercentUnit(t *testing.T) {
 	}
 }
 
+func TestDiscoveryUsesScalarStateAndCompactAttributes(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	snapshot := model.Snapshot{
+		CollectedAt: time.Date(2026, 4, 27, 23, 30, 0, 0, time.UTC),
+		Host: &model.HostSnapshot{
+			Name: "dxp6800_pro",
+			CPU: model.HostCPUSnapshot{
+				UsagePercent: 12.5,
+				Load1:        5.29,
+				CoreUsage:    []model.CPUCoreSnapshot{{Name: "cpu0", UsagePercent: 10}},
+			},
+			Memory: model.HostMemorySnapshot{UsedBytes: 40, TotalBytes: 100},
+		},
+	}
+
+	if err := publisher.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost returned error: %v", err)
+	}
+
+	cpu := configPayload(t, client, publisher.discoveryTopic("sensor", "host_dxp6800_pro", "cpu_usage_percent"))
+	if cpu["state_topic"] != "ugos_bridge/host/cpu_usage_percent/state" {
+		t.Fatalf("CPU state_topic = %#v", cpu["state_topic"])
+	}
+	if cpu["json_attributes_topic"] != "ugos_bridge/host/attributes" {
+		t.Fatalf("CPU json_attributes_topic = %#v", cpu["json_attributes_topic"])
+	}
+	if _, ok := cpu["value_template"]; ok {
+		t.Fatalf("scalar sensor should not have value_template")
+	}
+	if _, ok := cpu["expire_after"]; ok {
+		t.Fatalf("change-only sensor should not have expire_after")
+	}
+
+	load := configPayload(t, client, publisher.discoveryTopic("sensor", "host_dxp6800_pro", "load_1"))
+	if _, ok := load["json_attributes_topic"]; ok {
+		t.Fatalf("load sensor should not duplicate host attributes")
+	}
+
+	attributes := configPayload(t, client, "ugos_bridge/host/attributes")
+	if _, ok := attributes["collected_at"]; ok {
+		t.Fatalf("attributes must not include collected_at")
+	}
+	if _, ok := attributes["cpu_usage_percent"]; ok {
+		t.Fatalf("attributes must not contain the full host state payload")
+	}
+	if _, ok := attributes["load_1"]; ok {
+		t.Fatalf("attributes must not contain sibling entity state")
+	}
+}
+
+func TestPublishSnapshotOnlyPublishesChangedEntityState(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	snapshot := model.Snapshot{
+		CollectedAt: time.Date(2026, 4, 27, 23, 30, 0, 0, time.UTC),
+		Host: &model.HostSnapshot{
+			Name:   "dxp6800_pro",
+			CPU:    model.HostCPUSnapshot{UsagePercent: 12.5, Load1: 5.29},
+			Memory: model.HostMemorySnapshot{UsedBytes: 40, TotalBytes: 100},
+		},
+	}
+
+	if err := publisher.PublishSnapshot(snapshot); err != nil {
+		t.Fatalf("first PublishSnapshot returned error: %v", err)
+	}
+	client.publishes = nil
+
+	snapshot.CollectedAt = snapshot.CollectedAt.Add(time.Minute)
+	if err := publisher.PublishSnapshot(snapshot); err != nil {
+		t.Fatalf("unchanged PublishSnapshot returned error: %v", err)
+	}
+	if got := len(client.publishes); got != 0 {
+		t.Fatalf("unchanged useful values produced %d MQTT publishes: %#v", got, client.publishes)
+	}
+
+	snapshot.Host.CPU.UsagePercent = 13.5
+	if err := publisher.PublishSnapshot(snapshot); err != nil {
+		t.Fatalf("changed PublishSnapshot returned error: %v", err)
+	}
+	if got := len(client.publishes); got != 1 {
+		t.Fatalf("one changed entity produced %d MQTT publishes: %#v", got, client.publishes)
+	}
+	if topic := client.publishes[0].topic; topic != "ugos_bridge/host/cpu_usage_percent/state" {
+		t.Fatalf("changed publish topic = %q", topic)
+	}
+}
+
+func TestProcessEntitiesRequireAllowlist(t *testing.T) {
+	snapshot := model.Snapshot{
+		Host: &model.HostSnapshot{
+			Name: "dxp6800_pro",
+			Processes: []model.ProcessSnapshot{
+				{Name: "Search Serv", CPUPercent: 100},
+				{Name: "dockerd", CPUPercent: 2},
+			},
+		},
+	}
+
+	disabledClient := &recordingClient{connectionOpen: true}
+	disabled := &MQTTPublisher{
+		client:             disabledClient,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	if err := disabled.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost without allowlist returned error: %v", err)
+	}
+	if hasTopic(disabledClient, disabled.discoveryTopic("sensor", "process_search_serv", "cpu_usage_percent")) {
+		t.Fatalf("process entity was published without an allowlist")
+	}
+
+	allowedClient := &recordingClient{connectionOpen: true}
+	allowed := &MQTTPublisher{
+		client: allowedClient,
+		cfg: MQTTConfig{
+			TopicPrefix:      "ugos_bridge",
+			DiscoveryPrefix:  "homeassistant",
+			ProcessAllowlist: []string{"search_serv"},
+		},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	if err := allowed.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost with allowlist returned error: %v", err)
+	}
+	if !hasTopic(allowedClient, allowed.discoveryTopic("sensor", "process_search_serv", "cpu_usage_percent")) {
+		t.Fatalf("allowlisted process entity was not published")
+	}
+	if hasTopic(allowedClient, allowed.discoveryTopic("sensor", "process_dockerd", "cpu_usage_percent")) {
+		t.Fatalf("non-allowlisted process entity was published")
+	}
+}
+
+func TestDiskAndDiskSensorIdentityUseSerial(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	snapshot := model.Snapshot{
+		Host: &model.HostSnapshot{
+			Name: "dxp6800_pro",
+			Disks: []model.DiskSnapshot{
+				{Name: "nvme0n1", Serial: "DISK-A", Path: "/devices/pci-a", SizeBytes: 100},
+				{Name: "nvme1n1", Serial: "DISK-B", Path: "/devices/pci-b", SizeBytes: 200},
+			},
+			Sensors: []model.SensorSnapshot{
+				{Source: "hwmon", Chip: "nvme", Name: "temp1", Label: "Composite", Kind: "temperature", Value: 40, DeviceType: "disk", DeviceName: "nvme0n1"},
+				{Source: "hwmon", Chip: "nvme", Name: "temp1", Label: "Composite", Kind: "temperature", Value: 41, DeviceType: "disk", DeviceName: "nvme1n1"},
+			},
+		},
+	}
+
+	if err := publisher.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost returned error: %v", err)
+	}
+
+	diskA := configPayload(t, client, publisher.discoveryTopic("sensor", "disk_serial_disk_a", "size_bytes"))
+	diskB := configPayload(t, client, publisher.discoveryTopic("sensor", "disk_serial_disk_b", "size_bytes"))
+	if diskA["unique_id"] == diskB["unique_id"] {
+		t.Fatalf("physical disks share unique_id %q", diskA["unique_id"])
+	}
+
+	tempA := configPayload(t, client, publisher.discoveryTopic("sensor", "hwmon_serial_disk_a_nvme_temp1", "temperature_celsius"))
+	tempB := configPayload(t, client, publisher.discoveryTopic("sensor", "hwmon_serial_disk_b_nvme_temp1", "temperature_celsius"))
+	if tempA["unique_id"] == tempB["unique_id"] {
+		t.Fatalf("NVMe sensors share unique_id %q", tempA["unique_id"])
+	}
+	legacyCleanup := publishedForTopic(t, client, publisher.discoveryTopic("sensor", "disk_nvme0n1", "size_bytes"))
+	if legacyCleanup.payload != "" || !legacyCleanup.retained {
+		t.Fatalf("legacy disk discovery cleanup = %#v", legacyCleanup)
+	}
+
+	renamed := model.DiskSnapshot{Name: "nvme2n1", Serial: "DISK-A", Path: "/devices/pci-a"}
+	if got := diskIdentitySlug(renamed); got != "serial_disk_a" {
+		t.Fatalf("renamed disk identity = %q, want serial_disk_a", got)
+	}
+	pathOnlyA := diskIdentitySlug(model.DiskSnapshot{Name: "sda", Path: "/devices/pci-a/target-1"})
+	pathOnlyB := diskIdentitySlug(model.DiskSnapshot{Name: "sdf", Path: "/devices/pci-a/target-1"})
+	if pathOnlyA != pathOnlyB || !strings.HasPrefix(pathOnlyA, "path_") {
+		t.Fatalf("path fallback identities = %q and %q", pathOnlyA, pathOnlyB)
+	}
+}
+
 func TestUPSPublishesHomeAssistantEntities(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
 	publisher := &MQTTPublisher{
@@ -227,22 +444,24 @@ func TestUPSPublishesHomeAssistantEntities(t *testing.T) {
 		t.Fatalf("publishHost returned error: %v", err)
 	}
 
-	state := configPayload(t, client, "ugos_bridge/host/ups/ups/state")
-	if state["battery_charge_percent"] != float64(97) {
-		t.Fatalf("battery charge payload = %#v, want 97", state["battery_charge_percent"])
+	if state := messagePayload(t, client, "ugos_bridge/host/ups/ups/battery_charge_percent/state"); state != "97" {
+		t.Fatalf("battery charge payload = %q, want 97", state)
 	}
-	if state["online"] != float64(1) {
-		t.Fatalf("online payload = %#v, want 1", state["online"])
+	if state := messagePayload(t, client, "ugos_bridge/host/ups/ups/online/state"); state != "1" {
+		t.Fatalf("online payload = %q, want 1", state)
 	}
 
 	charge := configPayload(t, client, publisher.discoveryTopic("sensor", "ups_ups", "battery_charge_percent"))
 	if viaDevice(t, charge) != "ugos_bridge_host_dxp6800_pro" {
 		t.Fatalf("UPS charge via_device = %q, want host parent", viaDevice(t, charge))
 	}
+	if charge["state_topic"] != "ugos_bridge/host/ups/ups/battery_charge_percent/state" {
+		t.Fatalf("UPS charge state_topic = %#v", charge["state_topic"])
+	}
 
 	online := configPayload(t, client, publisher.discoveryTopic("binary_sensor", "ups_ups", "online"))
-	if online["value_template"] != "{{ value_json.online }}" {
-		t.Fatalf("online value_template = %#v", online["value_template"])
+	if _, ok := online["value_template"]; ok {
+		t.Fatalf("binary sensor should consume a scalar state, got value_template = %#v", online["value_template"])
 	}
 }
 
@@ -364,6 +583,38 @@ func configPayload(t *testing.T, client *recordingClient, topic string) map[stri
 
 	t.Fatalf("topic %s was not published", topic)
 	return nil
+}
+
+func messagePayload(t *testing.T, client *recordingClient, topic string) string {
+	t.Helper()
+
+	for _, msg := range client.publishes {
+		if msg.topic == topic {
+			return msg.payload
+		}
+	}
+	t.Fatalf("topic %s was not published", topic)
+	return ""
+}
+
+func publishedForTopic(t *testing.T, client *recordingClient, topic string) publishedMessage {
+	t.Helper()
+	for _, msg := range client.publishes {
+		if msg.topic == topic {
+			return msg
+		}
+	}
+	t.Fatalf("topic %s was not published", topic)
+	return publishedMessage{}
+}
+
+func hasTopic(client *recordingClient, topic string) bool {
+	for _, msg := range client.publishes {
+		if msg.topic == topic {
+			return true
+		}
+	}
+	return false
 }
 
 func publishIndex(t *testing.T, client *recordingClient, topic string) int {
