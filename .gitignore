@@ -1,6 +1,8 @@
 .idea/
 .vscode/
 .ai/
+claude-review/
+.cache/
 .DS_Store
 bin/
 dist/

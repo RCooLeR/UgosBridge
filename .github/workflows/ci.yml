@@ -1,0 +1,114 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: bridge/go.mod
+          cache: true
+          cache-dependency-path: bridge/go.sum
+
+      - name: Check module tidiness
+        run: |
+          go -C bridge mod tidy
+          git diff --exit-code -- bridge/go.mod bridge/go.sum
+
+      - name: Vet
+        run: go -C bridge vet ./...
+
+      - name: Test
+        run: go -C bridge test ./...
+
+      - name: Race test
+        run: go -C bridge test -race ./...
+
+      - name: Build
+        run: go -C bridge build -trimpath ./...
+
+  cards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            ha-cards/detailed/package-lock.json
+            ha-cards/small/package-lock.json
+
+      - name: Install detailed card dependencies
+        run: npm ci
+        working-directory: ha-cards/detailed
+
+      - name: Install small card dependencies
+        run: npm ci
+        working-directory: ha-cards/small
+
+      - name: Check detailed card
+        run: npm run check
+        working-directory: ha-cards/detailed
+
+      - name: Check small card
+        run: npm run check
+        working-directory: ha-cards/small
+
+      - name: Build detailed card
+        run: npm run build
+        working-directory: ha-cards/detailed
+
+      - name: Build small card
+        run: npm run build
+        working-directory: ha-cards/small
+
+      - name: Check committed bundles
+        run: git diff --exit-code -- ha-cards/detailed/dist/ugreen-nas-card.js ha-cards/small/dist/ugreen-nas-mini-card.js
+
+  release-snapshot:
+    runs-on: ubuntu-latest
+    needs:
+      - bridge
+      - cards
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: bridge/go.mod
+          cache: true
+          cache-dependency-path: bridge/go.sum
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run GoReleaser snapshot
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish
