@@ -830,10 +830,17 @@ const collectProjectContainers = (
   >();
 
   for (const [entityId, entity] of getStateEntries(states)) {
+    if (!isUsableEntityState(entity)) {
+      continue;
+    }
+
     const entityMatch = containerEntityRegex.exec(entityId) ?? vmEntityRegex.exec(entityId);
-    const metric = entityMatch?.[2];
+    const friendlyMetric = getFriendlyContainerMetric(entity);
+    const metric = entityMatch?.[2] ?? friendlyMetric?.metric;
     const containerName = getStringAttribute(entity, 'container');
-    const containerProject = normalizeProjectSlug(getStringAttribute(entity, 'project'));
+    const containerProject = normalizeProjectSlug(
+      getStringAttribute(entity, 'project_slug') ?? getStringAttribute(entity, 'project')
+    );
     const image = getStringAttribute(entity, 'image');
     const status = getStringAttribute(entity, 'status');
     const state = getStringAttribute(entity, 'state');
@@ -846,21 +853,30 @@ const collectProjectContainers = (
       running !== undefined ||
       getNumberAttribute(entity, 'memory_current_bytes') !== undefined ||
       getNumberAttribute(entity, 'memory_limit_bytes') !== undefined ||
-      entityMatch !== null;
+      metric !== undefined;
     if (!hasContainerPayload) {
       continue;
     }
 
-    const containerKey = slugify(containerName ?? getStringAttribute(entity, 'container_id') ?? entityMatch?.[1] ?? entityId);
+    const containerKey =
+      friendlyMetric?.key ??
+      slugify(
+        containerName ??
+          getStringAttribute(entity, 'container_slug') ??
+          getStringAttribute(entity, 'container_id') ??
+          entityMatch?.[1] ??
+          entityId
+      );
     const container = containersByKey.get(containerKey) ?? { key: containerKey };
 
     container.projectSlug =
-      container.projectSlug ??
       containerProject ??
+      container.projectSlug ??
       inferProjectSlugFromEntity(containerKey, entity, projectSlug);
     container.name =
       container.name ??
       containerName ??
+      friendlyMetric?.name ??
       cleanupFriendlyName(entity, '', '') ??
       toDisplayName(containerKey);
     container.image = container.image ?? image ?? 'Unknown';
@@ -887,7 +903,11 @@ const collectProjectContainers = (
   }
 
   return Array.from(containersByKey.values())
-    .filter((container) => container.projectSlug === projectSlug || matchesProjectContainerState(container, projectSlug))
+    .filter((container) =>
+      container.projectSlug !== undefined
+        ? container.projectSlug === projectSlug
+        : matchesProjectContainerState(container, projectSlug)
+    )
     .map((container) => ({
       key: container.key,
       name: container.name ?? toDisplayName(container.key),
@@ -1418,9 +1438,7 @@ const collectProjectSlugs = (states: Record<string, HassEntityLike>): string[] =
       .filter(
         ([entityId, entity]) =>
           entityId.startsWith('sensor.') &&
-          (getNumberAttribute(entity, 'total_containers') !== undefined ||
-            getNumberAttribute(entity, 'running_containers') !== undefined ||
-            getObjectArrayAttribute(entity, 'containers').length > 0)
+          (getStringAttribute(entity, 'project_slug') !== undefined || getStringAttribute(entity, 'project') !== undefined)
       )
       .map(([, entity]) => normalizeProjectSlug(getStringAttribute(entity, 'project_slug') ?? getStringAttribute(entity, 'project')))
       .filter((slug): slug is string => Boolean(slug));
@@ -2359,8 +2377,13 @@ const resolveProjectMetricEntityId = (
       return exactMap[metric];
     }
 
-    const prefix = `sensor.compose_project_${projectSlug}_`;
-    const prefixedEntries = getEntriesByPrefix(states, prefix);
+    const prefixes = [
+      `sensor.ugos_bridge_project_${projectSlug}_`,
+      `sensor.compose_project_${projectSlug}_`,
+      `sensor.project_${projectSlug}_`,
+      ...(projectSlug === 'virtual_machines' ? ['sensor.virtual_machines_'] : [])
+    ];
+    const prefixedEntries = getEntriesByPrefixes(states, prefixes);
     const matcher =
       metric === 'cpu'
         ? { entityIncludes: ['cpu'], friendlyIncludes: ['cpu'], unit: '%' }
@@ -3048,7 +3071,7 @@ const getFriendlyProjectSlug = (entity: HassEntityLike | undefined): string | un
   }
 
   const cleanedName = friendlyName
-    .replace(/^(compose|docker)\s+project\s+/i, '')
+    .replace(/^(?:(?:compose|docker)\s+)?project\s+/i, '')
     .replace(/\s+(CPU|Memory|Total Containers|Running Containers)$/i, '')
     .trim();
   if (!cleanedName) {
@@ -3210,6 +3233,37 @@ const normalizeProjectSlug = (value: string | undefined): string | undefined => 
   return normalized === 'unknown' ? undefined : normalized;
 };
 
+const getFriendlyContainerMetric = (
+  entity: HassEntityLike | undefined
+): { key: string; name: string; metric: 'cpu_usage_percent' | 'memory_usage_bytes' | 'running' } | undefined => {
+  const friendlyName = getFriendlyName(entity);
+  const match = /^(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(friendlyName);
+  if (!match) {
+    return undefined;
+  }
+
+  const name = collapseRepeatedName(match[1]);
+  const suffix = match[2].toLowerCase();
+  const metric = suffix === 'cpu' ? 'cpu_usage_percent' : suffix.startsWith('memory') ? 'memory_usage_bytes' : 'running';
+  return { key: slugify(name), name, metric };
+};
+
+const collapseRepeatedName = (value: string): string => {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length > 1 && words.length % 2 === 0) {
+    const half = words.length / 2;
+    const left = words.slice(0, half);
+    const right = words.slice(half);
+    if (left.every((word, index) => word.toLowerCase() === right[index]?.toLowerCase())) {
+      return left.join(' ');
+    }
+  }
+
+  return words
+    .filter((word, index) => index === 0 || word.toLowerCase() !== words[index - 1]?.toLowerCase())
+    .join(' ');
+};
+
 const metricSuffixLabel = (metric: string): string => {
   switch (metric) {
     case 'cpu_usage_percent':
@@ -3258,7 +3312,9 @@ const inferProjectSlugFromEntity = (
   entity: HassEntityLike | undefined,
   projectSlug: string
 ): string | undefined => {
-  const explicitProject = normalizeProjectSlug(getStringAttribute(entity, 'project'));
+  const explicitProject = normalizeProjectSlug(
+    getStringAttribute(entity, 'project_slug') ?? getStringAttribute(entity, 'project')
+  );
   if (explicitProject) {
     return explicitProject;
   }
