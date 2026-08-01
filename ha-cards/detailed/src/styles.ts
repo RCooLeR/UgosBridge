@@ -415,6 +415,14 @@ export const cardStyles = css`
     align-self: start;
   }
 
+  .storage.project-detail-active {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storage.project-detail-active .table-card {
+    order: -1;
+  }
+
   .table-card {
     padding: 0 0 10px;
   }
@@ -733,6 +741,14 @@ export const cardStyles = css`
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .container-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .container-metrics .detail-metric-card:last-child {
+    grid-column: 1 / -1;
   }
 
   .detail-metric-card {

@@ -879,8 +879,11 @@ const collectProjectContainers = (
       friendlyMetric?.name ??
       cleanupFriendlyName(entity, '', '') ??
       toDisplayName(containerKey);
-    container.image = container.image ?? image ?? 'Unknown';
-    container.status = container.status ?? status ?? 'Unavailable';
+    // Metric-only entities are often received before the CPU entity that owns
+    // the Docker metadata. Do not lock fallback labels into the accumulator or
+    // later image/status attributes can never replace them.
+    container.image = container.image ?? image;
+    container.status = container.status ?? status;
     container.state = container.state ?? state ?? (metric === 'running' ? inferContainerState(entity) : undefined);
     container.memoryCurrentBytes = container.memoryCurrentBytes ?? getNumberAttribute(entity, 'memory_current_bytes');
     container.memoryLimitBytes = container.memoryLimitBytes ?? getNumberAttribute(entity, 'memory_limit_bytes');
@@ -1376,10 +1379,13 @@ const resolveHostDisplayName = (
   states: Record<string, HassEntityLike>,
   hostSlug: string,
   configuredHost: string | undefined
-): string =>
-  cleanupFriendlyName(states[resolveHostMetricEntityId(states, hostSlug, 'cpu') ?? ''], 'CPU', '') ??
-  configuredHost?.trim() ??
-  toDisplayName(hostSlug);
+): string => {
+  const name =
+    cleanupFriendlyName(states[resolveHostMetricEntityId(states, hostSlug, 'cpu') ?? ''], 'CPU', '') ??
+    configuredHost?.trim() ??
+    toDisplayName(hostSlug);
+  return collapseRepeatedName(name);
+};
 
 const resolveIPAddress = (states: Record<string, HassEntityLike>, config: CardConfig | undefined): string => {
   if (config?.ipEntity) {

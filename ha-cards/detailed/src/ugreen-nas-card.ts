@@ -313,8 +313,10 @@ export class UgreenNasCard extends LitElement {
   }
 
   private renderStorageSection(): TemplateResult {
+    const projectDetailActive = this._detailSelection.kind === 'project';
+
     return html`
-      <section class="storage">
+      <section class=${projectDetailActive ? 'storage project-detail-active' : 'storage'}>
         ${this.renderStoragePoolsSection()} ${this.renderDrivesSection()}
       </section>
     `;
@@ -565,7 +567,7 @@ export class UgreenNasCard extends LitElement {
                   <span class="dot"></span>${container.running ? 'Running' : container.state}
                 </span>
               </div>
-              <div class="detail-metric-grid">
+              <div class="detail-metric-grid container-metrics">
                 <div class="detail-metric-card">
                   <span>CPU</span>
                   <strong>${formatProjectPercent(container.cpuPercent)}</strong>

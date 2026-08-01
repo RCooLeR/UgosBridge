@@ -18,7 +18,7 @@ test('builds Docker projects from compact scalar states with preserved HA entity
   const live = await server.ssrLoadModule('/src/live-model.ts');
   const states = Object.fromEntries([
     state('sensor.ugos_bridge_host_dxp6800_pro_cpu_usage_percent', 6.72, {
-      friendly_name: 'DXP6800 Pro CPU',
+      friendly_name: 'DXP6800 Pro DXP6800 Pro CPU',
       host: 'DXP6800 Pro',
       unit_of_measurement: '%'
     }),
@@ -35,6 +35,7 @@ test('builds Docker projects from compact scalar states with preserved HA entity
   );
 
   assert.ok(result);
+  assert.equal(result.model.deviceInfo.hostname, 'DXP6800 Pro');
   assert.deepEqual(result.model.dockerProjects.map((project) => project.key).sort(), ['apps', 'db']);
 
   const apps = result.model.dockerProjects.find((project) => project.key === 'apps');
@@ -44,6 +45,8 @@ test('builds Docker projects from compact scalar states with preserved HA entity
   assert.equal(apps?.containers[0]?.cpuPercent, 0.5);
   assert.equal(apps?.containers[0]?.memoryBytes, 1200);
   assert.equal(apps?.containers[0]?.running, true);
+  assert.equal(apps?.containers[0]?.image, 'go-back-db:latest');
+  assert.equal(apps?.containers[0]?.status, 'Up 1 hour');
 });
 
 function projectStates(project, cpu, memory, running, total) {
