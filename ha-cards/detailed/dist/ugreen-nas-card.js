@@ -4205,14 +4205,6 @@ var Tt = (e) => Ue(e)?.unit, ee = (e, t) => {
     align-self: start;
   }
 
-  .storage.project-detail-active {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .storage.project-detail-active .table-card {
-    order: -1;
-  }
-
   .table-card {
     padding: 0 0 10px;
   }
@@ -5002,7 +4994,7 @@ var tt = "ugreen-nas-card", V = (e, t = "currentColor", r = "0 0 24 24") => Gs`
   }
   renderStorageSection() {
     return u`
-      <section class=${this._detailSelection.kind === "project" ? "storage project-detail-active" : "storage"}>
+      <section class="storage">
         ${this.renderStoragePoolsSection()} ${this.renderDrivesSection()}
       </section>
     `;

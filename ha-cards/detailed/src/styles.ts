@@ -415,14 +415,6 @@ export const cardStyles = css`
     align-self: start;
   }
 
-  .storage.project-detail-active {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .storage.project-detail-active .table-card {
-    order: -1;
-  }
-
   .table-card {
     padding: 0 0 10px;
   }
