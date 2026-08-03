@@ -20,7 +20,23 @@ test('builds Docker projects from compact scalar states with preserved HA entity
     state('sensor.ugos_bridge_host_dxp6800_pro_cpu_usage_percent', 6.72, {
       friendly_name: 'DXP6800 Pro DXP6800 Pro CPU',
       host: 'DXP6800 Pro',
-      unit_of_measurement: '%'
+      unit_of_measurement: '%',
+      top_processes: [
+        {
+          name: 'Search Serv',
+          process_count: 2,
+          cpu_usage_percent: 9.5,
+          memory_usage_bytes: 4096,
+          cpu_time_seconds: 120
+        },
+        {
+          name: 'Docker',
+          process_count: 6,
+          cpu_usage_percent: 2.25,
+          memory_usage_bytes: 8192,
+          cpu_time_seconds: 80
+        }
+      ]
     }),
     ...projectStates('apps', 1.5, 2000, 1, 1),
     ...projectStates('db', 2.5, 3000, 1, 1),
@@ -36,6 +52,24 @@ test('builds Docker projects from compact scalar states with preserved HA entity
 
   assert.ok(result);
   assert.equal(result.model.deviceInfo.hostname, 'DXP6800 Pro');
+  assert.deepEqual(result.model.topProcesses, [
+    {
+      key: 'search_serv',
+      name: 'Search Serv',
+      processCount: 2,
+      cpuPercent: 9.5,
+      memoryBytes: 4096,
+      cpuTimeSeconds: 120
+    },
+    {
+      key: 'docker',
+      name: 'Docker',
+      processCount: 6,
+      cpuPercent: 2.25,
+      memoryBytes: 8192,
+      cpuTimeSeconds: 80
+    }
+  ]);
   assert.deepEqual(result.model.dockerProjects.map((project) => project.key).sort(), ['apps', 'db']);
 
   const apps = result.model.dockerProjects.find((project) => project.key === 'apps');

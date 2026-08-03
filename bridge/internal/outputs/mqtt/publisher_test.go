@@ -334,6 +334,15 @@ func TestProcessEntitiesRequireAllowlist(t *testing.T) {
 	if hasTopic(disabledClient, disabled.discoveryTopic("sensor", "process_search_serv", "cpu_usage_percent")) {
 		t.Fatalf("process entity was published without an allowlist")
 	}
+	attributes := configPayload(t, disabledClient, "ugos_bridge/host/attributes")
+	topProcesses, ok := attributes["top_processes"].([]any)
+	if !ok || len(topProcesses) != 2 {
+		t.Fatalf("top_processes = %#v, want two compact entries", attributes["top_processes"])
+	}
+	first, ok := topProcesses[0].(map[string]any)
+	if !ok || first["name"] != "Search Serv" || first["cpu_usage_percent"] != float64(100) {
+		t.Fatalf("first top process = %#v", topProcesses[0])
+	}
 
 	allowedClient := &recordingClient{connectionOpen: true}
 	allowed := &MQTTPublisher{

@@ -320,7 +320,7 @@ export const buildLiveDashboardModel = (
   const hostName = resolveHostDisplayName(states, hostSlug, config?.host);
   const cpuCores = buildCpuCoreDetails(states, hostCpuEntityId);
   const ramBreakdown = buildRamBreakdown(states, hostMemoryEntityId, memoryTotalBytes, memoryUsedBytes);
-  const topProcesses = buildTopProcesses(states);
+  const topProcesses = buildTopProcesses(states, states[hostCpuEntityId ?? '']);
 
   const temperatures = collectTemperatureSnapshots(states, hostSlug);
   const cpuTemperature = pickTemperature(temperatures, ['cpu', 'package', 'soc', 'core', 'tctl']);
@@ -1074,7 +1074,17 @@ const buildGpuStatDetails = (
   return Array.from(itemsByKey.values());
 };
 
-const buildTopProcesses = (states: Record<string, HassEntityLike>): ProcessDetail[] => {
+const buildTopProcesses = (
+  states: Record<string, HassEntityLike>,
+  hostCpuEntity: HassEntityLike | undefined
+): ProcessDetail[] => {
+  const compactProcesses = getObjectArrayAttribute(hostCpuEntity, 'top_processes')
+    .map((item, index) => parseProcessAttribute(item, index))
+    .filter((process): process is ProcessDetail => process !== null);
+  if (compactProcesses.length > 0) {
+    return sortTopProcesses(compactProcesses);
+  }
+
   const processes = new Map<string, ProcessDetail>();
 
   for (const [entityId, entity] of getStateEntries(states)) {
@@ -1121,7 +1131,30 @@ const buildTopProcesses = (states: Record<string, HassEntityLike>): ProcessDetai
     processes.set(processKey, current);
   }
 
-  return Array.from(processes.values())
+  return sortTopProcesses(Array.from(processes.values()));
+};
+
+const parseProcessAttribute = (item: Record<string, unknown>, index: number): ProcessDetail | null => {
+  const name = readString(item, ['name', 'Name']);
+  const cpuPercent = readNumber(item, ['cpu_usage_percent', 'cpu_percent', 'CPUPercent']);
+  const memoryBytes = readNumber(item, ['memory_usage_bytes', 'memory_bytes', 'MemoryBytes']);
+  if (!name && cpuPercent === undefined && memoryBytes === undefined) {
+    return null;
+  }
+
+  const key = slugify(name ?? `process_${index}`);
+  return {
+    key,
+    name: name ?? toDisplayName(key),
+    processCount: Math.round(readNumber(item, ['process_count', 'ProcessCount']) ?? 0),
+    cpuPercent: cpuPercent ?? 0,
+    memoryBytes: memoryBytes ?? 0,
+    cpuTimeSeconds: readNumber(item, ['cpu_time_seconds', 'CPUTimeSeconds'])
+  };
+};
+
+const sortTopProcesses = (processes: ProcessDetail[]): ProcessDetail[] =>
+  processes
     .sort(
       (left, right) =>
         right.cpuPercent - left.cpuPercent ||
@@ -1130,7 +1163,6 @@ const buildTopProcesses = (states: Record<string, HassEntityLike>): ProcessDetai
         left.name.localeCompare(right.name)
     )
     .slice(0, 10);
-};
 
 const mapArrayMembersToDriveSlugs = (members: string[], drives: DriveInfo[]): string[] => {
   if (members.length === 0) {

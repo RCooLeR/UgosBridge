@@ -380,6 +380,9 @@ memory remain in the payload for context.
 Process groups are Prometheus-only by default. Set
 `UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST` to a comma-separated list of exact process
 names or normalized slugs to create selected Home Assistant process entities.
+The host CPU entity still receives a compact `top_processes` attribute containing
+up to 10 process groups. The NAS card uses this single list for its System Load
+detail view without creating discovery entities for every changing top process.
 
 Device ID:
 

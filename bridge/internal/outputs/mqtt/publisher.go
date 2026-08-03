@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,6 +25,7 @@ var ErrNotConnected = errors.New("mqtt broker is not connected")
 const (
 	defaultUnavailableAfter = 3
 	defaultRemoveAfter      = 30
+	defaultTopProcessLimit  = 10
 )
 
 type MQTTConfig struct {
@@ -557,6 +559,7 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	p.preparePayload(hostStateTopic, hostValues, map[string]any{
 		"host":                   hostSnapshot.Name,
 		"cpu_cores":              cpuCoreAttributes(hostSnapshot.CPU.CoreUsage),
+		"top_processes":          topProcessAttributes(hostSnapshot.Processes, defaultTopProcessLimit),
 		"memory_used_bytes":      hostSnapshot.Memory.UsedBytes,
 		"memory_total_bytes":     hostSnapshot.Memory.TotalBytes,
 		"memory_free_bytes":      hostSnapshot.Memory.FreeBytes,
@@ -1345,6 +1348,38 @@ func (p *MQTTPublisher) allowedProcesses(processes []model.ProcessSnapshot) []mo
 		if _, ok := allowed[slugify(process.Name)]; ok {
 			result = append(result, process)
 		}
+	}
+	return result
+}
+
+func topProcessAttributes(processes []model.ProcessSnapshot, limit int) []map[string]any {
+	if limit <= 0 || len(processes) == 0 {
+		return []map[string]any{}
+	}
+
+	ranked := append([]model.ProcessSnapshot(nil), processes...)
+	sort.Slice(ranked, func(i, j int) bool {
+		if ranked[i].CPUPercent == ranked[j].CPUPercent {
+			if ranked[i].MemoryBytes == ranked[j].MemoryBytes {
+				return ranked[i].Name < ranked[j].Name
+			}
+			return ranked[i].MemoryBytes > ranked[j].MemoryBytes
+		}
+		return ranked[i].CPUPercent > ranked[j].CPUPercent
+	})
+	if len(ranked) > limit {
+		ranked = ranked[:limit]
+	}
+
+	result := make([]map[string]any, 0, len(ranked))
+	for _, process := range ranked {
+		result = append(result, map[string]any{
+			"name":               process.Name,
+			"process_count":      process.ProcessCount,
+			"cpu_usage_percent":  process.CPUPercent,
+			"memory_usage_bytes": process.MemoryBytes,
+			"cpu_time_seconds":   process.CPUTimeSeconds,
+		})
 	}
 	return result
 }
