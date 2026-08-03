@@ -221,7 +221,10 @@ func (c *Collector) Collect(ctx context.Context) (model.HostSnapshot, error) {
 		return model.HostSnapshot{}, fmt.Errorf("read host mounts: %w", err)
 	}
 
-	hostname := c.resolveHostname()
+	hostname, err := c.resolveHostname()
+	if err != nil {
+		return model.HostSnapshot{}, err
+	}
 
 	snapshot := model.HostSnapshot{
 		Name: hostname,
@@ -1224,9 +1227,9 @@ func (c *Collector) hwmonDeviceAssociation(hwmonPath string) (string, string) {
 	return "host", ""
 }
 
-func (c *Collector) resolveHostname() string {
+func (c *Collector) resolveHostname() (string, error) {
 	if override := strings.TrimSpace(c.cfg.HostnameOverride); override != "" {
-		return override
+		return override, nil
 	}
 
 	candidates := []string{}
@@ -1245,12 +1248,11 @@ func (c *Collector) resolveHostname() string {
 
 	for _, path := range uniqueStrings(candidates) {
 		if hostname := strings.TrimSpace(readTextFile(path)); hostname != "" {
-			return hostname
+			return hostname, nil
 		}
 	}
 
-	hostname, _ := os.Hostname()
-	return hostname
+	return "", fmt.Errorf("host hostname is unavailable; set UGOS_BRIDGE_HOST_NAME or mount the host hostname file")
 }
 
 func collectSensorGroup(basePath string, chipName string, source string, prefix string, kind string, deviceType string, deviceName string, valueFn func(int64) (float64, bool)) []model.SensorSnapshot {

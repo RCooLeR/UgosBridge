@@ -38,7 +38,11 @@ ugos_bridge/status
 The retained Last Will payload is `offline`. When connected, the bridge publishes
 a process-lifetime payload such as `online_a1b2c3d4e5f6`. A new payload is used
 after every bridge restart so retained discovery from an older process cannot
-incorrectly become available again.
+incorrectly become available again. A connection first publishes an `offline`
+barrier, replays every current discovery, attributes, entity-availability, and
+state payload, and publishes the process-lifetime online payload last. Home
+Assistant therefore never sees a partially replayed bridge generation as
+available.
 
 Each entity also has its own availability topic. Discovery requires both the
 bridge session and the entity to be available:
@@ -169,6 +173,12 @@ Home Assistant can still change the final entity ID if the user renames an
 entity or if a conflict already exists. The stable identifier from the bridge is
 `unique_id`.
 
+Host IDs are based on `UGOS_BRIDGE_HOST_NAME` or a mounted host hostname file.
+The bridge does not fall back to the container hostname because Docker commonly
+sets that value to the replaceable container ID. Docker container entities are
+based on the stable container name and Compose project; the runtime container ID
+is diagnostic metadata only and may change on every rebuild.
+
 ## Device Hierarchy
 
 | Device type | Device ID | Parent |
@@ -208,8 +218,9 @@ under a hardware health chip device.
 The bridge keeps an in-memory set of entities discovered during the current
 process lifetime.
 
-- On the first snapshot after startup, discovery config is published for every
-  current entity.
+- On the first complete snapshot after startup or reconnect, the bridge remains
+  globally unavailable while it republishes every current entity, then marks the
+  complete generation available in one final publish.
 - Discovery, attributes, availability, and scalar state payloads are deduplicated.
 - A single missing poll does not remove or mark an entity unavailable.
 - After the configured grace period, the entity availability topic changes to

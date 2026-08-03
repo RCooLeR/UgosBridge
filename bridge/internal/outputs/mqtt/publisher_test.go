@@ -2,7 +2,9 @@ package mqttoutput
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +24,7 @@ type publishedMessage struct {
 type recordingClient struct {
 	connectionOpen bool
 	publishes      []publishedMessage
+	failTopic      string
 }
 
 func (c *recordingClient) IsConnected() bool { return true }
@@ -39,6 +42,9 @@ func (c *recordingClient) Publish(topic string, qos byte, retained bool, payload
 		retained: retained,
 		payload:  payloadString(payload),
 	})
+	if topic == c.failTopic {
+		return stubToken{err: errors.New("forced publish failure")}
+	}
 	return stubToken{}
 }
 
@@ -58,7 +64,9 @@ func (c *recordingClient) OptionsReader() mqtt.ClientOptionsReader {
 	return mqtt.NewOptionsReader(mqtt.NewClientOptions())
 }
 
-type stubToken struct{}
+type stubToken struct {
+	err error
+}
 
 func (stubToken) Wait() bool { return true }
 
@@ -70,7 +78,13 @@ func (stubToken) Done() <-chan struct{} {
 	return done
 }
 
-func (stubToken) Error() error { return nil }
+func (t stubToken) Error() error { return t.err }
+
+func markConnectionCommitted(publisher *MQTTPublisher) {
+	publisher.connectionGeneration.Store(1)
+	publisher.replayReadyGeneration.Store(1)
+	publisher.committedGeneration.Store(1)
+}
 
 func TestPublishSnapshotReturnsWhenConnectionIsNotOpen(t *testing.T) {
 	client := &recordingClient{}
@@ -98,6 +112,104 @@ func TestPublishSnapshotReturnsWhenConnectionIsNotOpen(t *testing.T) {
 	}
 }
 
+func TestPublishSnapshotCommitsAvailabilityAfterFullReplay(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", QoS: 1, Retain: true},
+		availabilityTopic:  "ugos_bridge/status",
+		availabilityOnline: "online_generation",
+		discoveredEntities: map[string]publishedEntity{},
+		lastPayloads:       map[string]string{},
+		preparedPayloads:   map[string]preparedPayload{},
+	}
+	publisher.beginAvailabilityReplay(client)
+
+	snapshot := model.Snapshot{
+		Host: &model.HostSnapshot{
+			Name:   "dxp6800_pro",
+			CPU:    model.HostCPUSnapshot{UsagePercent: 12.5, Load1: 5.29},
+			Memory: model.HostMemorySnapshot{UsedBytes: 40, TotalBytes: 100},
+		},
+	}
+	if err := publisher.PublishSnapshot(snapshot); err != nil {
+		t.Fatalf("PublishSnapshot returned error: %v", err)
+	}
+
+	if len(client.publishes) < 3 {
+		t.Fatalf("expected availability barrier, entity replay, and commit, got %#v", client.publishes)
+	}
+	if first := client.publishes[0]; first.topic != publisher.availabilityTopic || first.payload != "offline" {
+		t.Fatalf("first publish = %#v, want retained offline barrier", first)
+	}
+	last := client.publishes[len(client.publishes)-1]
+	if last.topic != publisher.availabilityTopic || last.payload != publisher.availablePayload() || !last.retained {
+		t.Fatalf("last publish = %#v, want retained availability commit", last)
+	}
+	for _, message := range client.publishes[:len(client.publishes)-1] {
+		if message.topic == publisher.availabilityTopic && message.payload == publisher.availablePayload() {
+			t.Fatalf("availability was committed before the entity replay completed: %#v", message)
+		}
+	}
+	cpuDiscovery := configPayload(t, client, publisher.discoveryTopic("sensor", "host_dxp6800_pro", "cpu_usage_percent"))
+	availability, ok := cpuDiscovery["availability"].([]any)
+	if !ok || len(availability) == 0 {
+		t.Fatalf("CPU discovery availability = %#v", cpuDiscovery["availability"])
+	}
+	globalAvailability, ok := availability[0].(map[string]any)
+	if !ok || globalAvailability["payload_available"] != publisher.availablePayload() {
+		t.Fatalf("CPU discovery global availability = %#v", availability[0])
+	}
+	if got := publisher.committedGeneration.Load(); got != publisher.connectionGeneration.Load() {
+		t.Fatalf("committed generation = %d, connection generation = %d", got, publisher.connectionGeneration.Load())
+	}
+
+	client.publishes = nil
+	if err := publisher.PublishSnapshot(snapshot); err != nil {
+		t.Fatalf("unchanged PublishSnapshot returned error: %v", err)
+	}
+	if got := len(client.publishes); got != 0 {
+		t.Fatalf("unchanged snapshot produced %d publishes after replay: %#v", got, client.publishes)
+	}
+}
+
+func TestPublishSnapshotRetriesEntireReplayWhenAvailabilityCommitFails(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		availabilityTopic:  "ugos_bridge/status",
+		availabilityOnline: "online_generation",
+		discoveredEntities: map[string]publishedEntity{},
+		lastPayloads:       map[string]string{},
+		preparedPayloads:   map[string]preparedPayload{},
+	}
+	publisher.beginAvailabilityReplay(client)
+	client.publishes = nil
+	client.failTopic = publisher.availabilityTopic
+
+	snapshot := model.Snapshot{Projects: []model.ProjectSnapshot{{Name: "apps", TotalContainers: 1}}}
+	if err := publisher.PublishSnapshot(snapshot); err == nil {
+		t.Fatal("expected availability commit failure")
+	}
+	if got := publisher.committedGeneration.Load(); got != 0 {
+		t.Fatalf("failed replay committed generation %d", got)
+	}
+
+	client.failTopic = ""
+	client.publishes = nil
+	if err := publisher.PublishSnapshot(snapshot); err != nil {
+		t.Fatalf("replayed PublishSnapshot returned error: %v", err)
+	}
+	if len(client.publishes) == 0 {
+		t.Fatal("expected full replay after failed availability commit")
+	}
+	last := client.publishes[len(client.publishes)-1]
+	if last.topic != publisher.availabilityTopic || last.payload != publisher.availablePayload() {
+		t.Fatalf("last retry publish = %#v, want availability commit", last)
+	}
+}
+
 func TestPublishSnapshotUsesUnavailableGraceBeforeRemovingDiscovery(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
 	publisher := &MQTTPublisher{
@@ -116,6 +228,7 @@ func TestPublishSnapshotUsesUnavailableGraceBeforeRemovingDiscovery(t *testing.T
 			},
 		},
 	}
+	markConnectionCommitted(publisher)
 
 	for poll := 1; poll <= 2; poll++ {
 		if err := publisher.PublishSnapshot(model.Snapshot{}); err != nil {
@@ -158,7 +271,6 @@ func TestHealthSensorsUseUniqueEntityIDsPerSensor(t *testing.T) {
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
-
 	snapshot := model.Snapshot{
 		CollectedAt: time.Date(2026, 4, 27, 23, 30, 0, 0, time.UTC),
 		Host: &model.HostSnapshot{
@@ -276,6 +388,7 @@ func TestPublishSnapshotOnlyPublishesChangedEntityState(t *testing.T) {
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
+	markConnectionCommitted(publisher)
 	snapshot := model.Snapshot{
 		CollectedAt: time.Date(2026, 4, 27, 23, 30, 0, 0, time.UTC),
 		Host: &model.HostSnapshot{
@@ -363,6 +476,43 @@ func TestProcessEntitiesRequireAllowlist(t *testing.T) {
 	}
 	if hasTopic(allowedClient, allowed.discoveryTopic("sensor", "process_dockerd", "cpu_usage_percent")) {
 		t.Fatalf("non-allowlisted process entity was published")
+	}
+}
+
+func TestContainerEntityIdentityDoesNotUseRuntimeID(t *testing.T) {
+	publishContainer := func(runtimeID string) (map[string]any, map[string]any) {
+		client := &recordingClient{connectionOpen: true}
+		publisher := &MQTTPublisher{
+			client:             client,
+			cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+			availabilityTopic:  "ugos_bridge/status",
+			discoveredEntities: map[string]publishedEntity{},
+		}
+		snapshot := model.Snapshot{Containers: []model.ContainerSnapshot{{
+			ID:               runtimeID,
+			Name:             "home-assistant",
+			Project:          "home",
+			Image:            "ghcr.io/home-assistant/home-assistant:stable",
+			Running:          true,
+			CPUPercent:       2.5,
+			MemoryUsageBytes: 1024,
+		}}}
+		if err := publisher.publishContainers(snapshot, map[string]publishedEntity{}); err != nil {
+			t.Fatalf("publishContainers returned error: %v", err)
+		}
+
+		discovery := configPayload(t, client, publisher.discoveryTopic("sensor", "container_home_assistant", "cpu_usage_percent"))
+		attributes := configPayload(t, client, "ugos_bridge/containers/home_assistant/attributes")
+		return discovery, attributes
+	}
+
+	firstDiscovery, firstAttributes := publishContainer("111111111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	secondDiscovery, secondAttributes := publishContainer("222222222222bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	if !reflect.DeepEqual(firstDiscovery, secondDiscovery) {
+		t.Fatalf("container discovery changed with runtime ID:\nfirst:  %#v\nsecond: %#v", firstDiscovery, secondDiscovery)
+	}
+	if firstAttributes["container_id"] == secondAttributes["container_id"] {
+		t.Fatalf("container attributes did not report the changed runtime ID: %#v", firstAttributes)
 	}
 }
 

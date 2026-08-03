@@ -156,6 +156,7 @@ Configure host paths with:
 | --- | --- | --- |
 | `UGOS_BRIDGE_HOST_PROCFS` | `/host/proc` | Mounted host procfs. |
 | `UGOS_BRIDGE_HOST_SYSFS` | `/host/sys` | Mounted host sysfs. |
+| `UGOS_BRIDGE_HOST_NAME` | | Stable host name used in Prometheus labels and Home Assistant IDs. |
 | `UGOS_BRIDGE_HOST_HOSTNAME_PATH` | `/rootfs/etc/hostname` | Host hostname file. |
 | `UGOS_BRIDGE_HOST_FILESYSTEMS` | `/:/rootfs,/volume1:/volume1,/volume2:/volume2` | Host mountpoint to container path mapping. |
 | `UGOS_BRIDGE_HOST_NETWORK_INCLUDE` | `eth.*,bond.*` | Interface include regex list. |
@@ -166,8 +167,11 @@ Configure host paths with:
 | `UGOS_BRIDGE_HOST_UPS_TARGETS` | | Comma-separated UPS targets such as `ups@localhost`. When empty, the bridge runs `upsc -l`. |
 | `UGOS_BRIDGE_HOST_UPS_TIMEOUT` | `3s` | Timeout for each UPS command. |
 
-Set `UGOS_BRIDGE_HOST_NAME` if the hostname inside the container is not the NAS
-hostname you want in metrics and Home Assistant.
+Keep `UGOS_BRIDGE_HOST_NAME` fixed for the lifetime of the Home Assistant device,
+or mount the host hostname file at `UGOS_BRIDGE_HOST_HOSTNAME_PATH`. The bridge
+does not use the container hostname as a fallback because it is commonly the
+replaceable Docker container ID. Host collection fails with a configuration
+error instead of silently creating a new device identity.
 
 ## CPU And Memory
 

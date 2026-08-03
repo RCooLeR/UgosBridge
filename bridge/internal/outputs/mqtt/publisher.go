@@ -45,16 +45,18 @@ type MQTTConfig struct {
 }
 
 type MQTTPublisher struct {
-	client             mqtt.Client
-	cfg                MQTTConfig
-	log                zerolog.Logger
-	availabilityTopic  string
-	availabilityOnline string
-	mu                 sync.Mutex
-	replayPending      atomic.Bool
-	discoveredEntities map[string]publishedEntity
-	lastPayloads       map[string]string
-	preparedPayloads   map[string]preparedPayload
+	client                mqtt.Client
+	cfg                   MQTTConfig
+	log                   zerolog.Logger
+	availabilityTopic     string
+	availabilityOnline    string
+	mu                    sync.Mutex
+	connectionGeneration  atomic.Uint64
+	replayReadyGeneration atomic.Uint64
+	committedGeneration   atomic.Uint64
+	discoveredEntities    map[string]publishedEntity
+	lastPayloads          map[string]string
+	preparedPayloads      map[string]preparedPayload
 }
 
 type publishedEntity struct {
@@ -291,12 +293,7 @@ func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
 	opts.SetOrderMatters(false)
 	opts.SetWill(p.availabilityTopic, "offline", cfg.QoS, true)
 	opts.OnConnect = func(client mqtt.Client) {
-		p.replayPending.Store(true)
-		token := client.Publish(p.availabilityTopic, cfg.QoS, true, p.availablePayload())
-		token.Wait()
-		if token.Error() != nil {
-			p.log.Error().Err(token.Error()).Msg("failed to publish MQTT availability")
-		}
+		p.beginAvailabilityReplay(client)
 	}
 	opts.SetConnectionLostHandler(func(_ mqtt.Client, err error) {
 		p.log.Error().Err(err).Msg("MQTT connection lost")
@@ -318,6 +315,40 @@ func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
 	return p, nil
 }
 
+// A connection stays globally offline until its complete retained entity set is replayed.
+func (p *MQTTPublisher) beginAvailabilityReplay(client mqtt.Client) {
+	generation := p.connectionGeneration.Add(1)
+	p.replayReadyGeneration.Store(0)
+
+	token := client.Publish(p.availabilityTopic, p.cfg.QoS, true, "offline")
+	token.Wait()
+	if err := token.Error(); err != nil {
+		p.log.Error().Err(err).Msg("failed to publish MQTT availability barrier")
+		return
+	}
+	if p.connectionGeneration.Load() == generation {
+		p.replayReadyGeneration.Store(generation)
+	}
+}
+
+func (p *MQTTPublisher) commitAvailabilityReplay(generation uint64) error {
+	if p.connectionGeneration.Load() != generation || p.replayReadyGeneration.Load() != generation {
+		return fmt.Errorf("%w: MQTT connection changed during availability replay", ErrNotConnected)
+	}
+	if err := p.publishRetainedRawIfChanged(p.availabilityTopic, p.availablePayload()); err != nil {
+		return err
+	}
+	if p.connectionGeneration.Load() != generation || p.replayReadyGeneration.Load() != generation {
+		if err := p.publishRawWithRetain(p.availabilityTopic, "offline", true); err != nil {
+			return errors.Join(fmt.Errorf("%w: MQTT connection changed during availability replay", ErrNotConnected), err)
+		}
+		return fmt.Errorf("%w: MQTT connection changed during availability replay", ErrNotConnected)
+	}
+
+	p.committedGeneration.Store(generation)
+	return nil
+}
+
 func (p *MQTTPublisher) Close() {
 	if p.client == nil || !p.client.IsConnected() {
 		return
@@ -334,7 +365,12 @@ func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
 	if p.client == nil || !p.client.IsConnectionOpen() {
 		return fmt.Errorf("%w: %q", ErrNotConnected, p.cfg.Broker)
 	}
-	if p.replayPending.Swap(false) {
+	generation := p.connectionGeneration.Load()
+	if generation == 0 || p.replayReadyGeneration.Load() != generation {
+		return fmt.Errorf("%w: availability replay is not ready", ErrNotConnected)
+	}
+	replaying := p.committedGeneration.Load() != generation
+	if replaying {
 		p.lastPayloads = map[string]string{}
 	}
 	p.preparedPayloads = map[string]preparedPayload{}
@@ -387,6 +423,11 @@ func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
 	for key, entity := range currentEntities {
 		if _, ok := p.discoveredEntities[key]; !ok {
 			p.discoveredEntities[key] = entity
+		}
+	}
+	if replaying {
+		if err := p.commitAvailabilityReplay(generation); err != nil {
+			return err
 		}
 	}
 

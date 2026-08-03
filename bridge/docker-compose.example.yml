@@ -21,6 +21,7 @@ services:
       UGOS_BRIDGE_HOST_METRICS_ENABLED: "true"
       UGOS_BRIDGE_HOST_PROCFS: "/host/proc"
       UGOS_BRIDGE_HOST_SYSFS: "/host/sys"
+      # Keep this fixed: it is part of the Home Assistant host entity identity.
       UGOS_BRIDGE_HOST_NAME: "ugreen-nas"
       UGOS_BRIDGE_HOST_HOSTNAME_PATH: "/rootfs/etc/hostname"
       UGOS_BRIDGE_HOST_FILESYSTEMS: "/:/rootfs,/volume1:/volume1,/volume2:/volume2"
@@ -44,6 +45,7 @@ services:
       UGOS_BRIDGE_MQTT_BROKER: "tcp://host.docker.internal:1883"
       UGOS_BRIDGE_MQTT_USER: "ha"
       UGOS_BRIDGE_MQTT_PASS: "change_me"
+      # Keep the MQTT client ID and topic prefix fixed across container rebuilds.
       UGOS_BRIDGE_MQTT_CLIENT_ID: "ugos_bridge"
       UGOS_BRIDGE_MQTT_TOPIC_PREFIX: "ugos_bridge"
       UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX: "homeassistant"
