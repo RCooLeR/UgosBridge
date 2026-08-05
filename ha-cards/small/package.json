@@ -1,6 +1,6 @@
 {
   "name": "ugreen-nas-mini-card",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
   "description": "Compact Home Assistant card for ugos-bridge NAS metrics",
@@ -14,8 +14,8 @@
     "lit": "^3.3.2"
   },
   "devDependencies": {
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "typescript": "^5.9.3",
-    "vite": "^8.0.9"
+    "vite": "^8.2.0"
   }
 }

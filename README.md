@@ -14,6 +14,7 @@ GPU, and health telemetry and exports it to Prometheus and MQTT/Home Assistant.
 - [Prometheus metrics](./docs/prometheus.md)
 - [Home Assistant sensors and devices](./docs/home-assistant.md)
 - [Lovelace cards](./ha-cards/README.md)
+- [Changelog](./CHANGELOG.md)
 
 ## Disclaimer
 
