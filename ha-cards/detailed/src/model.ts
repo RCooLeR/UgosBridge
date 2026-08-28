@@ -677,9 +677,9 @@ export const fakeDashboardModel: NasDashboardModel = {
   ],
   networkTrafficHistory,
   networkTrafficLines: [
-    { key: 'bond0', label: 'bond0', color: THEME_COLORS.cyan, currentBps: gbit(1.46), series: networkTrafficHistory.map((point) => point.totalsByInterface.bond0) },
-    { key: 'eth0', label: 'eth0', color: THEME_COLORS.good, currentBps: mbit(521), series: networkTrafficHistory.map((point) => point.totalsByInterface.eth0) },
-    { key: 'eth1', label: 'eth1', color: THEME_COLORS.purple, currentBps: mbit(938), series: networkTrafficHistory.map((point) => point.totalsByInterface.eth1) }
+    { key: 'bond0', label: 'bond0', color: THEME_COLORS.cyan, currentBps: gbit(1.46), series: networkTrafficHistory.map((point) => point.totalsByInterface.bond0 ?? 0) },
+    { key: 'eth0', label: 'eth0', color: THEME_COLORS.good, currentBps: mbit(521), series: networkTrafficHistory.map((point) => point.totalsByInterface.eth0 ?? 0) },
+    { key: 'eth1', label: 'eth1', color: THEME_COLORS.purple, currentBps: mbit(938), series: networkTrafficHistory.map((point) => point.totalsByInterface.eth1 ?? 0) }
   ],
   cpuCores,
   ramBreakdown,

@@ -1,11 +1,32 @@
+name: ugos-bridge
+
 services:
   ugos-bridge:
+    image: ugos-bridge:local
     build:
       context: ..
       dockerfile: bridge/Dockerfile
+      pull: true
     container_name: ugos-bridge
     restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/ugos-bridge", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     # Optional for intel_gpu_top on Intel iGPU hosts:
+    # Enabling privileged mode overrides most of the hardening above.
     # privileged: true
     # pid: host
     ports:
@@ -54,6 +75,8 @@ services:
       UGOS_BRIDGE_MQTT_ENTITY_GRACE: "180"
       # UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST: "dockerd,containerd"
     volumes:
+      # Security boundary: Docker's API grants host-root-equivalent control even
+      # when the socket itself is mounted read-only.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro

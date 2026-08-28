@@ -11,22 +11,14 @@ The mini card reuses the same live entity mapping as the detailed card and rende
 - `src/styles.ts` - mini card styling
 - `dist/ugreen-nas-mini-card.js` - minified production bundle
 
-## Install
+## Develop
+
+Run the card through the shared workspace from `ha-cards/`:
 
 ```bash
-npm install
-```
-
-## Verify
-
-```bash
-npm run check
-```
-
-## Build
-
-```bash
-npm run build
+npm ci
+npm run check --workspace ugreen-nas-mini-card
+npm run build --workspace ugreen-nas-mini-card
 ```
 
 Output:

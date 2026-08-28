@@ -19,7 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 
 	dockercollector "github.com/RCooLeR/UgosBridge/bridge/internal/collectors/docker"
 	hostcollector "github.com/RCooLeR/UgosBridge/bridge/internal/collectors/host"
@@ -39,27 +39,84 @@ func main() {
 	zerolog.TimeFieldFormat = time.RFC3339
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    "ugos-bridge",
 		Usage:   "Bridge UGOS host, Docker, and virtual machine metrics to Prometheus and MQTT/Home Assistant",
 		Version: buildVersion(),
 		Flags:   buildFlags(),
-		Action: func(c *cli.Context) error {
-			cfg, err := configFromCLI(c)
+		Commands: []*cli.Command{
+			buildHealthcheckCommand(),
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			cfg, err := configFromCLI(cmd)
 			if err != nil {
 				return err
 			}
-			return run(cfg)
+			return run(ctx, cfg)
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		log.Fatal().Err(err).Msg("bridge stopped")
 	}
 }
 
 func buildVersion() string {
 	return fmt.Sprintf("%s (commit=%s, date=%s)", version, commit, date)
+}
+
+func buildHealthcheckCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "healthcheck",
+		Usage: "Check whether the bridge HTTP endpoint is healthy",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "url",
+				Value:   "http://127.0.0.1:9877/healthz",
+				Sources: envVars("UGOS_BRIDGE_HEALTHCHECK_URL"),
+			},
+			&cli.DurationFlag{
+				Name:    "timeout",
+				Value:   3 * time.Second,
+				Sources: envVars("UGOS_BRIDGE_HEALTHCHECK_TIMEOUT"),
+			},
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return checkHealth(ctx, cmd.String("url"), cmd.Duration("timeout"))
+		},
+	}
+}
+
+func checkHealth(ctx context.Context, endpoint string, timeout time.Duration) error {
+	if strings.TrimSpace(endpoint) == "" {
+		return fmt.Errorf("healthcheck URL must not be empty")
+	}
+	if timeout <= 0 {
+		return fmt.Errorf("healthcheck timeout must be greater than zero")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("create healthcheck request: %w", err)
+	}
+	client := &http.Client{
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("healthcheck request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("healthcheck returned %s", resp.Status)
+	}
+	return nil
 }
 
 type config struct {
@@ -130,58 +187,58 @@ func (s *snapshotStore) Get() (model.Snapshot, bool) {
 
 func buildFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "listen-address", Value: ":9877", EnvVars: envVars("LISTEN_ADDRESS", "UGOS_BRIDGE_LISTEN_ADDRESS")},
-		&cli.StringFlag{Name: "metrics-path", Value: "/metrics", EnvVars: envVars("METRICS_PATH", "UGOS_BRIDGE_METRICS_PATH")},
-		&cli.DurationFlag{Name: "scrape-interval", Value: 15 * time.Second, EnvVars: envVars("SCRAPE_INTERVAL", "UGOS_BRIDGE_SCRAPE_INTERVAL")},
-		&cli.StringFlag{Name: "docker-host", Value: "unix:///var/run/docker.sock", EnvVars: envVars("DOCKER_HOST", "UGOS_BRIDGE_DOCKER_HOST")},
-		&cli.DurationFlag{Name: "docker-timeout", Value: 5 * time.Second, EnvVars: envVars("DOCKER_TIMEOUT", "UGOS_BRIDGE_DOCKER_TIMEOUT")},
-		&cli.StringFlag{Name: "project-label", Value: "com.docker.compose.project", EnvVars: envVars("DOCKER_PROJECT_LABEL", "UGOS_BRIDGE_PROJECT_LABEL")},
-		&cli.StringFlag{Name: "standalone-project-name", Value: "standalone", EnvVars: envVars("STANDALONE_PROJECT_NAME", "UGOS_BRIDGE_STANDALONE_PROJECT_NAME")},
-		&cli.IntFlag{Name: "container-concurrency", Value: 4, EnvVars: envVars("CONTAINER_CONCURRENCY", "UGOS_BRIDGE_CONTAINER_CONCURRENCY")},
-		&cli.BoolFlag{Name: "detailed-container-stats", EnvVars: envVars("DETAILED_CONTAINER_STATS", "UGOS_BRIDGE_DETAILED_CONTAINER_STATS")},
-		&cli.BoolFlag{Name: "mqtt-enabled", EnvVars: envVars("UGOS_BRIDGE_MQTT_ENABLED")},
-		&cli.StringFlag{Name: "mqtt-broker", EnvVars: envVars("MQTT_BROKER", "UGOS_BRIDGE_MQTT_BROKER")},
-		&cli.StringFlag{Name: "mqtt-client-id", Value: "ugos-bridge", EnvVars: envVars("MQTT_CLIENT_ID", "UGOS_BRIDGE_MQTT_CLIENT_ID")},
-		&cli.StringFlag{Name: "mqtt-username", EnvVars: envVars("MQTT_USERNAME", "UGOS_BRIDGE_MQTT_USER")},
-		&cli.StringFlag{Name: "mqtt-password", EnvVars: envVars("MQTT_PASSWORD", "UGOS_BRIDGE_MQTT_PASS")},
-		&cli.StringFlag{Name: "mqtt-topic-prefix", Value: "ugos_bridge", EnvVars: envVars("MQTT_TOPIC_PREFIX", "UGOS_BRIDGE_MQTT_TOPIC_PREFIX")},
-		&cli.StringFlag{Name: "homeassistant-discovery-prefix", Value: "homeassistant", EnvVars: envVars("HOMEASSISTANT_DISCOVERY_PREFIX", "UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX")},
-		&cli.UintFlag{Name: "mqtt-qos", Value: 1, EnvVars: envVars("MQTT_QOS", "UGOS_BRIDGE_MQTT_QOS")},
-		&cli.BoolFlag{Name: "mqtt-retain", Value: true, EnvVars: envVars("MQTT_RETAIN", "UGOS_BRIDGE_MQTT_RETAIN")},
-		&cli.StringFlag{Name: "mqtt-interval", Value: "15s", EnvVars: envVars("UGOS_BRIDGE_MQTT_INTERVAL")},
-		&cli.DurationFlag{Name: "mqtt-connect-timeout", Value: 10 * time.Second, EnvVars: envVars("MQTT_CONNECT_TIMEOUT", "UGOS_BRIDGE_MQTT_CONNECT_TIMEOUT")},
-		&cli.StringFlag{Name: "mqtt-process-allowlist", EnvVars: envVars("UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST")},
-		&cli.StringFlag{Name: "homeassistant-entity-grace", Aliases: []string{"homeassistant-expire-after"}, Value: "45s", EnvVars: envVars("UGOS_BRIDGE_MQTT_ENTITY_GRACE", "HOMEASSISTANT_EXPIRE_AFTER", "UGOS_BRIDGE_MQTT_EXPIRE_AFTER")},
-		&cli.BoolFlag{Name: "host-metrics-enabled", EnvVars: envVars("HOST_METRICS_ENABLED", "UGOS_BRIDGE_HOST_METRICS_ENABLED")},
-		&cli.StringFlag{Name: "host-procfs", Value: "/host/proc", EnvVars: envVars("HOST_PROCFS", "UGOS_BRIDGE_HOST_PROCFS")},
-		&cli.StringFlag{Name: "host-sysfs", Value: "/host/sys", EnvVars: envVars("HOST_SYSFS", "UGOS_BRIDGE_HOST_SYSFS")},
-		&cli.StringFlag{Name: "host-name", EnvVars: envVars("HOST_NAME", "UGOS_BRIDGE_HOST_NAME")},
-		&cli.StringFlag{Name: "host-hostname-path", Value: "/rootfs/etc/hostname", EnvVars: envVars("HOST_HOSTNAME_PATH", "UGOS_BRIDGE_HOST_HOSTNAME_PATH")},
-		&cli.StringFlag{Name: "host-filesystems", Value: "/:/rootfs,/volume1:/volume1,/volume2:/volume2", EnvVars: envVars("HOST_FILESYSTEMS", "UGOS_BRIDGE_HOST_FILESYSTEMS")},
-		&cli.StringFlag{Name: "host-network-include", Value: "eth.*,bond.*", EnvVars: envVars("HOST_NETWORK_INCLUDE", "UGOS_BRIDGE_HOST_NETWORK_INCLUDE")},
-		&cli.StringFlag{Name: "host-dri-path", Value: "/dev/dri", EnvVars: envVars("HOST_DRI_PATH", "UGOS_BRIDGE_HOST_DRI_PATH")},
-		&cli.DurationFlag{Name: "host-temperature-average-window", Value: 2 * time.Minute, EnvVars: envVars("UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW")},
-		&cli.BoolFlag{Name: "host-ups-enabled", EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_ENABLED")},
-		&cli.StringFlag{Name: "host-ups-command", Value: "upsc", EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_COMMAND")},
-		&cli.StringFlag{Name: "host-ups-targets", EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_TARGETS")},
-		&cli.DurationFlag{Name: "host-ups-timeout", Value: 3 * time.Second, EnvVars: envVars("UGOS_BRIDGE_HOST_UPS_TIMEOUT")},
-		&cli.BoolFlag{Name: "host-intel-gpu-top-enabled", EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_ENABLED")},
-		&cli.StringFlag{Name: "host-intel-gpu-top-path", Value: "intel_gpu_top", EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_PATH")},
-		&cli.StringFlag{Name: "host-intel-gpu-top-device", EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_DEVICE")},
-		&cli.DurationFlag{Name: "host-intel-gpu-top-period", Value: time.Second, EnvVars: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_PERIOD")},
-		&cli.BoolFlag{Name: "host-virtual-machines-enabled", Value: true, EnvVars: envVars("UGOS_BRIDGE_HOST_VMS_ENABLED")},
-		&cli.StringFlag{Name: "host-virsh-path", Value: "virsh", EnvVars: envVars("UGOS_BRIDGE_HOST_VIRSH_PATH")},
-		&cli.StringFlag{Name: "host-virsh-uri", Value: "qemu:///system", EnvVars: envVars("UGOS_BRIDGE_HOST_VIRSH_URI")},
-		&cli.DurationFlag{Name: "host-virsh-timeout", Value: 3 * time.Second, EnvVars: envVars("UGOS_BRIDGE_HOST_VIRSH_TIMEOUT")},
-		&cli.StringFlag{Name: "host-vm-name-overrides", EnvVars: envVars("UGOS_BRIDGE_VM_NAMES", "UGOS_BRIDGE_HOST_VM_NAME_OVERRIDES")},
+		&cli.StringFlag{Name: "listen-address", Value: ":9877", Sources: envVars("LISTEN_ADDRESS", "UGOS_BRIDGE_LISTEN_ADDRESS")},
+		&cli.StringFlag{Name: "metrics-path", Value: "/metrics", Sources: envVars("METRICS_PATH", "UGOS_BRIDGE_METRICS_PATH")},
+		&cli.DurationFlag{Name: "scrape-interval", Value: 15 * time.Second, Sources: envVars("SCRAPE_INTERVAL", "UGOS_BRIDGE_SCRAPE_INTERVAL")},
+		&cli.StringFlag{Name: "docker-host", Value: "unix:///var/run/docker.sock", Sources: envVars("DOCKER_HOST", "UGOS_BRIDGE_DOCKER_HOST")},
+		&cli.DurationFlag{Name: "docker-timeout", Value: 5 * time.Second, Sources: envVars("DOCKER_TIMEOUT", "UGOS_BRIDGE_DOCKER_TIMEOUT")},
+		&cli.StringFlag{Name: "project-label", Value: "com.docker.compose.project", Sources: envVars("DOCKER_PROJECT_LABEL", "UGOS_BRIDGE_PROJECT_LABEL")},
+		&cli.StringFlag{Name: "standalone-project-name", Value: "standalone", Sources: envVars("STANDALONE_PROJECT_NAME", "UGOS_BRIDGE_STANDALONE_PROJECT_NAME")},
+		&cli.IntFlag{Name: "container-concurrency", Value: 4, Sources: envVars("CONTAINER_CONCURRENCY", "UGOS_BRIDGE_CONTAINER_CONCURRENCY")},
+		&cli.BoolFlag{Name: "detailed-container-stats", Sources: envVars("DETAILED_CONTAINER_STATS", "UGOS_BRIDGE_DETAILED_CONTAINER_STATS")},
+		&cli.BoolFlag{Name: "mqtt-enabled", Sources: envVars("UGOS_BRIDGE_MQTT_ENABLED")},
+		&cli.StringFlag{Name: "mqtt-broker", Sources: envVars("MQTT_BROKER", "UGOS_BRIDGE_MQTT_BROKER")},
+		&cli.StringFlag{Name: "mqtt-client-id", Value: "ugos-bridge", Sources: envVars("MQTT_CLIENT_ID", "UGOS_BRIDGE_MQTT_CLIENT_ID")},
+		&cli.StringFlag{Name: "mqtt-username", Sources: envVars("MQTT_USERNAME", "UGOS_BRIDGE_MQTT_USER")},
+		&cli.StringFlag{Name: "mqtt-password", Sources: envVars("MQTT_PASSWORD", "UGOS_BRIDGE_MQTT_PASS")},
+		&cli.StringFlag{Name: "mqtt-topic-prefix", Value: "ugos_bridge", Sources: envVars("MQTT_TOPIC_PREFIX", "UGOS_BRIDGE_MQTT_TOPIC_PREFIX")},
+		&cli.StringFlag{Name: "homeassistant-discovery-prefix", Value: "homeassistant", Sources: envVars("HOMEASSISTANT_DISCOVERY_PREFIX", "UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX")},
+		&cli.UintFlag{Name: "mqtt-qos", Value: 1, Sources: envVars("MQTT_QOS", "UGOS_BRIDGE_MQTT_QOS")},
+		&cli.BoolFlag{Name: "mqtt-retain", Value: true, Sources: envVars("MQTT_RETAIN", "UGOS_BRIDGE_MQTT_RETAIN")},
+		&cli.StringFlag{Name: "mqtt-interval", Value: "15s", Sources: envVars("UGOS_BRIDGE_MQTT_INTERVAL")},
+		&cli.DurationFlag{Name: "mqtt-connect-timeout", Value: 10 * time.Second, Sources: envVars("MQTT_CONNECT_TIMEOUT", "UGOS_BRIDGE_MQTT_CONNECT_TIMEOUT")},
+		&cli.StringFlag{Name: "mqtt-process-allowlist", Sources: envVars("UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST")},
+		&cli.StringFlag{Name: "homeassistant-entity-grace", Aliases: []string{"homeassistant-expire-after"}, Value: "45s", Sources: envVars("UGOS_BRIDGE_MQTT_ENTITY_GRACE", "HOMEASSISTANT_EXPIRE_AFTER", "UGOS_BRIDGE_MQTT_EXPIRE_AFTER")},
+		&cli.BoolFlag{Name: "host-metrics-enabled", Sources: envVars("HOST_METRICS_ENABLED", "UGOS_BRIDGE_HOST_METRICS_ENABLED")},
+		&cli.StringFlag{Name: "host-procfs", Value: "/host/proc", Sources: envVars("HOST_PROCFS", "UGOS_BRIDGE_HOST_PROCFS")},
+		&cli.StringFlag{Name: "host-sysfs", Value: "/host/sys", Sources: envVars("HOST_SYSFS", "UGOS_BRIDGE_HOST_SYSFS")},
+		&cli.StringFlag{Name: "host-name", Sources: envVars("HOST_NAME", "UGOS_BRIDGE_HOST_NAME")},
+		&cli.StringFlag{Name: "host-hostname-path", Value: "/rootfs/etc/hostname", Sources: envVars("HOST_HOSTNAME_PATH", "UGOS_BRIDGE_HOST_HOSTNAME_PATH")},
+		&cli.StringFlag{Name: "host-filesystems", Value: "/:/rootfs,/volume1:/volume1,/volume2:/volume2", Sources: envVars("HOST_FILESYSTEMS", "UGOS_BRIDGE_HOST_FILESYSTEMS")},
+		&cli.StringFlag{Name: "host-network-include", Value: "eth.*,bond.*", Sources: envVars("HOST_NETWORK_INCLUDE", "UGOS_BRIDGE_HOST_NETWORK_INCLUDE")},
+		&cli.StringFlag{Name: "host-dri-path", Value: "/dev/dri", Sources: envVars("HOST_DRI_PATH", "UGOS_BRIDGE_HOST_DRI_PATH")},
+		&cli.DurationFlag{Name: "host-temperature-average-window", Value: 2 * time.Minute, Sources: envVars("UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW")},
+		&cli.BoolFlag{Name: "host-ups-enabled", Sources: envVars("UGOS_BRIDGE_HOST_UPS_ENABLED")},
+		&cli.StringFlag{Name: "host-ups-command", Value: "upsc", Sources: envVars("UGOS_BRIDGE_HOST_UPS_COMMAND")},
+		&cli.StringFlag{Name: "host-ups-targets", Sources: envVars("UGOS_BRIDGE_HOST_UPS_TARGETS")},
+		&cli.DurationFlag{Name: "host-ups-timeout", Value: 3 * time.Second, Sources: envVars("UGOS_BRIDGE_HOST_UPS_TIMEOUT")},
+		&cli.BoolFlag{Name: "host-intel-gpu-top-enabled", Sources: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_ENABLED")},
+		&cli.StringFlag{Name: "host-intel-gpu-top-path", Value: "intel_gpu_top", Sources: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_PATH")},
+		&cli.StringFlag{Name: "host-intel-gpu-top-device", Sources: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_DEVICE")},
+		&cli.DurationFlag{Name: "host-intel-gpu-top-period", Value: time.Second, Sources: envVars("UGOS_BRIDGE_HOST_INTEL_GPU_TOP_PERIOD")},
+		&cli.BoolFlag{Name: "host-virtual-machines-enabled", Value: true, Sources: envVars("UGOS_BRIDGE_HOST_VMS_ENABLED")},
+		&cli.StringFlag{Name: "host-virsh-path", Value: "virsh", Sources: envVars("UGOS_BRIDGE_HOST_VIRSH_PATH")},
+		&cli.StringFlag{Name: "host-virsh-uri", Value: "qemu:///system", Sources: envVars("UGOS_BRIDGE_HOST_VIRSH_URI")},
+		&cli.DurationFlag{Name: "host-virsh-timeout", Value: 3 * time.Second, Sources: envVars("UGOS_BRIDGE_HOST_VIRSH_TIMEOUT")},
+		&cli.StringFlag{Name: "host-vm-name-overrides", Sources: envVars("UGOS_BRIDGE_VM_NAMES", "UGOS_BRIDGE_HOST_VM_NAME_OVERRIDES")},
 	}
 }
 
-func envVars(values ...string) []string {
-	return values
+func envVars(values ...string) cli.ValueSourceChain {
+	return cli.EnvVars(values...)
 }
 
-func configFromCLI(c *cli.Context) (config, error) {
+func configFromCLI(c *cli.Command) (config, error) {
 	qos := c.Uint("mqtt-qos")
 	if qos > 2 {
 		return config{}, fmt.Errorf("mqtt-qos must be 0, 1, or 2")
@@ -266,7 +323,7 @@ func configFromCLI(c *cli.Context) (config, error) {
 	}, nil
 }
 
-func run(cfg config) error {
+func run(ctx context.Context, cfg config) error {
 	logger := log.With().Str("listen", cfg.ListenAddress).Str("docker_host", cfg.DockerHost).Logger()
 
 	registry := prometheus.NewRegistry()
@@ -346,7 +403,10 @@ func run(cfg config) error {
 
 	mux := http.NewServeMux()
 	state := &snapshotStore{}
-	mux.Handle(cfg.MetricsPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{EnableOpenMetrics: true}))
+	mux.Handle(cfg.MetricsPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{
+		EnableOpenMetrics: true,
+		CoalesceGather:    true,
+	}))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
@@ -359,12 +419,13 @@ func run(cfg config) error {
 	})
 
 	server := &http.Server{
-		Addr:              cfg.ListenAddress,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
+		Addr:                cfg.ListenAddress,
+		Handler:             mux,
+		ReadHeaderTimeout:   5 * time.Second,
+		MaxHeaderValueCount: 100,
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	serverErr := make(chan error, 1)

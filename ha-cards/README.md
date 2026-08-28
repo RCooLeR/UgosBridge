@@ -9,23 +9,24 @@ This repository now keeps both Home Assistant cards under `ha-cards/`.
 
 ## Build
 
-Detailed card:
+Install both workspaces from the shared lockfile and run the complete check, test,
+and build pipeline:
 
 ```bash
-cd ha-cards/detailed
-npm install
-npm run check
-npm test
-npm run build
+cd ha-cards
+npm ci
+npm run verify
 ```
 
-Mini card:
+You can still target one card while working locally:
 
 ```bash
-cd ha-cards/small
-npm install
-npm run check
-npm run build
+npm run check --workspace ugreen-nas-card
+npm test --workspace ugreen-nas-card
+npm run build --workspace ugreen-nas-card
+
+npm run check --workspace ugreen-nas-mini-card
+npm run build --workspace ugreen-nas-mini-card
 ```
 
 ## Production Bundles

@@ -1,5 +1,39 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- A native `ugos-bridge healthcheck` command and container health checks that
+  do not require `curl` or `wget` in the runtime image.
+- Weekly Dependabot coverage for Go modules, npm workspaces, Docker images,
+  and GitHub Actions.
+- Pinned Go vulnerability scanning in CI through the module's Go tool
+  dependency.
+- Reproducible release timestamps, OCI metadata, image SBOMs, BuildKit
+  provenance, and GitHub artifact attestations.
+- Container build validation and a hardened-container smoke test in CI.
+
+### Changed
+
+- Upgraded the bridge to Go 1.27 and current Go dependencies, including the
+  `urfave/cli` v3 API and `sync.WaitGroup.Go`.
+- Consolidated the duplicate root and bridge Go modules into the single
+  `bridge` module.
+- Consolidated both Home Assistant cards into one npm workspace and lockfile.
+- Upgraded the card toolchain to TypeScript 7 and Vite 8's native
+  Rolldown/Oxc pipeline, and enabled additional strict type checks.
+- Upgraded card runtime dependencies to Lit 3.3.3 and Simple Icons 16.28.0.
+- Upgraded the build image to Go 1.27 on Alpine 3.24 and the runtime image to
+  Debian 13.6, with recorded multi-platform image digests.
+- Modernized Docker builds with cross-compilation, BuildKit cache mounts,
+  linked copies, image metadata, and a graceful stop signal.
+- Hardened the Compose example with a read-only filesystem, dropped Linux
+  capabilities, `no-new-privileges`, PID limits, an init process, and a
+  bounded temporary filesystem.
+- Updated GitHub Actions and Docker actions to their current Node 24-based
+  releases and pinned every action to an immutable commit.
+
 ## [1.0.3] - 2026-08-05
 
 This release makes Home Assistant data resilient across bridge and container

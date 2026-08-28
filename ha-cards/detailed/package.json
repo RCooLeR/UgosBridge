@@ -13,12 +13,11 @@
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
-    "lit": "^3.3.2",
-    "simple-icons": "^15.17.0"
+    "lit": "^3.3.3",
+    "simple-icons": "^16.28.0"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1",
-    "typescript": "^5.9.3",
-    "vite": "^8.2.0"
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
   }
 }

@@ -562,12 +562,20 @@ func (c *Collector) collectArrays(mdstats []procfs.MDStat, mounts map[string]mou
 			DegradedDisks:        degraded,
 			SyncAction:           syncAction,
 			SyncCompletedPercent: md.BlocksSyncedPct,
-			Members:              append([]string(nil), md.Devices...),
+			Members:              mdStatDeviceNames(md.Devices),
 			Mountpoints:          mountpoints,
 		})
 	}
 
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	return result
+}
+
+func mdStatDeviceNames(components []procfs.MDStatComponent) []string {
+	result := make([]string, 0, len(components))
+	for _, component := range components {
+		result = append(result, component.Name)
+	}
 	return result
 }
 

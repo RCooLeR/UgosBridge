@@ -1,4 +1,6 @@
-FROM debian:bookworm-slim
+# syntax=docker/dockerfile:1
+
+FROM debian:13.6-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132
 
 ARG TARGETPLATFORM
 ARG TARGETARCH
@@ -6,14 +8,14 @@ ARG TARGETARCH
 RUN apt-get update \
     && packages="ca-certificates libvirt-clients nut-client" \
     && if [ "$TARGETARCH" = "amd64" ]; then packages="$packages intel-gpu-tools"; fi \
-    && apt-get install --no-install-recommends -y $packages \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y $packages \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /
-
-COPY $TARGETPLATFORM/ugos-bridge /usr/local/bin/ugos-bridge
+COPY --link $TARGETPLATFORM/ugos-bridge /usr/local/bin/ugos-bridge
 
 EXPOSE 9877
+STOPSIGNAL SIGTERM
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["/usr/local/bin/ugos-bridge", "healthcheck"]
 
 ENTRYPOINT ["/usr/local/bin/ugos-bridge"]
-

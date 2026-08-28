@@ -1,12 +1,14 @@
 package main
 
 import (
-	"flag"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/RCooLeR/UgosBridge/bridge/internal/model"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 )
 
 func TestPreferredHostName(t *testing.T) {
@@ -111,6 +113,16 @@ func TestConfigFromCLI_MQTTProcessAllowlist(t *testing.T) {
 	}
 }
 
+func TestConfigFromCLIUsesOrderedEnvironmentSources(t *testing.T) {
+	t.Setenv("LISTEN_ADDRESS", ":1111")
+	t.Setenv("UGOS_BRIDGE_LISTEN_ADDRESS", ":2222")
+
+	cfg := mustConfigFromArgs(t)
+	if cfg.ListenAddress != ":1111" {
+		t.Fatalf("ListenAddress = %q, want first configured environment source", cfg.ListenAddress)
+	}
+}
+
 func TestPollCountUsesAtLeastTwoPolls(t *testing.T) {
 	if got := pollCount(45*time.Second, 15*time.Second); got != 3 {
 		t.Fatalf("pollCount(45s, 15s) = %d, want 3", got)
@@ -127,22 +139,50 @@ func TestLegacyExpireAfterFlagSetsEntityGrace(t *testing.T) {
 	}
 }
 
+func TestHealthcheckCommand(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	cmd := buildHealthcheckCommand()
+	if err := cmd.Run(t.Context(), []string{"healthcheck", "--url", server.URL, "--timeout", "1s"}); err != nil {
+		t.Fatalf("healthcheck command failed: %v", err)
+	}
+}
+
+func TestCheckHealthRejectsUnhealthyResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "unhealthy", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	if err := checkHealth(t.Context(), server.URL, time.Second); err == nil {
+		t.Fatal("checkHealth() error = nil, want unhealthy status error")
+	}
+}
+
+func TestCheckHealthValidatesTimeout(t *testing.T) {
+	if err := checkHealth(t.Context(), "http://127.0.0.1/healthz", 0); err == nil {
+		t.Fatal("checkHealth() error = nil, want timeout validation error")
+	}
+}
+
 func mustConfigFromArgs(t *testing.T, args ...string) config {
 	t.Helper()
 
-	set := flag.NewFlagSet("test", flag.ContinueOnError)
-	for _, cliFlag := range buildFlags() {
-		if err := cliFlag.Apply(set); err != nil {
-			t.Fatalf("apply flag: %v", err)
-		}
+	var cfg config
+	cmd := &cli.Command{
+		Name:  "test",
+		Flags: buildFlags(),
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			var err error
+			cfg, err = configFromCLI(cmd)
+			return err
+		},
 	}
-	if err := set.Parse(args); err != nil {
-		t.Fatalf("parse args: %v", err)
-	}
-
-	cfg, err := configFromCLI(cli.NewContext(cli.NewApp(), set, nil))
-	if err != nil {
-		t.Fatalf("configFromCLI() error = %v", err)
+	if err := cmd.Run(context.Background(), append([]string{"test"}, args...)); err != nil {
+		t.Fatalf("run command: %v", err)
 	}
 	return cfg
 }

@@ -80,28 +80,26 @@ func (c *Collector) Collect(ctx context.Context) (model.Snapshot, error) {
 	var statsErrors []string
 
 	for idx, container := range containers {
-		wg.Add(1)
-		go func(i int, summary dockerapi.ContainerSummary) {
-			defer wg.Done()
+		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
 			snapshot := model.ContainerSnapshot{
-				ID:      summary.ID,
-				Name:    normalizeContainerName(summary.ID, summary.Names),
-				Project: projectName(summary.Labels, c.cfg.ProjectLabel, c.cfg.StandaloneProjectName),
-				Image:   summary.Image,
-				State:   summary.State,
-				Status:  summary.Status,
-				Running: strings.EqualFold(summary.State, "running"),
+				ID:      container.ID,
+				Name:    normalizeContainerName(container.ID, container.Names),
+				Project: projectName(container.Labels, c.cfg.ProjectLabel, c.cfg.StandaloneProjectName),
+				Image:   container.Image,
+				State:   container.State,
+				Status:  container.Status,
+				Running: strings.EqualFold(container.State, "running"),
 			}
 
-			stats, statsErr := c.client.ContainerStats(ctx, summary.ID)
+			stats, statsErr := c.client.ContainerStats(ctx, container.ID)
 			if statsErr != nil {
 				errorMu.Lock()
 				statsErrors = append(statsErrors, fmt.Sprintf("%s: %v", snapshot.Name, statsErr))
 				errorMu.Unlock()
-				result[i] = snapshot
+				result[idx] = snapshot
 				return
 			}
 
@@ -109,9 +107,9 @@ func (c *Collector) Collect(ctx context.Context) (model.Snapshot, error) {
 			snapshot.MemoryUsageBytes = memoryUsageBytes(stats.MemoryStats)
 			snapshot.MemoryLimitBytes = stats.MemoryStats.Limit
 			if c.cfg.DetailedContainerStats {
-				detailed := detailedSnapshot(summary, stats)
-				detailed.OOMEvents = oomEvents[summary.ID]
-				inspect, inspectErr := c.client.ContainerInspect(ctx, summary.ID)
+				detailed := detailedSnapshot(container, stats)
+				detailed.OOMEvents = oomEvents[container.ID]
+				inspect, inspectErr := c.client.ContainerInspect(ctx, container.ID)
 				if inspectErr != nil {
 					errorMu.Lock()
 					statsErrors = append(statsErrors, fmt.Sprintf("%s inspect: %v", snapshot.Name, inspectErr))
@@ -122,8 +120,8 @@ func (c *Collector) Collect(ctx context.Context) (model.Snapshot, error) {
 				snapshot.Detailed = &detailed
 			}
 			snapshot.StatsCollected = true
-			result[i] = snapshot
-		}(idx, container)
+			result[idx] = snapshot
+		})
 	}
 
 	wg.Wait()

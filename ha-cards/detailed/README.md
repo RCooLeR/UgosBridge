@@ -13,22 +13,15 @@ It reads live Home Assistant entities created by the bridge's MQTT discovery and
 - `src/styles.ts` - detailed card styling
 - `dist/ugreen-nas-card.js` - minified production bundle
 
-## Install
+## Develop
+
+Run the card through the shared workspace from `ha-cards/`:
 
 ```bash
-npm install
-```
-
-## Verify
-
-```bash
-npm run check
-```
-
-## Build
-
-```bash
-npm run build
+npm ci
+npm run check --workspace ugreen-nas-card
+npm test --workspace ugreen-nas-card
+npm run build --workspace ugreen-nas-card
 ```
 
 Output:

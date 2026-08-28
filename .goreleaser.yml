@@ -1,10 +1,11 @@
+# Validated with GoReleaser v2.18.0.
 version: 2
 
 project_name: ugos-bridge
 
 before:
   hooks:
-    - go -C bridge mod tidy
+    - go -C bridge mod download
 
 builds:
   - id: ugos-bridge
@@ -20,8 +21,9 @@ builds:
       - arm64
     flags:
       - -trimpath
+    mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags:
-      - -s -w -X main.version={{ .Version }} -X main.commit={{ .FullCommit }} -X main.date={{ .Date }}
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .FullCommit }} -X main.date={{ .CommitDate }}
 
 checksum:
   name_template: checksums.txt
@@ -31,6 +33,8 @@ snapshot:
 
 release:
   prerelease: auto
+  preflight:
+    fail_on_error: true
 
 changelog:
   use: git
@@ -53,9 +57,22 @@ dockers_v2:
       org.opencontainers.image.description: Lightweight UGOS and Docker metrics bridge for NAS hosts and Compose stacks
       org.opencontainers.image.url: "{{ .GitURL }}"
       org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.licenses: MIT
       org.opencontainers.image.version: "{{ .Version }}"
-      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.created: "{{ .CommitDate }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
+    annotations:
+      "index,manifest:org.opencontainers.image.title": ugos-bridge
+      "index,manifest:org.opencontainers.image.description": Lightweight UGOS and Docker metrics bridge for NAS hosts and Compose stacks
+      "index,manifest:org.opencontainers.image.url": "{{ .GitURL }}"
+      "index,manifest:org.opencontainers.image.source": "{{ .GitURL }}"
+      "index,manifest:org.opencontainers.image.licenses": MIT
+      "index,manifest:org.opencontainers.image.version": "{{ .Version }}"
+      "index,manifest:org.opencontainers.image.created": "{{ .CommitDate }}"
+      "index,manifest:org.opencontainers.image.revision": "{{ .FullCommit }}"
+    sbom: true
+    flags:
+      - "--provenance=mode=max"
     platforms:
       - linux/amd64
       - linux/arm64

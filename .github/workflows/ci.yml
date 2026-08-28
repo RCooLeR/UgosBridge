@@ -9,17 +9,25 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bridge:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: bridge/go.mod
+          check-latest: true
           cache: true
           cache-dependency-path: bridge/go.sum
 
@@ -27,6 +35,9 @@ jobs:
         run: |
           go -C bridge mod tidy
           git diff --exit-code -- bridge/go.mod bridge/go.sum
+
+      - name: Check known vulnerabilities
+        run: go -C bridge tool govulncheck ./...
 
       - name: Vet
         run: go -C bridge vet ./...
@@ -41,74 +52,136 @@ jobs:
         run: go -C bridge build -trimpath ./...
 
   cards:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+          check-latest: true
           cache: npm
-          cache-dependency-path: |
-            ha-cards/detailed/package-lock.json
-            ha-cards/small/package-lock.json
+          cache-dependency-path: ha-cards/package-lock.json
 
-      - name: Install detailed card dependencies
+      - name: Install card dependencies
         run: npm ci
-        working-directory: ha-cards/detailed
+        working-directory: ha-cards
 
-      - name: Install small card dependencies
-        run: npm ci
-        working-directory: ha-cards/small
-
-      - name: Check detailed card
+      - name: Check cards
         run: npm run check
-        working-directory: ha-cards/detailed
+        working-directory: ha-cards
 
-      - name: Check small card
-        run: npm run check
-        working-directory: ha-cards/small
+      - name: Test cards
+        run: npm test
+        working-directory: ha-cards
 
-      - name: Build detailed card
+      - name: Audit card dependencies
+        run: npm audit --audit-level=high
+        working-directory: ha-cards
+
+      - name: Build cards
         run: npm run build
-        working-directory: ha-cards/detailed
-
-      - name: Build small card
-        run: npm run build
-        working-directory: ha-cards/small
+        working-directory: ha-cards
 
       - name: Check committed bundles
         run: git diff --exit-code -- ha-cards/detailed/dist/ugreen-nas-card.js ha-cards/small/dist/ugreen-nas-mini-card.js
 
+  container:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate Compose configuration
+        run: docker compose -f bridge/docker-compose.example.yml config --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Check Dockerfile
+        run: docker buildx build --check --file bridge/Dockerfile .
+
+      - name: Build container image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: bridge/Dockerfile
+          pull: true
+          load: true
+          tags: ugos-bridge:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Docker's classic local image store cannot load image attestations.
+          provenance: false
+          sbom: false
+
+      - name: Smoke-test hardened container
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          container_id="$(docker run --detach \
+            --init \
+            --read-only \
+            --tmpfs /tmp:size=16m,mode=1777 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --pids-limit 128 \
+            --env UGOS_BRIDGE_HOST_METRICS_ENABLED=false \
+            --env UGOS_BRIDGE_MQTT_ENABLED=false \
+            ugos-bridge:ci)"
+          trap 'docker rm --force "$container_id" >/dev/null 2>&1 || true' EXIT
+
+          for attempt in {1..30}; do
+            if [[ "$(docker inspect --format '{{.State.Health.Status}}' "$container_id")" == "healthy" ]]; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs "$container_id"
+          exit 1
+
   release-snapshot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     needs:
       - bridge
       - cards
+      - container
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: bridge/go.mod
+          check-latest: true
           cache: true
           cache-dependency-path: bridge/go.sum
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Run GoReleaser snapshot
-        uses: goreleaser/goreleaser-action@v7
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           distribution: goreleaser
-          version: "~> v2"
-          args: release --snapshot --clean --skip=publish
+          version: v2.18.0
+          args: release --snapshot --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

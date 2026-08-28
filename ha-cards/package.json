@@ -1,0 +1,19 @@
+{
+  "name": "ugos-ha-cards",
+  "version": "1.0.3",
+  "private": true,
+  "workspaces": [
+    "detailed",
+    "small"
+  ],
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "audit": "npm audit --audit-level=high",
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "verify": "npm run check && npm run test && npm run build && npm run audit"
+  }
+}

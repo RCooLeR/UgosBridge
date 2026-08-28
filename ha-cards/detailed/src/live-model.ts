@@ -22,6 +22,8 @@ import type {
 
 const HISTORY_LIMIT = 21;
 const STORAGE_POOL_ACCENTS = [THEME_COLORS.green, THEME_COLORS.cyan, THEME_COLORS.purple, THEME_COLORS.softBlue];
+const storagePoolAccent = (index: number): string =>
+  STORAGE_POOL_ACCENTS[index % STORAGE_POOL_ACCENTS.length] ?? THEME_COLORS.green;
 const hostCpuRegex = /^sensor\.ugos_bridge_host_(.+?)_cpu_usage_percent$/;
 const projectCpuRegex = /^sensor\.ugos_bridge_project_(.+?)_cpu_usage_percent$/;
 const legacyHostCpuRegex = /^sensor\.([a-z0-9_]+)_\1_cpu(?:_|$)/;
@@ -703,7 +705,7 @@ const buildStoragePools = (arrays: ArraySnapshot[], filesystems: FilesystemSnaps
       status: filesystem.readOnly ? 'warning' : 'healthy',
       usedBytes: filesystem.usedBytes,
       totalBytes: filesystem.totalBytes,
-      accent: STORAGE_POOL_ACCENTS[index % STORAGE_POOL_ACCENTS.length]
+      accent: storagePoolAccent(index)
     }));
   }
 
@@ -730,7 +732,7 @@ const buildStoragePools = (arrays: ArraySnapshot[], filesystems: FilesystemSnaps
       status: array.degradedDisks > 0 ? 'degraded' : matchedFilesystem?.readOnly ? 'warning' : 'healthy',
       usedBytes: matchedFilesystem?.usedBytes ?? 0,
       totalBytes: matchedFilesystem?.totalBytes ?? array.sizeBytes,
-      accent: STORAGE_POOL_ACCENTS[index % STORAGE_POOL_ACCENTS.length],
+      accent: storagePoolAccent(index),
       driveSlugs: fallbackDriveSlugs
     };
   });
@@ -1363,16 +1365,17 @@ const resolveHostSlug = (states: Record<string, HassEntityLike>, configuredHost:
     }
 
     const hostSlugs = collectHostSlugCandidates(states);
-    if (hostSlugs.length === 0) {
+    const firstHostSlug = hostSlugs[0];
+    if (!firstHostSlug) {
       return null;
     }
 
     if (!configuredHost) {
-      return hostSlugs[0];
+      return firstHostSlug;
     }
 
     const preferredSlug = normalizeConfiguredHostSlug(configuredHost);
-    return hostSlugs.find((slug) => slug === preferredSlug) ?? hostSlugs[0];
+    return hostSlugs.find((slug) => slug === preferredSlug) ?? firstHostSlug;
   });
 };
 
@@ -1664,7 +1667,8 @@ const trafficLineColor = (slug: string, index: number): string => {
   if (normalized === 'eth1') {
     return THEME_COLORS.purple;
   }
-  return [THEME_COLORS.softBlue, THEME_COLORS.green, THEME_COLORS.blue][index % 3];
+  const fallbackColors = [THEME_COLORS.softBlue, THEME_COLORS.green, THEME_COLORS.blue];
+  return fallbackColors[index % fallbackColors.length] ?? THEME_COLORS.softBlue;
 };
 
 const collectGpuSlugs = (states: Record<string, HassEntityLike>, hostSlug: string, hostPrefix: string): string[] => {
@@ -2526,12 +2530,22 @@ const ensureTrafficSeries = (
   trafficLineSlugs: string[],
   currentTotalsBySlug: Record<string, number>
 ): TrafficPoint[] => {
+  const fallbackSample: MetricHistorySample = {
+    key: 'initial',
+    timestampLabel: '',
+    cpuPercent: 0,
+    ramPercent: 0,
+    gpuPercent: 0,
+    load1: 0,
+    networkBpsBySlug: currentTotalsBySlug
+  };
   const baseSamples =
     samples.length > 0
       ? samples
-      : [{ key: 'initial', timestampLabel: '', cpuPercent: 0, ramPercent: 0, gpuPercent: 0, load1: 0, networkBpsBySlug: currentTotalsBySlug }];
+      : [fallbackSample];
   const fillLength = Math.max(5 - baseSamples.length, 0);
-  const preparedSamples = [...Array.from({ length: fillLength }, () => baseSamples[0]), ...baseSamples];
+  const firstSample = baseSamples[0] ?? fallbackSample;
+  const preparedSamples = [...Array.from({ length: fillLength }, () => firstSample), ...baseSamples];
 
   return preparedSamples.map((sample) => ({
     timestampLabel: sample.timestampLabel,
@@ -2792,6 +2806,10 @@ const getTextState = (states: Record<string, HassEntityLike>, entityId: string |
   }
 
   const entity = states[entityId];
+  if (!entity) {
+    return undefined;
+  }
+
   const cache = getEntityDerivedCache(entity);
   if (!cache) {
     return undefined;
@@ -3004,7 +3022,8 @@ const getFriendlyFilesystemSlug = (entity: HassEntityLike | undefined, hostSlug:
   }
 
   const pathMatch = friendlyName.match(/(\/[^\s]*)/);
-  return pathMatch ? slugify(pathMatch[1]) : undefined;
+  const path = pathMatch?.[1];
+  return path ? slugify(path) : undefined;
 };
 
 const stripFriendlyHostPrefix = (friendlyName: string, hostSlug: string): string | undefined => {
@@ -3280,8 +3299,14 @@ const getFriendlyContainerMetric = (
     return undefined;
   }
 
-  const name = collapseRepeatedName(match[1]);
-  const suffix = match[2].toLowerCase();
+  const matchedName = match[1];
+  const matchedSuffix = match[2];
+  if (!matchedName || !matchedSuffix) {
+    return undefined;
+  }
+
+  const name = collapseRepeatedName(matchedName);
+  const suffix = matchedSuffix.toLowerCase();
   const metric = suffix === 'cpu' ? 'cpu_usage_percent' : suffix.startsWith('memory') ? 'memory_usage_bytes' : 'running';
   return { key: slugify(name), name, metric };
 };

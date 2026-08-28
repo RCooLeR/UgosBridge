@@ -18,10 +18,6 @@ metrics.txt
 ugos-bridge
 ugos-bridge.exe
 
-!bridge/
-!bridge/**
-!go.mod
-!go.sum
 !.goreleaser.yml
 !LICENSE
 !NOTICE
