@@ -89,6 +89,12 @@ Compact metadata and card-detail attributes use the same base with
 device groups. `collected_at` is never included, and state is published only
 when that entity's scalar value changes.
 
+Numeric discovery payloads include a suggested display precision where the
+source can produce fractional values. Home Assistant uses the suggestion for
+presentation and users can override it per entity. The MQTT state remains at
+its original precision so dashboards are concise without reducing the accuracy
+available to history, statistics, templates, or automations.
+
 Discovery config topics use this pattern:
 
 ```text

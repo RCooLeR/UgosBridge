@@ -380,6 +380,130 @@ func TestDiscoveryUsesScalarStateAndCompactAttributes(t *testing.T) {
 	}
 }
 
+func TestContainerCPUDiscoverySuggestsPrecisionWithoutRoundingState(t *testing.T) {
+	const cpuPercent = 0.0736593591905565
+
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	snapshot := model.Snapshot{Containers: []model.ContainerSnapshot{{
+		ID:         "16ca4042b456",
+		Name:       "ugos-bridge",
+		Project:    "ugos-bridge",
+		Running:    true,
+		CPUPercent: cpuPercent,
+	}}}
+
+	if err := publisher.publishContainers(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishContainers returned error: %v", err)
+	}
+
+	cpu := configPayload(t, client, publisher.discoveryTopic("sensor", "container_ugos_bridge", "cpu_usage_percent"))
+	if got := cpu["suggested_display_precision"]; got != float64(2) {
+		t.Fatalf("CPU suggested_display_precision = %#v, want 2", got)
+	}
+
+	state := messagePayload(t, client, "ugos_bridge/containers/ugos_bridge/cpu_usage_percent/state")
+	var gotCPUPercent float64
+	if err := json.Unmarshal([]byte(state), &gotCPUPercent); err != nil {
+		t.Fatalf("unmarshal CPU state %q: %v", state, err)
+	}
+	if gotCPUPercent != cpuPercent {
+		t.Fatalf("CPU state = %.17g, want unrounded %.17g", gotCPUPercent, cpuPercent)
+	}
+
+	running := configPayload(t, client, publisher.discoveryTopic("sensor", "container_ugos_bridge", "running"))
+	if _, ok := running["suggested_display_precision"]; ok {
+		t.Fatalf("integral running sensor should omit suggested_display_precision")
+	}
+}
+
+func TestSensorDefinitionsUseExpectedDisplayPrecision(t *testing.T) {
+	definitionGroups := map[string]map[string]sensorDefinition{
+		"project":    projectSensors,
+		"container":  containerSensors,
+		"vm":         vmSensors,
+		"host":       hostSensors,
+		"process":    processSensors,
+		"filesystem": filesystemSensors,
+		"disk":       diskSensors,
+		"network":    networkSensors,
+		"bond":       bondSensors,
+		"bond_slave": bondSlaveSensors,
+		"array":      arraySensors,
+		"gpu":        gpuSensors,
+		"health":     healthSensors,
+		"cooling":    coolingSensors,
+		"ups":        upsSensors,
+	}
+	expected := map[string]int{
+		"project/cpu":         2,
+		"container/cpu":       2,
+		"vm/cpu":              2,
+		"host/cpu":            2,
+		"host/cpufreq":        0,
+		"host/load1":          2,
+		"host/memorypct":      1,
+		"host/swappct":        1,
+		"host/uptime":         0,
+		"process/cpu":         2,
+		"process/cpu_time":    2,
+		"filesystem/used_pct": 1,
+		"disk/read_bps":       0,
+		"disk/write_bps":      0,
+		"disk/busy":           1,
+		"network/rx_bps":      0,
+		"network/tx_bps":      0,
+		"array/sync":          1,
+		"gpu/busy":            1,
+		"health/temperature":  1,
+		"health/fan":          0,
+		"cooling/percent":     1,
+		"ups/charge":          0,
+		"ups/runtime":         0,
+		"ups/battery_volt":    1,
+		"ups/input_volt":      1,
+		"ups/output_volt":     1,
+		"ups/load":            0,
+		"ups/power":           0,
+		"ups/nominal_power":   0,
+		"ups/frequency":       1,
+		"ups/temperature":     1,
+	}
+	seen := make(map[string]bool, len(expected))
+
+	for group, definitions := range definitionGroups {
+		for key, definition := range definitions {
+			name := group + "/" + key
+			want, ok := expected[name]
+			if !ok {
+				if definition.SuggestedDisplayPrecision != nil {
+					t.Errorf("%s has unexpected suggested display precision %d", name, *definition.SuggestedDisplayPrecision)
+				}
+				continue
+			}
+			seen[name] = true
+			if definition.SuggestedDisplayPrecision == nil {
+				t.Errorf("%s has no suggested display precision, want %d", name, want)
+				continue
+			}
+			if got := *definition.SuggestedDisplayPrecision; got != want {
+				t.Errorf("%s suggested display precision = %d, want %d", name, got, want)
+			}
+		}
+	}
+
+	for name := range expected {
+		if !seen[name] {
+			t.Errorf("expected display precision definition %s was not found", name)
+		}
+	}
+}
+
 func TestPublishSnapshotOnlyPublishesChangedEntityState(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
 	publisher := &MQTTPublisher{
@@ -616,6 +740,14 @@ func TestUPSPublishesHomeAssistantEntities(t *testing.T) {
 	}
 	if charge["state_topic"] != "ugos_bridge/host/ups/ups/battery_charge_percent/state" {
 		t.Fatalf("UPS charge state_topic = %#v", charge["state_topic"])
+	}
+	if got := charge["suggested_display_precision"]; got != float64(0) {
+		t.Fatalf("UPS charge suggested_display_precision = %#v, want 0", got)
+	}
+
+	status := configPayload(t, client, publisher.discoveryTopic("sensor", "ups_ups", "status"))
+	if _, ok := status["suggested_display_precision"]; ok {
+		t.Fatalf("UPS status should omit suggested_display_precision")
 	}
 
 	online := configPayload(t, client, publisher.discoveryTopic("binary_sensor", "ups_ups", "online"))

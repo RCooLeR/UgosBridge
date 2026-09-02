@@ -16,6 +16,9 @@
 
 ### Changed
 
+- Home Assistant MQTT discovery now suggests concise display precision for
+  fractional sensor values while preserving the full raw telemetry value for
+  history, statistics, and automations.
 - Upgraded the bridge to Go 1.27 and current Go dependencies, including the
   `urfave/cli` v3 API and `sync.WaitGroup.Go`.
 - Consolidated the duplicate root and bridge Go modules into the single

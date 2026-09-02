@@ -73,15 +73,16 @@ type preparedPayload struct {
 }
 
 type sensorDefinition struct {
-	NameSuffix     string
-	ObjectID       string
-	ValueKey       string
-	Unit           string
-	Icon           string
-	DeviceClass    string
-	StateClass     string
-	EntityCategory string
-	Attributes     bool
+	NameSuffix                string
+	ObjectID                  string
+	ValueKey                  string
+	Unit                      string
+	Icon                      string
+	DeviceClass               string
+	StateClass                string
+	EntityCategory            string
+	Attributes                bool
+	SuggestedDisplayPrecision *int
 }
 
 type binarySensorDefinition struct {
@@ -104,21 +105,25 @@ type deviceDescriptor struct {
 	Model        string
 }
 
+func displayPrecision(value int) *int {
+	return &value
+}
+
 var projectSensors = map[string]sensorDefinition{
-	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
+	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(2)},
 	"memory":  {NameSuffix: "Memory", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"total":   {NameSuffix: "Total Containers", ObjectID: "total_containers", ValueKey: "total_containers", Icon: "mdi:docker", StateClass: "measurement"},
 	"running": {NameSuffix: "Running Containers", ObjectID: "running_containers", ValueKey: "running_containers", Icon: "mdi:play-circle", StateClass: "measurement"},
 }
 
 var containerSensors = map[string]sensorDefinition{
-	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
+	"cpu":     {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(2)},
 	"memory":  {NameSuffix: "Memory", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"running": {NameSuffix: "Running", ObjectID: "running", ValueKey: "running", Icon: "mdi:play-circle", StateClass: "measurement"},
 }
 
 var vmSensors = map[string]sensorDefinition{
-	"cpu":            {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
+	"cpu":            {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(2)},
 	"memory":         {NameSuffix: "Memory Used", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"memory_current": {NameSuffix: "Memory Current", ObjectID: "memory_current_bytes", ValueKey: "memory_current_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
 	"running":        {NameSuffix: "Running", ObjectID: "running", ValueKey: "running", Icon: "mdi:play-circle", StateClass: "measurement"},
@@ -128,32 +133,32 @@ var vmSensors = map[string]sensorDefinition{
 }
 
 var hostSensors = map[string]sensorDefinition{
-	"cpu":       {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
-	"cpufreq":   {NameSuffix: "CPU Frequency", ObjectID: "cpu_frequency_mhz", ValueKey: "cpu_frequency_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement"},
-	"load1":     {NameSuffix: "Load 1m", ObjectID: "load_1", ValueKey: "load_1", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement"},
+	"cpu":       {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(2)},
+	"cpufreq":   {NameSuffix: "CPU Frequency", ObjectID: "cpu_frequency_mhz", ValueKey: "cpu_frequency_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"load1":     {NameSuffix: "Load 1m", ObjectID: "load_1", ValueKey: "load_1", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(2)},
 	"memory":    {NameSuffix: "Memory Used", ObjectID: "memory_used_bytes", ValueKey: "memory_used_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
-	"memorypct": {NameSuffix: "Memory Used", ObjectID: "memory_used_percent", ValueKey: "memory_used_percent", Unit: "%", Icon: "mdi:memory", StateClass: "measurement"},
-	"swappct":   {NameSuffix: "Swap Used", ObjectID: "swap_used_percent", ValueKey: "swap_used_percent", Unit: "%", Icon: "mdi:swap-horizontal", StateClass: "measurement"},
-	"uptime":    {NameSuffix: "Uptime", ObjectID: "uptime_seconds", ValueKey: "uptime_seconds", Unit: "s", Icon: "mdi:clock-outline", DeviceClass: "duration", StateClass: "measurement"},
+	"memorypct": {NameSuffix: "Memory Used", ObjectID: "memory_used_percent", ValueKey: "memory_used_percent", Unit: "%", Icon: "mdi:memory", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
+	"swappct":   {NameSuffix: "Swap Used", ObjectID: "swap_used_percent", ValueKey: "swap_used_percent", Unit: "%", Icon: "mdi:swap-horizontal", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
+	"uptime":    {NameSuffix: "Uptime", ObjectID: "uptime_seconds", ValueKey: "uptime_seconds", Unit: "s", Icon: "mdi:clock-outline", DeviceClass: "duration", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
 }
 
 var processSensors = map[string]sensorDefinition{
 	"count":    {NameSuffix: "Process Count", ObjectID: "process_count", ValueKey: "process_count", Icon: "mdi:counter", StateClass: "measurement"},
-	"cpu":      {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true},
+	"cpu":      {NameSuffix: "CPU", ObjectID: "cpu_usage_percent", ValueKey: "cpu_usage_percent", Unit: "%", Icon: "mdi:cpu-64-bit", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(2)},
 	"memory":   {NameSuffix: "Memory", ObjectID: "memory_usage_bytes", ValueKey: "memory_usage_bytes", Unit: "B", Icon: "mdi:memory", DeviceClass: "data_size", StateClass: "measurement"},
-	"cpu_time": {NameSuffix: "CPU Time", ObjectID: "cpu_time_seconds", ValueKey: "cpu_time_seconds", Unit: "s", Icon: "mdi:timer-outline", StateClass: "measurement"},
+	"cpu_time": {NameSuffix: "CPU Time", ObjectID: "cpu_time_seconds", ValueKey: "cpu_time_seconds", Unit: "s", Icon: "mdi:timer-outline", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(2)},
 }
 
 var filesystemSensors = map[string]sensorDefinition{
 	"used":     {NameSuffix: "Used", ObjectID: "used_bytes", ValueKey: "used_bytes", Unit: "B", Icon: "mdi:harddisk", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"free":     {NameSuffix: "Free", ObjectID: "free_bytes", ValueKey: "free_bytes", Unit: "B", Icon: "mdi:harddisk", DeviceClass: "data_size", StateClass: "measurement"},
-	"used_pct": {NameSuffix: "Used", ObjectID: "used_percent", ValueKey: "used_percent", Unit: "%", Icon: "mdi:chart-donut", StateClass: "measurement"},
+	"used_pct": {NameSuffix: "Used", ObjectID: "used_percent", ValueKey: "used_percent", Unit: "%", Icon: "mdi:chart-donut", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
 }
 
 var diskSensors = map[string]sensorDefinition{
-	"read_bps":  {NameSuffix: "Read Throughput", ObjectID: "read_bytes_per_second", ValueKey: "read_bytes_per_second", Unit: "B/s", Icon: "mdi:download", DeviceClass: "data_rate", StateClass: "measurement"},
-	"write_bps": {NameSuffix: "Write Throughput", ObjectID: "write_bytes_per_second", ValueKey: "write_bytes_per_second", Unit: "B/s", Icon: "mdi:upload", DeviceClass: "data_rate", StateClass: "measurement"},
-	"busy":      {NameSuffix: "Busy", ObjectID: "busy_percent", ValueKey: "busy_percent", Unit: "%", Icon: "mdi:harddisk", StateClass: "measurement"},
+	"read_bps":  {NameSuffix: "Read Throughput", ObjectID: "read_bytes_per_second", ValueKey: "read_bytes_per_second", Unit: "B/s", Icon: "mdi:download", DeviceClass: "data_rate", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"write_bps": {NameSuffix: "Write Throughput", ObjectID: "write_bytes_per_second", ValueKey: "write_bytes_per_second", Unit: "B/s", Icon: "mdi:upload", DeviceClass: "data_rate", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"busy":      {NameSuffix: "Busy", ObjectID: "busy_percent", ValueKey: "busy_percent", Unit: "%", Icon: "mdi:harddisk", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
 	"size":      {NameSuffix: "Size", ObjectID: "size_bytes", ValueKey: "size_bytes", Unit: "B", Icon: "mdi:database", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"model":     {NameSuffix: "Model", ObjectID: "model", ValueKey: "model", Icon: "mdi:information-outline"},
 	"vendor":    {NameSuffix: "Vendor", ObjectID: "vendor", ValueKey: "vendor", Icon: "mdi:factory"},
@@ -162,8 +167,8 @@ var diskSensors = map[string]sensorDefinition{
 }
 
 var networkSensors = map[string]sensorDefinition{
-	"rx_bps":  {NameSuffix: "RX Throughput", ObjectID: "rx_bytes_per_second", ValueKey: "rx_bytes_per_second", Unit: "B/s", Icon: "mdi:download-network", DeviceClass: "data_rate", StateClass: "measurement", Attributes: true},
-	"tx_bps":  {NameSuffix: "TX Throughput", ObjectID: "tx_bytes_per_second", ValueKey: "tx_bytes_per_second", Unit: "B/s", Icon: "mdi:upload-network", DeviceClass: "data_rate", StateClass: "measurement"},
+	"rx_bps":  {NameSuffix: "RX Throughput", ObjectID: "rx_bytes_per_second", ValueKey: "rx_bytes_per_second", Unit: "B/s", Icon: "mdi:download-network", DeviceClass: "data_rate", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(0)},
+	"tx_bps":  {NameSuffix: "TX Throughput", ObjectID: "tx_bytes_per_second", ValueKey: "tx_bytes_per_second", Unit: "B/s", Icon: "mdi:upload-network", DeviceClass: "data_rate", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
 	"speed":   {NameSuffix: "Link Speed", ObjectID: "speed_mbps", ValueKey: "speed_mbps", Unit: "Mbit/s", Icon: "mdi:speedometer", StateClass: "measurement"},
 	"carrier": {NameSuffix: "Carrier", ObjectID: "carrier", ValueKey: "carrier", Icon: "mdi:lan-connect", StateClass: "measurement"},
 }
@@ -185,40 +190,40 @@ var arraySensors = map[string]sensorDefinition{
 	"degraded": {NameSuffix: "Degraded Disks", ObjectID: "degraded_disks", ValueKey: "degraded_disks", Icon: "mdi:alert", StateClass: "measurement"},
 	"active":   {NameSuffix: "Active Disks", ObjectID: "active_disks", ValueKey: "active_disks", Icon: "mdi:harddisk", StateClass: "measurement"},
 	"total":    {NameSuffix: "Total Disks", ObjectID: "total_disks", ValueKey: "total_disks", Icon: "mdi:harddisk-plus", StateClass: "measurement"},
-	"sync":     {NameSuffix: "Sync Progress", ObjectID: "sync_completed_percent", ValueKey: "sync_completed_percent", Unit: "%", Icon: "mdi:progress-clock", StateClass: "measurement"},
+	"sync":     {NameSuffix: "Sync Progress", ObjectID: "sync_completed_percent", ValueKey: "sync_completed_percent", Unit: "%", Icon: "mdi:progress-clock", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
 	"size":     {NameSuffix: "Size", ObjectID: "size_bytes", ValueKey: "size_bytes", Unit: "B", Icon: "mdi:database", DeviceClass: "data_size", StateClass: "measurement", Attributes: true},
 	"level":    {NameSuffix: "Level", ObjectID: "level", ValueKey: "level", Icon: "mdi:layers-triple-outline"},
 }
 
 var gpuSensors = map[string]sensorDefinition{
-	"busy":    {NameSuffix: "Busy", ObjectID: "busy_percent", ValueKey: "busy_percent", Unit: "%", Icon: "mdi:gpu", StateClass: "measurement"},
+	"busy":    {NameSuffix: "Busy", ObjectID: "busy_percent", ValueKey: "busy_percent", Unit: "%", Icon: "mdi:gpu", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
 	"current": {NameSuffix: "Current Frequency", ObjectID: "current_mhz", ValueKey: "current_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement", Attributes: true},
 	"max":     {NameSuffix: "Max Frequency", ObjectID: "max_mhz", ValueKey: "max_mhz", Unit: "MHz", Icon: "mdi:sine-wave", StateClass: "measurement"},
 }
 
 var healthSensors = map[string]sensorDefinition{
-	"temperature": {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement", Attributes: true},
-	"fan":         {NameSuffix: "Fan Speed", ObjectID: "fan_speed_rpm", ValueKey: "fan_speed_rpm", Unit: "rpm", Icon: "mdi:fan", StateClass: "measurement", Attributes: true},
+	"temperature": {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(1)},
+	"fan":         {NameSuffix: "Fan Speed", ObjectID: "fan_speed_rpm", ValueKey: "fan_speed_rpm", Unit: "rpm", Icon: "mdi:fan", StateClass: "measurement", Attributes: true, SuggestedDisplayPrecision: displayPrecision(0)},
 }
 
 var coolingSensors = map[string]sensorDefinition{
-	"percent": {NameSuffix: "Cooling Level", ObjectID: "cooling_percent", ValueKey: "cooling_percent", Unit: "%", Icon: "mdi:fan-chevron-up", StateClass: "measurement"},
+	"percent": {NameSuffix: "Cooling Level", ObjectID: "cooling_percent", ValueKey: "cooling_percent", Unit: "%", Icon: "mdi:fan-chevron-up", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
 	"state":   {NameSuffix: "Cooling State", ObjectID: "cooling_state", ValueKey: "cooling_state", Icon: "mdi:fan", StateClass: "measurement", Attributes: true},
 	"max":     {NameSuffix: "Cooling Max State", ObjectID: "cooling_max_state", ValueKey: "cooling_max_state", Icon: "mdi:fan", StateClass: "measurement"},
 }
 
 var upsSensors = map[string]sensorDefinition{
 	"status":        {NameSuffix: "Status", ObjectID: "status", ValueKey: "status", Icon: "mdi:power-plug-battery", Attributes: true},
-	"charge":        {NameSuffix: "Battery Charge", ObjectID: "battery_charge_percent", ValueKey: "battery_charge_percent", Unit: "%", Icon: "mdi:battery", DeviceClass: "battery", StateClass: "measurement"},
-	"runtime":       {NameSuffix: "Battery Runtime", ObjectID: "battery_runtime_seconds", ValueKey: "battery_runtime_seconds", Unit: "s", Icon: "mdi:timer-outline", DeviceClass: "duration", StateClass: "measurement"},
-	"battery_volt":  {NameSuffix: "Battery Voltage", ObjectID: "battery_voltage", ValueKey: "battery_voltage", Unit: "V", Icon: "mdi:sine-wave", DeviceClass: "voltage", StateClass: "measurement"},
-	"input_volt":    {NameSuffix: "Input Voltage", ObjectID: "input_voltage", ValueKey: "input_voltage", Unit: "V", Icon: "mdi:transmission-tower-import", DeviceClass: "voltage", StateClass: "measurement"},
-	"output_volt":   {NameSuffix: "Output Voltage", ObjectID: "output_voltage", ValueKey: "output_voltage", Unit: "V", Icon: "mdi:transmission-tower-export", DeviceClass: "voltage", StateClass: "measurement"},
-	"load":          {NameSuffix: "Load", ObjectID: "load_percent", ValueKey: "load_percent", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement"},
-	"power":         {NameSuffix: "Real Power", ObjectID: "real_power_watts", ValueKey: "real_power_watts", Unit: "W", Icon: "mdi:flash", DeviceClass: "power", StateClass: "measurement"},
-	"nominal_power": {NameSuffix: "Nominal Real Power", ObjectID: "nominal_real_power_watts", ValueKey: "nominal_real_power_watts", Unit: "W", Icon: "mdi:flash-outline", DeviceClass: "power", StateClass: "measurement"},
-	"frequency":     {NameSuffix: "Line Frequency", ObjectID: "line_frequency_hz", ValueKey: "line_frequency_hz", Unit: "Hz", Icon: "mdi:sine-wave", DeviceClass: "frequency", StateClass: "measurement"},
-	"temperature":   {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement"},
+	"charge":        {NameSuffix: "Battery Charge", ObjectID: "battery_charge_percent", ValueKey: "battery_charge_percent", Unit: "%", Icon: "mdi:battery", DeviceClass: "battery", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"runtime":       {NameSuffix: "Battery Runtime", ObjectID: "battery_runtime_seconds", ValueKey: "battery_runtime_seconds", Unit: "s", Icon: "mdi:timer-outline", DeviceClass: "duration", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"battery_volt":  {NameSuffix: "Battery Voltage", ObjectID: "battery_voltage", ValueKey: "battery_voltage", Unit: "V", Icon: "mdi:sine-wave", DeviceClass: "voltage", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
+	"input_volt":    {NameSuffix: "Input Voltage", ObjectID: "input_voltage", ValueKey: "input_voltage", Unit: "V", Icon: "mdi:transmission-tower-import", DeviceClass: "voltage", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
+	"output_volt":   {NameSuffix: "Output Voltage", ObjectID: "output_voltage", ValueKey: "output_voltage", Unit: "V", Icon: "mdi:transmission-tower-export", DeviceClass: "voltage", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
+	"load":          {NameSuffix: "Load", ObjectID: "load_percent", ValueKey: "load_percent", Unit: "%", Icon: "mdi:gauge", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"power":         {NameSuffix: "Real Power", ObjectID: "real_power_watts", ValueKey: "real_power_watts", Unit: "W", Icon: "mdi:flash", DeviceClass: "power", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"nominal_power": {NameSuffix: "Nominal Real Power", ObjectID: "nominal_real_power_watts", ValueKey: "nominal_real_power_watts", Unit: "W", Icon: "mdi:flash-outline", DeviceClass: "power", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(0)},
+	"frequency":     {NameSuffix: "Line Frequency", ObjectID: "line_frequency_hz", ValueKey: "line_frequency_hz", Unit: "Hz", Icon: "mdi:sine-wave", DeviceClass: "frequency", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
+	"temperature":   {NameSuffix: "Temperature", ObjectID: "temperature_celsius", ValueKey: "temperature_celsius", Unit: "°C", DeviceClass: "temperature", StateClass: "measurement", SuggestedDisplayPrecision: displayPrecision(1)},
 }
 
 var containerBinarySensors = map[string]binarySensorDefinition{
@@ -1241,6 +1246,9 @@ func (p *MQTTPublisher) ensureSensor(discoveryTopic string, stateTopic string, c
 	}
 	if def.StateClass != "" {
 		payload["state_class"] = def.StateClass
+	}
+	if def.SuggestedDisplayPrecision != nil {
+		payload["suggested_display_precision"] = *def.SuggestedDisplayPrecision
 	}
 	if def.EntityCategory != "" {
 		payload["entity_category"] = def.EntityCategory
