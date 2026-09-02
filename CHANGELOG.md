@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-09-02
+
+This patch modernizes the bridge, container, card, and release toolchains;
+hardens container deployment and supply-chain metadata; and improves Home
+Assistant numeric presentation without changing raw telemetry or public metric
+contracts.
+
 ### Added
 
 - A native `ugos-bridge healthcheck` command and container health checks that
@@ -16,9 +23,6 @@
 
 ### Changed
 
-- Home Assistant MQTT discovery now suggests concise display precision for
-  fractional sensor values while preserving the full raw telemetry value for
-  history, statistics, and automations.
 - Upgraded the bridge to Go 1.27 and current Go dependencies, including the
   `urfave/cli` v3 API and `sync.WaitGroup.Go`.
 - Consolidated the duplicate root and bridge Go modules into the single
@@ -36,6 +40,29 @@
   bounded temporary filesystem.
 - Updated GitHub Actions and Docker actions to their current Node 24-based
   releases and pinned every action to an immutable commit.
+
+### Fixed
+
+- Home Assistant MQTT discovery now supplies entity-specific display precision,
+  preventing excessive decimal places in the UI while preserving full MQTT
+  values for history, statistics, templates, and automations ([#1]).
+
+### Compatibility
+
+- No Prometheus metric names, types, labels, or sample values changed. The
+  exporter continues to expose raw floating-point precision; dashboard display
+  rounding belongs in Grafana or PromQL.
+- No Home Assistant MQTT state topics or raw state values were removed, renamed,
+  or rounded. The new discovery property is additive.
+- Published container images remain available for Linux AMD64 and ARM64.
+- Source builds now use Go 1.27, and the runtime image is based on Debian 13.6.
+
+### Upgrade
+
+- Pull `rcooler/ugos-bridge:1.0.4` or rebuild the bridge from the tagged source.
+- Restart the bridge so retained Home Assistant discovery payloads are
+  republished with the display-precision suggestions.
+- Refresh both bundled Home Assistant card resources after upgrading.
 
 ## [1.0.3] - 2026-08-05
 
@@ -115,4 +142,8 @@ rebuilds, adds NUT UPS monitoring, and restores complete NAS card telemetry.
 - Refresh the bundled detailed and compact Home Assistant card resources after
   deployment.
 
+[Unreleased]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.2...v1.0.3
+
+[#1]: https://github.com/RCooLeR/UgosBridge/issues/1

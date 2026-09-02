@@ -1,6 +1,6 @@
 {
   "name": "ugreen-nas-card",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
   "description": "Large Lovelace custom card for UGREEN DXP6800 Pro NAS monitoring",
