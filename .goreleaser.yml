@@ -62,17 +62,28 @@ dockers_v2:
       org.opencontainers.image.created: "{{ .CommitDate }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
     annotations:
-      "index,manifest:org.opencontainers.image.title": ugos-bridge
-      "index,manifest:org.opencontainers.image.description": Lightweight UGOS and Docker metrics bridge for NAS hosts and Compose stacks
-      "index,manifest:org.opencontainers.image.url": "{{ .GitURL }}"
-      "index,manifest:org.opencontainers.image.source": "{{ .GitURL }}"
-      "index,manifest:org.opencontainers.image.licenses": MIT
-      "index,manifest:org.opencontainers.image.version": "{{ .Version }}"
-      "index,manifest:org.opencontainers.image.created": "{{ .CommitDate }}"
-      "index,manifest:org.opencontainers.image.revision": "{{ .FullCommit }}"
-    sbom: true
+      "manifest:org.opencontainers.image.title": ugos-bridge
+      "manifest:org.opencontainers.image.description": Lightweight UGOS and Docker metrics bridge for NAS hosts and Compose stacks
+      "manifest:org.opencontainers.image.url": "{{ .GitURL }}"
+      "manifest:org.opencontainers.image.source": "{{ .GitURL }}"
+      "manifest:org.opencontainers.image.licenses": MIT
+      "manifest:org.opencontainers.image.version": "{{ .Version }}"
+      "manifest:org.opencontainers.image.created": "{{ .CommitDate }}"
+      "manifest:org.opencontainers.image.revision": "{{ .FullCommit }}"
+      "index:org.opencontainers.image.title": '{{ if not .IsSnapshot }}ugos-bridge{{ end }}'
+      "index:org.opencontainers.image.description": '{{ if not .IsSnapshot }}Lightweight UGOS and Docker metrics bridge for NAS hosts and Compose stacks{{ end }}'
+      "index:org.opencontainers.image.url": '{{ if not .IsSnapshot }}{{ .GitURL }}{{ end }}'
+      "index:org.opencontainers.image.source": '{{ if not .IsSnapshot }}{{ .GitURL }}{{ end }}'
+      "index:org.opencontainers.image.licenses": '{{ if not .IsSnapshot }}MIT{{ end }}'
+      "index:org.opencontainers.image.version": '{{ if not .IsSnapshot }}{{ .Version }}{{ end }}'
+      "index:org.opencontainers.image.created": '{{ if not .IsSnapshot }}{{ .CommitDate }}{{ end }}'
+      "index:org.opencontainers.image.revision": '{{ if not .IsSnapshot }}{{ .FullCommit }}{{ end }}'
+    # Snapshot images are loaded into the local Docker store, whose exporter
+    # cannot load the manifest lists created by attestations. Tagged releases
+    # still publish both SBOMs and maximum provenance.
+    sbom: "{{ not .IsSnapshot }}"
     flags:
-      - "--provenance=mode=max"
+      - '{{ if .IsSnapshot }}--provenance=false{{ else }}--provenance=mode=max{{ end }}'
     platforms:
       - linux/amd64
       - linux/arm64

@@ -46,6 +46,9 @@ contracts.
 - Home Assistant MQTT discovery now supplies entity-specific display precision,
   preventing excessive decimal places in the UI while preserving full MQTT
   values for history, statistics, templates, and automations ([#1]).
+- Made GoReleaser container snapshots compatible with local Docker exports by
+  disabling attestations only for snapshots; tagged images retain SBOMs and
+  maximum provenance.
 
 ### Compatibility
 
