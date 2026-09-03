@@ -489,7 +489,12 @@ State topic:
 | Used | `sensor` | `used_percent` | `used_percent` | `%` | | `measurement` |
 | Read Only | `binary_sensor` | `read_only` | scalar `1` / `0` | | `problem` | |
 
-The root filesystem `/` uses slug `root`.
+The root filesystem `/` uses slug `root` when it is collected. UGOS Pro
+1.19+ Docker Projects UI deployments normally omit the rejected `/:/rootfs:ro`
+bind, and overlay-backed host roots are intentionally skipped, so a `root`
+filesystem device is not expected in those deployments. Docker container
+rootfs size is an unrelated Prometheus metric,
+`ugos_bridge_container_filesystem_size_bytes{type="rootfs"}`, and is unaffected.
 
 ### Physical Disk Devices
 

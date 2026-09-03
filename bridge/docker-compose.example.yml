@@ -44,8 +44,9 @@ services:
       UGOS_BRIDGE_HOST_SYSFS: "/host/sys"
       # Keep this fixed: it is part of the Home Assistant host entity identity.
       UGOS_BRIDGE_HOST_NAME: "ugreen-nas"
-      UGOS_BRIDGE_HOST_HOSTNAME_PATH: "/rootfs/etc/hostname"
-      UGOS_BRIDGE_HOST_FILESYSTEMS: "/:/rootfs,/volume1:/volume1,/volume2:/volume2"
+      # UGOS Pro 1.19+ Docker Projects UI rejects a direct /:/rootfs bind.
+      # Volume filesystems remain available without exposing the host root.
+      UGOS_BRIDGE_HOST_FILESYSTEMS: "/volume1:/volume1,/volume2:/volume2"
       UGOS_BRIDGE_HOST_DRI_PATH: "/dev/dri"
       # UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW: "2m"
       # Optional UPS monitoring through NUT upsc:
@@ -80,7 +81,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      - /:/rootfs:ro
+      # Deployments managed outside the UGOS Docker Projects UI may add /:/rootfs:ro
+      # and /:/rootfs to UGOS_BRIDGE_HOST_FILESYSTEMS when useful.
       - /volume1:/volume1:ro
       - /volume2:/volume2:ro
       - /var/run/libvirt:/var/run/libvirt:ro

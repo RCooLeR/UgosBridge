@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Documented that the UGOS Pro 1.19+ Docker Projects UI rejects the direct
+  host-root bind `/:/rootfs:ro` with a generic `invalid configuration file`
+  message, and made the example deployment UI-compatible without reducing
+  `/volume1` or `/volume2` telemetry.
+
 ## [1.0.4] - 2026-09-02
 
 This patch modernizes the bridge, container, card, and release toolchains;

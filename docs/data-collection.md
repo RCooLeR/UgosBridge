@@ -136,14 +136,13 @@ Enable them with:
 UGOS_BRIDGE_HOST_METRICS_ENABLED=true
 ```
 
-Recommended container mounts:
+Recommended container mounts for the UGOS Pro Docker Projects UI:
 
 ```yaml
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock:ro
   - /proc:/host/proc:ro
   - /sys:/host/sys:ro
-  - /:/rootfs:ro
   - /volume1:/volume1:ro
   - /volume2:/volume2:ro
   - /var/run/libvirt:/var/run/libvirt:ro
@@ -157,8 +156,8 @@ Configure host paths with:
 | `UGOS_BRIDGE_HOST_PROCFS` | `/host/proc` | Mounted host procfs. |
 | `UGOS_BRIDGE_HOST_SYSFS` | `/host/sys` | Mounted host sysfs. |
 | `UGOS_BRIDGE_HOST_NAME` | | Stable host name used in Prometheus labels and Home Assistant IDs. |
-| `UGOS_BRIDGE_HOST_HOSTNAME_PATH` | `/rootfs/etc/hostname` | Host hostname file. |
-| `UGOS_BRIDGE_HOST_FILESYSTEMS` | `/:/rootfs,/volume1:/volume1,/volume2:/volume2` | Host mountpoint to container path mapping. |
+| `UGOS_BRIDGE_HOST_HOSTNAME_PATH` | `/rootfs/etc/hostname` | Host hostname file. The bridge also tries any configured host-root mapping and mounted procfs. |
+| `UGOS_BRIDGE_HOST_FILESYSTEMS` | `/:/rootfs,/volume1:/volume1,/volume2:/volume2` | Host mountpoint to container path mapping. Override it for UGOS Pro 1.19+ as shown below. |
 | `UGOS_BRIDGE_HOST_NETWORK_INCLUDE` | `eth.*,bond.*` | Interface include regex list. |
 | `UGOS_BRIDGE_HOST_DRI_PATH` | `/dev/dri` | Mounted DRM device path for GPU discovery. |
 | `UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW` | `2m` | Rolling window used to smooth temperature sensors. Set `0s` to publish raw readings. |
@@ -168,10 +167,53 @@ Configure host paths with:
 | `UGOS_BRIDGE_HOST_UPS_TIMEOUT` | `3s` | Timeout for each UPS command. |
 
 Keep `UGOS_BRIDGE_HOST_NAME` fixed for the lifetime of the Home Assistant device,
-or mount the host hostname file at `UGOS_BRIDGE_HOST_HOSTNAME_PATH`. The bridge
-does not use the container hostname as a fallback because it is commonly the
-replaceable Docker container ID. Host collection fails with a configuration
-error instead of silently creating a new device identity.
+or make the host name available through `UGOS_BRIDGE_HOST_HOSTNAME_PATH`, a
+configured host-root mapping, or the mounted procfs. The bridge checks those
+sources in that order after the fixed override. It does not use the container
+hostname as a fallback because it is commonly the replaceable Docker container
+ID. Host collection fails with a configuration error instead of silently
+creating a new device identity.
+
+### UGOS Pro 1.19 And Later
+
+Starting with UGOS Pro 1.19, the Docker Projects UI rejects a direct bind of
+the NAS root filesystem:
+
+```yaml
+volumes:
+  - /:/rootfs:ro
+```
+
+The UI reports only `invalid configuration file`. The mount is valid Docker
+Compose syntax and remains usable from the Compose CLI; this is a Projects UI
+validation limitation.
+
+For a project managed through the UGOS Docker Projects UI, omit that volume and
+use:
+
+```yaml
+environment:
+  UGOS_BRIDGE_HOST_NAME: "ugreen-nas"
+  UGOS_BRIDGE_HOST_FILESYSTEMS: "/volume1:/volume1,/volume2:/volume2"
+volumes:
+  - /proc:/host/proc:ro
+  - /sys:/host/sys:ro
+  - /volume1:/volume1:ro
+  - /volume2:/volume2:ro
+```
+
+Removing the root bind and its `/` mapping does not affect CPU, memory, process,
+disk, array, network, sensor, cooling, GPU, Docker, VM, UPS, `/volume1`, or
+`/volume2` collection when their existing mounts and settings remain configured.
+Host mount metadata is read from `/host/proc/1/mountinfo`, and the hostname comes
+from the fixed override or mounted procfs.
+
+Only host `/` filesystem telemetry (byte, inode, and read-only series) can
+depend on `/rootfs`. When UGOS exposes its system root as an overlay filesystem,
+the bridge intentionally omits it because overlay capacity is not a useful
+host-disk value. Deployments managed outside the UGOS Docker Projects UI may retain
+`/:/rootfs:ro` and the `/:/rootfs` mapping when the host root is not
+overlay-backed and that telemetry is useful.
 
 ## CPU And Memory
 
@@ -201,7 +243,13 @@ Memory and swap values come from:
 Filesystems are collected from the configured
 `host_mountpoint:container_path` list.
 
-Example:
+UGOS Pro 1.19+ Docker Projects example:
+
+```text
+/volume1:/volume1,/volume2:/volume2
+```
+
+Example outside the UGOS Docker Projects UI with the optional host-root mount:
 
 ```text
 /:/rootfs,/volume1:/volume1,/volume2:/volume2
@@ -457,8 +505,7 @@ services:
       UGOS_BRIDGE_HOST_PROCFS: "/host/proc"
       UGOS_BRIDGE_HOST_SYSFS: "/host/sys"
       UGOS_BRIDGE_HOST_NAME: "ugreen-nas"
-      UGOS_BRIDGE_HOST_HOSTNAME_PATH: "/rootfs/etc/hostname"
-      UGOS_BRIDGE_HOST_FILESYSTEMS: "/:/rootfs,/volume1:/volume1,/volume2:/volume2"
+      UGOS_BRIDGE_HOST_FILESYSTEMS: "/volume1:/volume1,/volume2:/volume2"
       UGOS_BRIDGE_HOST_DRI_PATH: "/dev/dri"
       UGOS_BRIDGE_HOST_VMS_ENABLED: "true"
       UGOS_BRIDGE_HOST_VIRSH_URI: "qemu:///system"
@@ -466,7 +513,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      - /:/rootfs:ro
       - /volume1:/volume1:ro
       - /volume2:/volume2:ro
       - /var/run/libvirt:/var/run/libvirt:ro

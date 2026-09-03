@@ -11,6 +11,7 @@ GPU, and health telemetry and exports it to Prometheus and MQTT/Home Assistant.
 ## Documentation
 
 - [Data collection](./docs/data-collection.md)
+- [UGOS Pro 1.19+ rootfs compatibility](./docs/data-collection.md#ugos-pro-119-and-later)
 - [Prometheus metrics](./docs/prometheus.md)
 - [Home Assistant sensors and devices](./docs/home-assistant.md)
 - [Lovelace cards](./ha-cards/README.md)

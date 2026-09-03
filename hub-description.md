@@ -30,8 +30,8 @@ services:
       UGOS_BRIDGE_HOST_PROCFS: "/host/proc"
       UGOS_BRIDGE_HOST_SYSFS: "/host/sys"
       UGOS_BRIDGE_HOST_NAME: "ugreen-nas"
-      UGOS_BRIDGE_HOST_HOSTNAME_PATH: "/rootfs/etc/hostname"
-      UGOS_BRIDGE_HOST_FILESYSTEMS: "/:/rootfs,/volume1:/volume1,/volume2:/volume2"
+      # UGOS Pro 1.19+ Docker Projects UI rejects a direct /:/rootfs bind.
+      UGOS_BRIDGE_HOST_FILESYSTEMS: "/volume1:/volume1,/volume2:/volume2"
       UGOS_BRIDGE_HOST_VMS_ENABLED: "true"
       UGOS_BRIDGE_HOST_VIRSH_URI: "qemu:///system"
       UGOS_BRIDGE_MQTT_ENABLED: "false"
@@ -39,11 +39,17 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      - /:/rootfs:ro
       - /volume1:/volume1:ro
       - /volume2:/volume2:ro
       - /var/run/libvirt:/var/run/libvirt:ro
 ```
+
+UGOS Pro 1.19 and later reports `invalid configuration file` when its Docker
+Projects UI encounters `- /:/rootfs:ro`. Omit that bind when using the UI. It
+only affects optional host `/` filesystem telemetry (byte, inode, and read-only
+series); `/volume1`, `/volume2`, and all other configured bridge telemetry
+remain available. The bind remains valid for deployments managed outside the
+UGOS Docker Projects UI.
 
 Enable MQTT/Home Assistant discovery by setting:
 
