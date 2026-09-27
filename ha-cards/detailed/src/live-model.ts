@@ -5,6 +5,7 @@ import type {
   DockerContainer,
   DockerProject,
   DriveInfo,
+  FanSpeedReading,
   GpuEngineDetail,
   GpuStatDetail,
   HassEntityLike,
@@ -326,6 +327,7 @@ export const buildLiveDashboardModel = (
 
   const temperatures = collectTemperatureSnapshots(states, hostSlug);
   const cpuTemperature = pickTemperature(temperatures, ['cpu', 'package', 'soc', 'core', 'tctl']);
+  const fans = collectFanSpeedReadings(states, hostSlug);
 
   const gpuSlugs = collectGpuSlugs(states, hostSlug, hostPrefix);
   const primaryGpuSlug = gpuSlugs[0];
@@ -451,6 +453,7 @@ export const buildLiveDashboardModel = (
       accent: THEME_COLORS.blue,
       valuePercent: cpuPercent,
       temperatureCelsius: cpuTemperature ?? 0,
+      fanSpeeds: fans.cpu.length > 0 ? fans.cpu : undefined,
       series: cpuSeries
     },
     {
@@ -483,6 +486,7 @@ export const buildLiveDashboardModel = (
       valueText: loadMetric.valueText,
       unit: loadMetric.unit,
       statusText: loadMetric.statusText,
+      fanSpeeds: fans.system.length > 0 ? fans.system : undefined,
       series: loadSeries
     },
     {
@@ -495,6 +499,7 @@ export const buildLiveDashboardModel = (
   ];
 
   const hardwareDetails: HardwareMetricCard[] = buildHardwareDetails({
+    cpuFans: fans.cpu,
     cpuFrequencyMHz,
     cpuPercent,
     cpuSeries,
@@ -515,7 +520,7 @@ export const buildLiveDashboardModel = (
   });
 
   const watchPrefixes = buildWatchPrefixes(hostSlug);
-  const watchEntityIds = collectWatchedEntityIds(states, watchPrefixes, config?.ipEntity);
+  const watchEntityIds = collectWatchedEntityIds(states, watchPrefixes, config?.ipEntity, hostSlug);
 
   return {
     history,
@@ -554,6 +559,7 @@ export const buildLiveDashboardModel = (
 };
 
 const buildHardwareDetails = ({
+  cpuFans,
   cpuFrequencyMHz,
   cpuPercent,
   cpuSeries,
@@ -572,6 +578,7 @@ const buildHardwareDetails = ({
   swapUsedPercent,
   uptimeSeconds
 }: {
+  cpuFans: FanSpeedReading[];
   cpuFrequencyMHz?: number;
   cpuPercent: number;
   cpuSeries: number[];
@@ -602,6 +609,7 @@ const buildHardwareDetails = ({
         { label: 'Load (1m)', value: loadValueText },
         { label: 'Frequency', value: cpuFrequencyMHz ? `${Math.round(cpuFrequencyMHz)} MHz` : 'Unavailable' },
         { label: 'Temperature', value: cpuTemperature !== undefined ? `${Math.round(cpuTemperature)}\u00B0C` : 'Unavailable' },
+        ...cpuFans.map((fan) => ({ label: fan.label, value: `${Math.round(fan.rpm)} RPM` })),
         { label: 'Uptime', value: humanizeUptime(uptimeSeconds) }
       ]
     },
@@ -1353,6 +1361,103 @@ const collectTemperatureSnapshots = (states: Record<string, HassEntityLike>, hos
       })
       .filter((temperature): temperature is TemperatureSnapshot => temperature !== null);
   });
+};
+
+// MQTT publishes fan RPM as the scalar state. Attributes provide identity only;
+// they must not revive a stale reading while the entity is unavailable.
+export const isFanSpeedEntity = (entityId: string, entity: HassEntityLike | undefined): boolean => {
+  if (!entity || !entityId.startsWith('sensor.')) {
+    return false;
+  }
+  const unit = getUnit(entity)?.toLowerCase();
+  if (unit !== undefined && unit !== 'rpm') {
+    return false;
+  }
+  return (
+    unit === 'rpm' ||
+    /_fan_speed(?:_rpm)?(?:_\d+)?$/.test(entityId) ||
+    /\bfan speed\b/i.test(getFriendlyName(entity)) ||
+    Object.hasOwn(entity.attributes, 'fan_speed_rpm')
+  );
+};
+
+const fanBelongsToHost = (entityId: string, entity: HassEntityLike, hostSlug: string): boolean => {
+  const deviceType = getStringAttribute(entity, 'device_type');
+  if (deviceType !== undefined && deviceType.toLowerCase() !== 'host') {
+    return false;
+  }
+  const explicitHost = getStringAttribute(entity, 'host');
+  if (explicitHost !== undefined) {
+    return slugify(explicitHost) === hostSlug;
+  }
+
+  // Both published object IDs and HA's device-prefixed IDs retain the host.
+  // Extract it before matching to avoid e.g. nas including nas_backup fans.
+  const idHost = /^sensor\.ugos_bridge_host_(.+?)_sensor_/.exec(entityId)?.[1] ??
+    /^sensor\.(?:ugos_bridge_host_)?(.+?)_health_/.exec(entityId)?.[1];
+  if (idHost !== undefined) {
+    return idHost === hostSlug;
+  }
+
+  const friendlySlug = slugify(getFriendlyName(entity));
+  const friendlyHost = /^(.+?)_health_/.exec(friendlySlug)?.[1];
+  if (friendlyHost !== undefined) {
+    return friendlyHost === hostSlug;
+  }
+
+  const fanNamePrefix = /^(?:sensor_|cooling_|(?:cpu|sys(?:tem)?|chassis|case)_?fan(?:_|\d|$))/;
+  return [entityId.replace(/^sensor\.(?:ugos_bridge_host_)?/, ''), friendlySlug].some((candidate) => {
+    if (!candidate.startsWith(`${hostSlug}_`)) {
+      return false;
+    }
+    const remainder = candidate.slice(hostSlug.length + 1).replace(new RegExp(`^${escapeRegExp(hostSlug)}_`), '');
+    return fanNamePrefix.test(remainder);
+  });
+};
+
+const classifyFan = (value: string): { group: 'cpu' | 'system'; label: string } | undefined => {
+  const normalized = slugify(value);
+  const cpu = /(?:^|_)cpu_?fan(?:_?(\d+))?(?:_|$)/.exec(normalized);
+  if (cpu) {
+    return { group: 'cpu', label: `CPU Fan${cpu[1] ? ` ${cpu[1]}` : ''}` };
+  }
+  const system = /(?:^|_)(sys(?:tem)?|chassis|case)_?fan(?:_?(\d+))?(?:_|$)/.exec(normalized);
+  if (system) {
+    const kind = system[1] === 'chassis' ? 'Chassis' : system[1] === 'case' ? 'Case' : 'System';
+    return { group: 'system', label: `${kind} Fan${system[2] ? ` ${system[2]}` : ''}` };
+  }
+  return undefined;
+};
+
+const collectFanSpeedReadings = (
+  states: Record<string, HassEntityLike>,
+  hostSlug: string
+): { cpu: FanSpeedReading[]; system: FanSpeedReading[] } => {
+  const readings: { cpu: FanSpeedReading[]; system: FanSpeedReading[] } = { cpu: [], system: [] };
+  for (const [entityId, entity] of getStateEntries(states)) {
+    if (!isFanSpeedEntity(entityId, entity) || !fanBelongsToHost(entityId, entity, hostSlug)) {
+      continue;
+    }
+    const rpm = parseNumber(entity.state.trim());
+    if (rpm === undefined || rpm < 0) {
+      continue;
+    }
+    const fan = [
+      getStringAttribute(entity, 'label'),
+      getStringAttribute(entity, 'name'),
+      getStringAttribute(entity, 'sensor'),
+      getFriendlyName(entity),
+      entityId
+    ].map((value) => value ? classifyFan(value) : undefined).find((value) => value !== undefined);
+    if (!fan) {
+      continue;
+    }
+    readings[fan.group].push({ key: entityId, label: fan.label, rpm });
+  }
+  for (const fans of Object.values(readings)) {
+    fans.sort((left, right) => left.label.localeCompare(right.label, 'en', { numeric: true }) || left.key.localeCompare(right.key));
+  }
+  return readings;
 };
 
 const resolveHostSlug = (states: Record<string, HassEntityLike>, configuredHost: string | undefined): string | null => {
@@ -2683,7 +2788,8 @@ const buildWatchPrefixes = (hostSlug: string): string[] => [
 const collectWatchedEntityIds = (
   states: Record<string, HassEntityLike>,
   watchPrefixes: string[],
-  ipEntity: string | undefined
+  ipEntity: string | undefined,
+  hostSlug: string
 ): string[] =>
   getStateKeys(states)
     .filter((entityId) => {
@@ -2696,6 +2802,7 @@ const collectWatchedEntityIds = (
 
       const entity = states[entityId];
       return (
+        (isFanSpeedEntity(entityId, entity) && entity !== undefined && fanBelongsToHost(entityId, entity, hostSlug)) ||
         getStringAttribute(entity, 'container') !== undefined ||
         getStringAttribute(entity, 'project') !== undefined ||
         getNumberAttribute(entity, 'process_count') !== undefined ||

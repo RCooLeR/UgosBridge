@@ -507,7 +507,7 @@ const totalStorageBytes = storagePools.reduce((total, pool) => total + pool.tota
 const usedStorageBytes = storagePools.reduce((total, pool) => total + pool.usedBytes, 0);
 
 const hardwareSummary: HardwareSummaryCard[] = [
-  { kind: 'cpu', title: 'CPU', accent: THEME_COLORS.blue, valuePercent: 18, temperatureCelsius: 45, series: series(18, [-2.2, -1.8, 0.3, -0.4, 1.7, -0.9, 2.8, -2.1, 1.2, 0.4]) },
+  { kind: 'cpu', title: 'CPU', accent: THEME_COLORS.blue, valuePercent: 18, temperatureCelsius: 45, fanSpeeds: [{ key: 'ugos_it86_cpufan', label: 'CPU Fan', rpm: 3139 }], series: series(18, [-2.2, -1.8, 0.3, -0.4, 1.7, -0.9, 2.8, -2.1, 1.2, 0.4]) },
   { kind: 'ram', title: 'RAM', accent: THEME_COLORS.purple, valuePercent: 46, usedBytes: gib(14.6), totalBytes: gib(32), series: series(46, [-2.1, -0.5, 1.1, -1.4, -2.2, 1.8, 1.4, 0.2, -1.1, 1.0]) },
   { kind: 'gpu', title: 'GPU', accent: THEME_COLORS.green, valuePercent: 32, temperatureCelsius: 48, series: series(32, [-1.5, -1.1, 0.2, 2.0, 1.3, 0.4, -0.8, 1.1, 0.2, -1.9]) },
   {
@@ -519,6 +519,10 @@ const hardwareSummary: HardwareSummaryCard[] = [
     valueText: '0.78%',
     unit: 'percent',
     statusText: 'Good',
+    fanSpeeds: [
+      { key: 'ugos_it86_sysfan1', label: 'System Fan 1', rpm: 2295 },
+      { key: 'ugos_it86_sysfan2', label: 'System Fan 2', rpm: 2295 }
+    ],
     series: series(0.78, [-0.12, -0.08, 0.04, -0.03, 0.06, 0.09, -0.04, 0.05, -0.02, 0.07])
   },
   { kind: 'total-storage', title: 'Total Storage', accent: THEME_COLORS.cyan, totalBytes: totalStorageBytes, usedBytes: usedStorageBytes },
@@ -536,6 +540,7 @@ const hardwareDetails: HardwareMetricCard[] = [
       { label: 'Cores / Threads', value: '10 / 12' },
       { label: 'Base / Boost', value: '1.3 / 4.4 GHz' },
       { label: 'Temperature', value: '45°C' },
+      { label: 'CPU Fan', value: '3139 RPM' },
       { label: 'Power Usage', value: '18 W' }
     ],
     series: series(18, [-2.5, -1.8, 0.1, -0.6, 1.9, 0.4, 2.8, -1.9, 1.2, 3.3, -0.8, -1.6, 0.7, -0.9, 0, 1.9, -2.4, 0.9, 0.1, 1.8, -0.7])

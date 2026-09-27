@@ -254,22 +254,22 @@ var h = class extends HTMLElement {
 h.elementStyles = [], h.shadowRootOptions = { mode: "open" }, h[ie("elementProperties")] = /* @__PURE__ */ new Map(), h[ie("finalized")] = /* @__PURE__ */ new Map(), re?.({ ReactiveElement: h }), (ee.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region ../node_modules/lit-html/lit-html.js
-var ce = globalThis, le = (e) => e, ue = ce.trustedTypes, de = ue ? ue.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, fe = "$lit$", g = `lit$${Math.random().toFixed(9).slice(2)}$`, pe = "?" + g, me = `<${pe}>`, he = document, ge = () => he.createComment(""), _e = (e) => e === null || typeof e != "object" && typeof e != "function", ve = Array.isArray, ye = (e) => ve(e) || typeof e?.[Symbol.iterator] == "function", be = "[ 	\n\f\r]", _ = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, xe = /-->/g, Se = />/g, v = RegExp(`>|${be}(?:([^\\s"'>=/]+)(${be}*=${be}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), Ce = /'/g, we = /"/g, Te = /^(?:script|style|textarea|title)$/i, Ee = (e) => (t, ...n) => ({
+var g = globalThis, ce = (e) => e, le = g.trustedTypes, ue = le ? le.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, de = "$lit$", _ = `lit$${Math.random().toFixed(9).slice(2)}$`, fe = "?" + _, pe = `<${fe}>`, v = document, me = () => v.createComment(""), he = (e) => e === null || typeof e != "object" && typeof e != "function", ge = Array.isArray, _e = (e) => ge(e) || typeof e?.[Symbol.iterator] == "function", ve = "[ 	\n\f\r]", ye = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, be = /-->/g, xe = />/g, y = RegExp(`>|${ve}(?:([^\\s"'>=/]+)(${ve}*=${ve}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), Se = /'/g, Ce = /"/g, we = /^(?:script|style|textarea|title)$/i, Te = (e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
-}), y = Ee(1), b = Ee(2), x = Symbol.for("lit-noChange"), S = Symbol.for("lit-nothing"), C = /* @__PURE__ */ new WeakMap(), w = he.createTreeWalker(he, 129);
+}), b = Te(1), x = Te(2), S = Symbol.for("lit-noChange"), C = Symbol.for("lit-nothing"), Ee = /* @__PURE__ */ new WeakMap(), w = v.createTreeWalker(v, 129);
 function De(e, t) {
-	if (!ve(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-	return de === void 0 ? t : de.createHTML(t);
+	if (!ge(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+	return ue === void 0 ? t : ue.createHTML(t);
 }
 var Oe = (e, t) => {
-	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = _;
+	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = ye;
 	for (let t = 0; t < n; t++) {
 		let n = e[t], s, c, l = -1, u = 0;
-		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === _ ? c[1] === "!--" ? o = xe : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = v) : (Te.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = v) : o = Se : o === v ? c[0] === ">" ? (o = i ?? _, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? v : c[3] === "\"" ? we : Ce) : o === we || o === Ce ? o = v : o === xe || o === Se ? o = _ : (o = v, i = void 0);
-		let d = o === v && e[t + 1].startsWith("/>") ? " " : "";
-		a += o === _ ? n + me : l >= 0 ? (r.push(s), n.slice(0, l) + fe + n.slice(l) + g + d) : n + g + (l === -2 ? t : d);
+		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === ye ? c[1] === "!--" ? o = be : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = y) : (we.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = y) : o = xe : o === y ? c[0] === ">" ? (o = i ?? ye, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? y : c[3] === "\"" ? Ce : Se) : o === Ce || o === Se ? o = y : o === be || o === xe ? o = ye : (o = y, i = void 0);
+		let d = o === y && e[t + 1].startsWith("/>") ? " " : "";
+		a += o === ye ? n + pe : l >= 0 ? (r.push(s), n.slice(0, l) + de + n.slice(l) + _ + d) : n + _ + (l === -2 ? t : d);
 	}
 	return [De(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
 }, ke = class e {
@@ -283,57 +283,57 @@ var Oe = (e, t) => {
 		}
 		for (; (i = w.nextNode()) !== null && c.length < s;) {
 			if (i.nodeType === 1) {
-				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(fe)) {
-					let t = u[o++], n = i.getAttribute(e).split(g), r = /([.?@])?(.*)/.exec(t);
+				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(de)) {
+					let t = u[o++], n = i.getAttribute(e).split(_), r = /([.?@])?(.*)/.exec(t);
 					c.push({
 						type: 1,
 						index: a,
 						name: r[2],
 						strings: n,
-						ctor: r[1] === "." ? Ne : r[1] === "?" ? Pe : r[1] === "@" ? Fe : Me
+						ctor: r[1] === "." ? Pe : r[1] === "?" ? Fe : r[1] === "@" ? Ie : Ne
 					}), i.removeAttribute(e);
-				} else e.startsWith(g) && (c.push({
+				} else e.startsWith(_) && (c.push({
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
-				if (Te.test(i.tagName)) {
-					let e = i.textContent.split(g), t = e.length - 1;
+				if (we.test(i.tagName)) {
+					let e = i.textContent.split(_), t = e.length - 1;
 					if (t > 0) {
-						i.textContent = ue ? ue.emptyScript : "";
-						for (let n = 0; n < t; n++) i.append(e[n], ge()), w.nextNode(), c.push({
+						i.textContent = le ? le.emptyScript : "";
+						for (let n = 0; n < t; n++) i.append(e[n], me()), w.nextNode(), c.push({
 							type: 2,
 							index: ++a
 						});
-						i.append(e[t], ge());
+						i.append(e[t], me());
 					}
 				}
 			} else if (i.nodeType === 8) {
-				if (i.data === pe) c.push({
+				if (i.data === fe) c.push({
 					type: 2,
 					index: a
 				});
 				else {
 					let e = -1;
-					for (; (e = i.data.indexOf(g, e + 1)) !== -1;) c.push({
+					for (; (e = i.data.indexOf(_, e + 1)) !== -1;) c.push({
 						type: 7,
 						index: a
-					}), e += g.length - 1;
+					}), e += _.length - 1;
 				}
 			}
 			a++;
 		}
 	}
 	static createElement(e, t) {
-		let n = he.createElement("template");
+		let n = v.createElement("template");
 		return n.innerHTML = e, n;
 	}
 };
-function T(e, t, n = e, r) {
-	if (t === x) return t;
-	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = _e(t) ? void 0 : t._$litDirective$;
-	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = T(e, i._$AS(e, t.values), i, r)), t;
+function Ae(e, t, n = e, r) {
+	if (t === S) return t;
+	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = he(t) ? void 0 : t._$litDirective$;
+	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = Ae(e, i._$AS(e, t.values), i, r)), t;
 }
-var Ae = class {
+var je = class {
 	constructor(e, t) {
 		this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = t;
 	}
@@ -344,28 +344,28 @@ var Ae = class {
 		return this._$AM._$AU;
 	}
 	u(e) {
-		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? he).importNode(t, !0);
+		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? v).importNode(t, !0);
 		w.currentNode = r;
 		let i = w.nextNode(), a = 0, o = 0, s = n[0];
 		for (; s !== void 0;) {
 			if (a === s.index) {
 				let t;
-				s.type === 2 ? t = new je(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new Ie(i, this, e)), this._$AV.push(t), s = n[++o];
+				s.type === 2 ? t = new Me(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new Le(i, this, e)), this._$AV.push(t), s = n[++o];
 			}
 			a !== s?.index && (i = w.nextNode(), a++);
 		}
-		return w.currentNode = he, r;
+		return w.currentNode = v, r;
 	}
 	p(e) {
 		let t = 0;
 		for (let n of this._$AV) n !== void 0 && (n.strings === void 0 ? n._$AI(e[t]) : (n._$AI(e, n, t), t += n.strings.length - 2)), t++;
 	}
-}, je = class e {
+}, Me = class e {
 	get _$AU() {
 		return this._$AM?._$AU ?? this._$Cv;
 	}
 	constructor(e, t, n, r) {
-		this.type = 2, this._$AH = S, this._$AN = void 0, this._$AA = e, this._$AB = t, this._$AM = n, this.options = r, this._$Cv = r?.isConnected ?? !0;
+		this.type = 2, this._$AH = C, this._$AN = void 0, this._$AA = e, this._$AB = t, this._$AM = n, this.options = r, this._$Cv = r?.isConnected ?? !0;
 	}
 	get parentNode() {
 		let e = this._$AA.parentNode, t = this._$AM;
@@ -378,7 +378,7 @@ var Ae = class {
 		return this._$AB;
 	}
 	_$AI(e, t = this) {
-		e = T(this, e, t), _e(e) ? e === S || e == null || e === "" ? (this._$AH !== S && this._$AR(), this._$AH = S) : e !== this._$AH && e !== x && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? ye(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
+		e = Ae(this, e, t), he(e) ? e === C || e == null || e === "" ? (this._$AH !== C && this._$AR(), this._$AH = C) : e !== this._$AH && e !== S && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? _e(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
 	}
 	O(e) {
 		return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -387,36 +387,36 @@ var Ae = class {
 		this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
 	}
 	_(e) {
-		this._$AH !== S && _e(this._$AH) ? this._$AA.nextSibling.data = e : this.T(he.createTextNode(e)), this._$AH = e;
+		this._$AH !== C && he(this._$AH) ? this._$AA.nextSibling.data = e : this.T(v.createTextNode(e)), this._$AH = e;
 	}
 	$(e) {
 		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = ke.createElement(De(n.h, n.h[0]), this.options)), n);
 		if (this._$AH?._$AD === r) this._$AH.p(t);
 		else {
-			let e = new Ae(r, this), n = e.u(this.options);
+			let e = new je(r, this), n = e.u(this.options);
 			e.p(t), this.T(n), this._$AH = e;
 		}
 	}
 	_$AC(e) {
-		let t = C.get(e.strings);
-		return t === void 0 && C.set(e.strings, t = new ke(e)), t;
+		let t = Ee.get(e.strings);
+		return t === void 0 && Ee.set(e.strings, t = new ke(e)), t;
 	}
 	k(t) {
-		ve(this._$AH) || (this._$AH = [], this._$AR());
+		ge(this._$AH) || (this._$AH = [], this._$AR());
 		let n = this._$AH, r, i = 0;
-		for (let a of t) i === n.length ? n.push(r = new e(this.O(ge()), this.O(ge()), this, this.options)) : r = n[i], r._$AI(a), i++;
+		for (let a of t) i === n.length ? n.push(r = new e(this.O(me()), this.O(me()), this, this.options)) : r = n[i], r._$AI(a), i++;
 		i < n.length && (this._$AR(r && r._$AB.nextSibling, i), n.length = i);
 	}
 	_$AR(e = this._$AA.nextSibling, t) {
 		for (this._$AP?.(!1, !0, t); e !== this._$AB;) {
-			let t = le(e).nextSibling;
-			le(e).remove(), e = t;
+			let t = ce(e).nextSibling;
+			ce(e).remove(), e = t;
 		}
 	}
 	setConnected(e) {
 		this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
 	}
-}, Me = class {
+}, Ne = class {
 	get tagName() {
 		return this.element.tagName;
 	}
@@ -424,47 +424,47 @@ var Ae = class {
 		return this._$AM._$AU;
 	}
 	constructor(e, t, n, r, i) {
-		this.type = 1, this._$AH = S, this._$AN = void 0, this.element = e, this.name = t, this._$AM = r, this.options = i, n.length > 2 || n[0] !== "" || n[1] !== "" ? (this._$AH = Array(n.length - 1).fill(/* @__PURE__ */ new String()), this.strings = n) : this._$AH = S;
+		this.type = 1, this._$AH = C, this._$AN = void 0, this.element = e, this.name = t, this._$AM = r, this.options = i, n.length > 2 || n[0] !== "" || n[1] !== "" ? (this._$AH = Array(n.length - 1).fill(/* @__PURE__ */ new String()), this.strings = n) : this._$AH = C;
 	}
 	_$AI(e, t = this, n, r) {
 		let i = this.strings, a = !1;
-		if (i === void 0) e = T(this, e, t, 0), a = !_e(e) || e !== this._$AH && e !== x, a && (this._$AH = e);
+		if (i === void 0) e = Ae(this, e, t, 0), a = !he(e) || e !== this._$AH && e !== S, a && (this._$AH = e);
 		else {
 			let r = e, o, s;
-			for (e = i[0], o = 0; o < i.length - 1; o++) s = T(this, r[n + o], t, o), s === x && (s = this._$AH[o]), a ||= !_e(s) || s !== this._$AH[o], s === S ? e = S : e !== S && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
+			for (e = i[0], o = 0; o < i.length - 1; o++) s = Ae(this, r[n + o], t, o), s === S && (s = this._$AH[o]), a ||= !he(s) || s !== this._$AH[o], s === C ? e = C : e !== C && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
 		}
 		a && !r && this.j(e);
 	}
 	j(e) {
-		e === S ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
+		e === C ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
 	}
-}, Ne = class extends Me {
+}, Pe = class extends Ne {
 	constructor() {
 		super(...arguments), this.type = 3;
 	}
 	j(e) {
-		this.element[this.name] = e === S ? void 0 : e;
+		this.element[this.name] = e === C ? void 0 : e;
 	}
-}, Pe = class extends Me {
+}, Fe = class extends Ne {
 	constructor() {
 		super(...arguments), this.type = 4;
 	}
 	j(e) {
-		this.element.toggleAttribute(this.name, !!e && e !== S);
+		this.element.toggleAttribute(this.name, !!e && e !== C);
 	}
-}, Fe = class extends Me {
+}, Ie = class extends Ne {
 	constructor(e, t, n, r, i) {
 		super(e, t, n, r, i), this.type = 5;
 	}
 	_$AI(e, t = this) {
-		if ((e = T(this, e, t, 0) ?? S) === x) return;
-		let n = this._$AH, r = e === S && n !== S || e.capture !== n.capture || e.once !== n.once || e.passive !== n.passive, i = e !== S && (n === S || r);
+		if ((e = Ae(this, e, t, 0) ?? C) === S) return;
+		let n = this._$AH, r = e === C && n !== C || e.capture !== n.capture || e.once !== n.once || e.passive !== n.passive, i = e !== C && (n === C || r);
 		r && this.element.removeEventListener(this.name, this, n), i && this.element.addEventListener(this.name, this, e), this._$AH = e;
 	}
 	handleEvent(e) {
 		typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
 	}
-}, Ie = class {
+}, Le = class {
 	constructor(e, t, n) {
 		this.element = e, this.type = 6, this._$AN = void 0, this._$AM = t, this.options = n;
 	}
@@ -472,18 +472,18 @@ var Ae = class {
 		return this._$AM._$AU;
 	}
 	_$AI(e) {
-		T(this, e);
+		Ae(this, e);
 	}
-}, Le = ce.litHtmlPolyfillSupport;
-Le?.(ke, je), (ce.litHtmlVersions ??= []).push("3.3.3");
-var Re = (e, t, n) => {
+}, Re = g.litHtmlPolyfillSupport;
+Re?.(ke, Me), (g.litHtmlVersions ??= []).push("3.3.3");
+var ze = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
 		let e = n?.renderBefore ?? null;
-		r._$litPart$ = i = new je(t.insertBefore(ge(), e), e, void 0, n ?? {});
+		r._$litPart$ = i = new Me(t.insertBefore(me(), e), e, void 0, n ?? {});
 	}
 	return i._$AI(e), i;
-}, ze = globalThis, Be = class extends h {
+}, Be = globalThis, Ve = class extends h {
 	constructor() {
 		super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
 	}
@@ -493,7 +493,7 @@ var Re = (e, t, n) => {
 	}
 	update(e) {
 		let t = this.render();
-		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = Re(t, this.renderRoot, this.renderOptions);
+		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = ze(t, this.renderRoot, this.renderOptions);
 	}
 	connectedCallback() {
 		super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -502,25 +502,25 @@ var Re = (e, t, n) => {
 		super.disconnectedCallback(), this._$Do?.setConnected(!1);
 	}
 	render() {
-		return x;
+		return S;
 	}
 };
-Be._$litElement$ = !0, Be.finalized = !0, ze.litElementHydrateSupport?.({ LitElement: Be });
-var Ve = ze.litElementPolyfillSupport;
-Ve?.({ LitElement: Be }), (ze.litElementVersions ??= []).push("4.2.2");
+Ve._$litElement$ = !0, Ve.finalized = !0, Be.litElementHydrateSupport?.({ LitElement: Ve });
+var He = Be.litElementPolyfillSupport;
+He?.({ LitElement: Ve }), (Be.litElementVersions ??= []).push("4.2.2");
 //#endregion
 //#region ../node_modules/@lit/reactive-element/decorators/custom-element.js
-var He = (e) => (t, n) => {
+var Ue = (e) => (t, n) => {
 	n === void 0 ? customElements.define(e, t) : n.addInitializer(() => {
 		customElements.define(e, t);
 	});
-}, Ue = {
+}, We = {
 	attribute: !0,
 	type: String,
 	converter: ae,
 	reflect: !1,
 	hasChanged: oe
-}, We = (e = Ue, t, n) => {
+}, Ge = (e = We, t, n) => {
 	let { kind: r, metadata: i } = n, a = globalThis.litPropertyMetadata.get(i);
 	if (a === void 0 && globalThis.litPropertyMetadata.set(i, a = /* @__PURE__ */ new Map()), r === "setter" && ((e = Object.create(e)).wrapped = !0), a.set(n.name, e), r === "accessor") {
 		let { name: r } = n;
@@ -543,16 +543,16 @@ var He = (e) => (t, n) => {
 	}
 	throw Error("Unsupported decorator location: " + r);
 };
-function Ge(e) {
-	return (t, n) => typeof n == "object" ? We(e, t, n) : ((e, t, n) => {
+function Ke(e) {
+	return (t, n) => typeof n == "object" ? Ge(e, t, n) : ((e, t, n) => {
 		let r = t.hasOwnProperty(n);
 		return t.constructor.createProperty(n, e), r ? Object.getOwnPropertyDescriptor(t, n) : void 0;
 	})(e, t, n);
 }
 //#endregion
 //#region ../node_modules/@lit/reactive-element/decorators/state.js
-function Ke(e) {
-	return Ge({
+function qe(e) {
+	return Ke({
 		...e,
 		state: !0,
 		attribute: !1
@@ -560,7 +560,7 @@ function Ke(e) {
 }
 //#endregion
 //#region ../detailed/src/theme.ts
-var E = {
+var T = {
 	panelTop: "rgba(18, 45, 80, 0.42)",
 	panelBottom: "rgba(5, 14, 28, 0.96)",
 	panelSolid: "rgba(10, 23, 44, 0.92)",
@@ -578,12 +578,12 @@ var E = {
 	danger: "#ff6b7d",
 	shellTop: "rgba(7, 18, 35, 0.98)",
 	shellBottom: "rgba(2, 11, 24, 0.98)"
-}, qe = [
-	E.green,
-	E.cyan,
-	E.purple,
-	E.softBlue
-], Je = (e) => qe[e % qe.length] ?? E.green, Ye = /^sensor\.ugos_bridge_host_(.+?)_cpu_usage_percent$/, Xe = /^sensor\.ugos_bridge_project_(.+?)_cpu_usage_percent$/, Ze = /^sensor\.([a-z0-9_]+)_\1_cpu(?:_|$)/, Qe = /^(?:sensor|binary_sensor)\.ugos_bridge_host_(.+?)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_/, $e = /^(?:sensor|binary_sensor)\.([a-z0-9_]+)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_[a-z0-9][a-z0-9_]*_[a-z0-9_]+(?:_\d+)?$/, et = /^(?:sensor|binary_sensor)\.ugos_bridge_container_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/, tt = /^(?:sensor|binary_sensor)\.ugos_bridge_vm_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/, nt = /^sensor\.ugos_bridge_process_(.+?)_(process_count|cpu_usage_percent|memory_usage_bytes|cpu_time_seconds)$/, rt = {
+}, Je = [
+	T.green,
+	T.cyan,
+	T.purple,
+	T.softBlue
+], Ye = (e) => Je[e % Je.length] ?? T.green, Xe = /^sensor\.ugos_bridge_host_(.+?)_cpu_usage_percent$/, Ze = /^sensor\.ugos_bridge_project_(.+?)_cpu_usage_percent$/, Qe = /^sensor\.([a-z0-9_]+)_\1_cpu(?:_|$)/, $e = /^(?:sensor|binary_sensor)\.ugos_bridge_host_(.+?)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_/, et = /^(?:sensor|binary_sensor)\.([a-z0-9_]+)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_[a-z0-9][a-z0-9_]*_[a-z0-9_]+(?:_\d+)?$/, tt = /^(?:sensor|binary_sensor)\.ugos_bridge_container_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/, nt = /^(?:sensor|binary_sensor)\.ugos_bridge_vm_(.+?)_(cpu_usage_percent|memory_usage_bytes|running)$/, rt = /^sensor\.ugos_bridge_process_(.+?)_(process_count|cpu_usage_percent|memory_usage_bytes|cpu_time_seconds)$/, it = {
 	cpu: "cpu_usage_percent",
 	load1: "load_1",
 	cpufreq: "cpu_frequency_mhz",
@@ -591,271 +591,278 @@ var E = {
 	memoryUsedPercent: "memory_used_percent",
 	swapUsedPercent: "swap_used_percent",
 	uptime: "uptime_seconds"
-}, it = /* @__PURE__ */ new WeakMap(), at = /* @__PURE__ */ new WeakMap(), ot = (e) => {
-	let t = it.get(e);
+}, at = /* @__PURE__ */ new WeakMap(), ot = /* @__PURE__ */ new WeakMap(), st = (e) => {
+	let t = at.get(e);
 	return t || (t = {
 		prefixEntries: /* @__PURE__ */ new Map(),
 		computedResults: /* @__PURE__ */ new Map(),
 		resolutionResults: /* @__PURE__ */ new Map(),
 		booleanResults: /* @__PURE__ */ new Map()
-	}, it.set(e, t)), t;
-}, D = (e) => {
-	let t = ot(e);
+	}, at.set(e, t)), t;
+}, E = (e) => {
+	let t = st(e);
 	return t.keys ||= Object.keys(e), t.keys;
-}, O = (e) => {
-	let t = ot(e);
+}, D = (e) => {
+	let t = st(e);
 	return t.entries ||= Object.entries(e), t.entries;
-}, k = (e) => {
-	let t = ot(e);
+}, O = (e) => {
+	let t = st(e);
 	return t.values ||= Object.values(e), t.values;
-}, st = (e, t) => {
-	let n = ot(e), r = n.prefixEntries.get(t);
+}, ct = (e, t) => {
+	let n = st(e), r = n.prefixEntries.get(t);
 	if (r) return r;
-	let i = O(e).filter(([e]) => e.startsWith(t));
+	let i = D(e).filter(([e]) => e.startsWith(t));
 	return n.prefixEntries.set(t, i), i;
-}, A = (e, t) => Array.from(new Map(t.flatMap((t) => st(e, t))).entries()), j = (e, t) => t.find((t) => In(e[t])), M = (e, t, n, r = "sensor.") => {
+}, k = (e, t) => Array.from(new Map(t.flatMap((t) => ct(e, t))).entries()), A = (e, t) => t.find((t) => Vn(e[t])), j = (e, t, n, r = "sensor.") => {
 	let i = J(n);
-	return O(e).filter(([e, n]) => {
+	return D(e).filter(([e, n]) => {
 		if (!e.startsWith(r)) return !1;
 		let a = e.toLowerCase();
-		return J(B(n, "name") ?? "") === i || a.includes(`_${t}_${i}_`) || a.includes(`ugos_bridge_${t}_${i}_`);
+		return J(z(n, "name") ?? "") === i || a.includes(`_${t}_${i}_`) || a.includes(`ugos_bridge_${t}_${i}_`);
 	});
-}, N = (e, t) => L(e, t) ?? L(e, {
+}, M = (e, t) => I(e, t) ?? I(e, {
 	...t,
 	unit: void 0
-}), P = (e, t, n) => {
-	let r = ot(e), i = r.computedResults.get(t);
+}), N = (e, t, n) => {
+	let r = st(e), i = r.computedResults.get(t);
 	if (i !== void 0) return i;
 	let a = n();
 	return r.computedResults.set(t, a), a;
-}, F = (e, t, n) => {
-	let r = ot(e);
+}, P = (e, t, n) => {
+	let r = st(e);
 	if (r.resolutionResults.has(t)) return r.resolutionResults.get(t);
 	let i = n();
 	return r.resolutionResults.set(t, i), i;
-}, ct = (e) => {
+}, lt = (e) => {
 	if (!e) return;
-	let t = at.get(e), n = typeof e.attributes.friendly_name == "string" ? e.attributes.friendly_name : "", r = Wn(typeof e.attributes.unit_of_measurement == "string" ? e.attributes.unit_of_measurement : void 0);
+	let t = ot.get(e), n = typeof e.attributes.friendly_name == "string" ? e.attributes.friendly_name : "", r = Yn(typeof e.attributes.unit_of_measurement == "string" ? e.attributes.unit_of_measurement : void 0);
 	return !t || t.friendlyName !== n || t.unit !== r ? (t = {
 		friendlyName: n,
 		friendlyNameLower: n.toLowerCase(),
 		state: e.state,
 		unit: r
-	}, at.set(e, t)) : t.state !== e.state && (t.state = e.state, t.parsedNumber = void 0, t.textState = void 0), t;
-}, lt = () => ({ samples: [] }), ut = (e, t, n) => {
+	}, ot.set(e, t)) : t.state !== e.state && (t.state = e.state, t.parsedNumber = void 0, t.textState = void 0), t;
+}, ut = () => ({ samples: [] }), dt = (e, t, n) => {
 	let r = e?.states;
 	if (!r) return null;
-	it.delete(r);
-	let i = Nt(r, t?.host);
+	at.delete(r);
+	let i = Rt(r, t?.host);
 	if (!i) return null;
-	let a = `ugos_bridge_host_${i}`, o = I(r, i, "cpu"), s = I(r, i, "memoryUsedBytes"), c = Qt(r, i, "cpu") ?? 0, l = $t(r, i), u = l.value, d = Qt(r, i, "cpufreq"), f = Qt(r, i, "uptime") ?? 0, p = Qt(r, i, "memoryUsedBytes") ?? 0, m = Qt(r, i, "memoryUsedPercent") ?? 0, ee = Qt(r, i, "swapUsedPercent") ?? 0, te = Lt(p, m, t?.memoryTotalBytes), ne = Ft(r, i, t?.host), re = yt(r, o), ie = bt(r, s, te, p), ae = Ct(r, r[o ?? ""]), oe = Mt(r, i), se = Sn(oe, [
+	let a = `ugos_bridge_host_${i}`, o = F(r, i, "cpu"), s = F(r, i, "memoryUsedBytes"), c = rn(r, i, "cpu") ?? 0, l = an(r, i), u = l.value, d = rn(r, i, "cpufreq"), f = rn(r, i, "uptime") ?? 0, p = rn(r, i, "memoryUsedBytes") ?? 0, m = rn(r, i, "memoryUsedPercent") ?? 0, ee = rn(r, i, "swapUsedPercent") ?? 0, te = Ht(p, m, t?.memoryTotalBytes), ne = Bt(r, i, t?.host), re = bt(r, o), ie = xt(r, s, te, p), ae = wt(r, r[o ?? ""]), oe = Nt(r, i), se = Dn(oe, [
 		"cpu",
 		"package",
 		"soc",
 		"core",
 		"tctl"
-	]), h = Xt(r, i, a)[0], ce = h === void 0 ? void 0 : pn(r, i, a, h, "busy"), le = h === void 0 ? void 0 : pn(r, i, a, h, "current"), ue = h === void 0 ? void 0 : pn(r, i, a, h, "max"), de = h === void 0 ? void 0 : sr(r, i, a, h), fe = h === void 0 ? void 0 : z(r, le), g = h === void 0 ? void 0 : z(r, ue), pe = Sn(oe, [
+	]), h = Lt(r, i), g = tn(r, i, a)[0], ce = g === void 0 ? void 0 : vn(r, i, a, g, "busy"), le = g === void 0 ? void 0 : vn(r, i, a, g, "current"), ue = g === void 0 ? void 0 : vn(r, i, a, g, "max"), de = g === void 0 ? void 0 : fr(r, i, a, g), _ = g === void 0 ? void 0 : R(r, le), fe = g === void 0 ? void 0 : R(r, ue), pe = Dn(oe, [
 		"gpu",
 		"graphics",
 		"igpu",
 		"intel"
-	]), me = h === void 0 ? [] : mn(r, i, a, h, [
+	]), v = g === void 0 ? [] : yn(r, i, a, g, [
 		ce,
 		le,
 		ue
-	]), he = xt(r, me), ge = St(r, me), _e = Rt(kt(r, i), t?.storageFilesystems), ve = Vt(r, i, a).map((e) => ft(r, i, ne, e)).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), ye = pt(At(r, i), _e, ve), be = Bt(r), _ = Array.from(new Set(be)).map((e) => mt(r, e)).filter((e) => e !== null).sort((e, t) => t.cpuPercent - e.cpuPercent || e.title.localeCompare(t.title)), xe = Ut(r, i, a), Se = Wt(r, i, a), v = zt(Gt(Array.from(/* @__PURE__ */ new Set([...xe, ...Se])).sort(), t?.networkInterfaces), t?.networkInterfaces), Ce = v.map((e) => xe.includes(e) ? Dt(r, i, e, oe) : Ot(r, i, e, oe)).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), we = v.filter((e) => xe.includes(e)), Te = we.length > 0 ? we : xe, Ee = Te.reduce((e, t) => e + (z(r, ln(r, i, t, "rx")) ?? 0) * 8, 0), y = Te.reduce((e, t) => e + (z(r, ln(r, i, t, "tx")) ?? 0) * 8, 0), b = Kt(v), x = Object.fromEntries(b.map((e) => [e, Jt(r, i, e)])), S = (o ? r[o]?.last_updated : void 0) ?? (o ? r[o]?.last_changed : void 0) ?? `${c}:${m}:${de ?? 0}:${Ee}:${y}:${JSON.stringify(x)}`, C = yn(n, {
-		key: S,
-		timestampLabel: Er(S),
+	]), me = St(r, v), he = Ct(r, v), ge = Ut(At(r, i), t?.storageFilesystems), _e = Kt(r, i, a).map((e) => pt(r, i, ne, e)).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), ve = mt(jt(r, i), ge, _e), ye = Gt(r), be = Array.from(new Set(ye)).map((e) => ht(r, e)).filter((e) => e !== null).sort((e, t) => t.cpuPercent - e.cpuPercent || e.title.localeCompare(t.title)), xe = Jt(r, i, a), y = Yt(r, i, a), Se = Wt(Xt(Array.from(/* @__PURE__ */ new Set([...xe, ...y])).sort(), t?.networkInterfaces), t?.networkInterfaces), Ce = Se.map((e) => xe.includes(e) ? Ot(r, i, e, oe) : kt(r, i, e, oe)).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), we = Se.filter((e) => xe.includes(e)), Te = we.length > 0 ? we : xe, b = Te.reduce((e, t) => e + (R(r, mn(r, i, t, "rx")) ?? 0) * 8, 0), x = Te.reduce((e, t) => e + (R(r, mn(r, i, t, "tx")) ?? 0) * 8, 0), S = Zt(Se), C = Object.fromEntries(S.map((e) => [e, $t(r, i, e)])), Ee = (o ? r[o]?.last_updated : void 0) ?? (o ? r[o]?.last_changed : void 0) ?? `${c}:${m}:${de ?? 0}:${b}:${x}:${JSON.stringify(C)}`, w = wn(n, {
+		key: Ee,
+		timestampLabel: Ar(Ee),
 		cpuPercent: c,
 		ramPercent: m,
 		gpuPercent: de ?? 0,
 		load1: u,
-		networkBpsBySlug: x
-	}), w = bn(C.samples.map((e) => e.cpuPercent), c, 12), De = bn(C.samples.map((e) => e.ramPercent), m, 12), Oe = bn(C.samples.map((e) => e.gpuPercent), de ?? 0, 12), ke = bn(C.samples.map((e) => e.load1), u, 12), T = xn(C.samples, b, x), Ae = b.map((e, t) => ({
+		networkBpsBySlug: C
+	}), De = Tn(w.samples.map((e) => e.cpuPercent), c, 12), Oe = Tn(w.samples.map((e) => e.ramPercent), m, 12), ke = Tn(w.samples.map((e) => e.gpuPercent), de ?? 0, 12), Ae = Tn(w.samples.map((e) => e.load1), u, 12), je = En(w.samples, S, C), Me = S.map((e, t) => ({
 		key: e,
-		label: Ar(e),
-		color: Yt(e, t),
-		currentBps: x[e] ?? 0,
-		series: T.map((t) => t.totalsByInterface[e] ?? 0)
-	})), je = [
+		label: Pr(e),
+		color: en(e, t),
+		currentBps: C[e] ?? 0,
+		series: je.map((t) => t.totalsByInterface[e] ?? 0)
+	})), Ne = [
 		{
 			kind: "cpu",
 			title: "CPU",
-			accent: E.blue,
+			accent: T.blue,
 			valuePercent: c,
 			temperatureCelsius: se ?? 0,
-			series: w
+			fanSpeeds: h.cpu.length > 0 ? h.cpu : void 0,
+			series: De
 		},
 		{
 			kind: "ram",
 			title: "RAM",
-			accent: E.purple,
+			accent: T.purple,
 			valuePercent: m,
 			usedBytes: p,
 			totalBytes: te,
-			series: De
+			series: Oe
 		},
 		...de === void 0 ? [] : [{
 			kind: "gpu",
 			title: "GPU",
-			accent: E.green,
+			accent: T.green,
 			valuePercent: de,
 			temperatureCelsius: pe ?? 0,
-			series: Oe
+			series: ke
 		}],
 		{
 			kind: "system-load",
 			title: "System Load",
-			accent: E.softBlue,
+			accent: T.softBlue,
 			value: u,
 			valuePercent: l.valuePercent,
 			valueText: l.valueText,
 			unit: l.unit,
 			statusText: l.statusText,
-			series: ke
+			fanSpeeds: h.system.length > 0 ? h.system : void 0,
+			series: Ae
 		},
 		{
 			kind: "network",
 			title: "Network",
-			accent: E.green,
-			downloadBps: Ee,
-			uploadBps: y
+			accent: T.green,
+			downloadBps: b,
+			uploadBps: x
 		}
-	], Me = dt({
+	], Pe = ft({
+		cpuFans: h.cpu,
 		cpuFrequencyMHz: d,
 		cpuPercent: c,
-		cpuSeries: w,
+		cpuSeries: De,
 		cpuTemperature: se,
 		gpuBusyPercent: de,
-		gpuCurrentMHz: fe,
-		gpuMaxMHz: g,
-		gpuSeries: Oe,
+		gpuCurrentMHz: _,
+		gpuMaxMHz: fe,
+		gpuSeries: ke,
 		gpuTemperature: pe,
 		load1: u,
 		loadValueText: l.valueText,
 		memoryTotalBytes: te,
 		memoryUsedBytes: p,
 		memoryUsedPercent: m,
-		ramSeries: De,
+		ramSeries: Oe,
 		swapUsedPercent: ee,
 		uptimeSeconds: f
-	}), Ne = Mn(i);
+	}), Fe = Ln(i);
 	return {
-		history: C,
-		watchEntityIds: Nn(r, Ne, t?.ipEntity),
-		watchPrefixes: Ne,
+		history: w,
+		watchEntityIds: Rn(r, Fe, t?.ipEntity, i),
+		watchPrefixes: Fe,
 		model: {
 			deviceInfo: {
 				model: t?.deviceModel ?? "UGREEN NAS",
 				ugosVersion: t?.ugosVersion ?? "Unavailable",
 				hostname: ne,
-				ipAddress: It(r, t),
+				ipAddress: Vt(r, t),
 				uptimeSeconds: f,
-				lastUpdated: Dr(S)
+				lastUpdated: jr(Ee)
 			},
-			hardwareSummary: je,
-			hardwareDetails: Me,
-			drives: ve,
-			storagePools: ye,
-			dockerProjects: _,
+			hardwareSummary: Ne,
+			hardwareDetails: Pe,
+			drives: _e,
+			storagePools: ve,
+			dockerProjects: be,
 			dockerTotals: {
-				totalContainers: _.reduce((e, t) => e + t.totalContainers, 0),
-				runningContainers: _.reduce((e, t) => e + t.runningContainers, 0),
-				totalProjects: _.length,
-				onlineProjects: _.filter((e) => e.status === "up").length
+				totalContainers: be.reduce((e, t) => e + t.totalContainers, 0),
+				runningContainers: be.reduce((e, t) => e + t.runningContainers, 0),
+				totalProjects: be.length,
+				onlineProjects: be.filter((e) => e.status === "up").length
 			},
 			networkInterfaces: Ce,
-			networkTrafficHistory: T,
-			networkTrafficLines: Ae,
+			networkTrafficHistory: je,
+			networkTrafficLines: Me,
 			cpuCores: re,
 			ramBreakdown: ie,
-			gpuEngines: he,
-			gpuStats: ge,
+			gpuEngines: me,
+			gpuStats: he,
 			topProcesses: ae
 		}
 	};
-}, dt = ({ cpuFrequencyMHz: e, cpuPercent: t, cpuSeries: n, cpuTemperature: r, gpuBusyPercent: i, gpuCurrentMHz: a, gpuMaxMHz: o, gpuSeries: s, gpuTemperature: c, load1: l, loadValueText: u, memoryTotalBytes: d, memoryUsedBytes: f, memoryUsedPercent: p, ramSeries: m, swapUsedPercent: ee, uptimeSeconds: te }) => {
-	let ne = [{
+}, ft = ({ cpuFans: e, cpuFrequencyMHz: t, cpuPercent: n, cpuSeries: r, cpuTemperature: i, gpuBusyPercent: a, gpuCurrentMHz: o, gpuMaxMHz: s, gpuSeries: c, gpuTemperature: l, load1: u, loadValueText: d, memoryTotalBytes: f, memoryUsedBytes: p, memoryUsedPercent: m, ramSeries: ee, swapUsedPercent: te, uptimeSeconds: ne }) => {
+	let re = [{
 		key: "cpu",
 		title: "CPU",
 		subtitle: "System Processor",
-		accent: E.blue,
-		utilizationPercent: t,
-		series: n,
+		accent: T.blue,
+		utilizationPercent: n,
+		series: r,
 		detailRows: [
 			{
 				label: "Load (1m)",
-				value: u
+				value: d
 			},
 			{
 				label: "Frequency",
-				value: e ? `${Math.round(e)} MHz` : "Unavailable"
+				value: t ? `${Math.round(t)} MHz` : "Unavailable"
 			},
 			{
 				label: "Temperature",
-				value: r === void 0 ? "Unavailable" : `${Math.round(r)}\u00B0C`
+				value: i === void 0 ? "Unavailable" : `${Math.round(i)}\u00B0C`
 			},
+			...e.map((e) => ({
+				label: e.label,
+				value: `${Math.round(e.rpm)} RPM`
+			})),
 			{
 				label: "Uptime",
-				value: Or(te)
+				value: Mr(ne)
 			}
 		]
 	}, {
 		key: "ram",
 		title: "RAM",
 		subtitle: "System Memory",
-		accent: E.purple,
-		utilizationPercent: p,
-		series: m,
+		accent: T.purple,
+		utilizationPercent: m,
+		series: ee,
 		detailRows: [
 			{
 				label: "Used",
-				value: kr(f)
+				value: Nr(p)
 			},
 			{
 				label: "Total",
-				value: kr(d)
+				value: Nr(f)
 			},
 			{
 				label: "Usage",
-				value: `${p.toFixed(p >= 10 ? 1 : 2)}%`
+				value: `${m.toFixed(m >= 10 ? 1 : 2)}%`
 			},
 			{
 				label: "Swap Used",
-				value: `${ee.toFixed(ee >= 10 ? 1 : 2)}%`
+				value: `${te.toFixed(te >= 10 ? 1 : 2)}%`
 			}
 		]
 	}];
-	return i !== void 0 && ne.push({
+	return a !== void 0 && re.push({
 		key: "gpu",
 		title: "GPU",
 		subtitle: "Integrated Graphics",
-		accent: E.green,
-		utilizationPercent: i,
-		series: s,
+		accent: T.green,
+		utilizationPercent: a,
+		series: c,
 		detailRows: [
 			{
 				label: "Current",
-				value: a ? `${Math.round(a)} MHz` : "Unavailable"
-			},
-			{
-				label: "Max",
 				value: o ? `${Math.round(o)} MHz` : "Unavailable"
 			},
 			{
+				label: "Max",
+				value: s ? `${Math.round(s)} MHz` : "Unavailable"
+			},
+			{
 				label: "Temperature",
-				value: c === void 0 ? "Unavailable" : `${Math.round(c)}\u00B0C`
+				value: l === void 0 ? "Unavailable" : `${Math.round(l)}\u00B0C`
 			},
 			{
 				label: "Source",
 				value: "UGOS Bridge MQTT"
 			}
 		]
-	}), ne;
-}, ft = (e, t, n, r) => {
-	let i = nn(e, t, r, "size"), a = z(e, i), o = z(e, nn(e, t, r, "temperature")), s = z(e, nn(e, t, r, "read")), c = z(e, nn(e, t, r, "write")), l = z(e, nn(e, t, r, "busy")), u = Ln(e, rn(e, t, r, "model")), d = er(Ln(e, rn(e, t, r, "type")));
+	}), re;
+}, pt = (e, t, n, r) => {
+	let i = cn(e, t, r, "size"), a = R(e, i), o = R(e, cn(e, t, r, "temperature")), s = R(e, cn(e, t, r, "read")), c = R(e, cn(e, t, r, "write")), l = R(e, cn(e, t, r, "busy")), u = Hn(e, ln(e, t, r, "model")), d = ar(Hn(e, ln(e, t, r, "type")));
 	if (a === void 0 && o === void 0 && s === void 0 && c === void 0 && l === void 0 && u === void 0 && d === void 0) return null;
-	let f = $n(u), p = B(e[i ?? ""], "name"), m = q(e[i ?? ""], "Size", n) ?? p ?? wr(r);
+	let f = ir(u), p = z(e[i ?? ""], "name"), m = K(e[i ?? ""], "Size", n) ?? p ?? Or(r);
 	return {
 		name: d === "hdd" ? `${f ?? m} ${(p ?? r).toUpperCase()}` : f ?? m,
 		model: d ? d.toUpperCase() : o === void 0 ? "Disk" : "Physical Disk",
@@ -864,44 +871,44 @@ var E = {
 		readBytesPerSecond: s,
 		writeBytesPerSecond: c,
 		busyPercent: l,
-		status: wn(o),
+		status: kn(o),
 		mediaType: d,
 		diskSlug: r,
 		deviceName: p,
 		deviceModel: f ?? void 0
 	};
-}, pt = (e, t, n) => {
+}, mt = (e, t, n) => {
 	if (e.length === 0) return t.map((e, t) => ({
 		key: e.slug,
-		name: nr(Cr(e.slug)),
+		name: sr(Dr(e.slug)),
 		layout: e.readOnly ? "Filesystem | Read-only" : "Filesystem",
 		status: e.readOnly ? "warning" : "healthy",
 		usedBytes: e.usedBytes,
 		totalBytes: e.totalBytes,
-		accent: Je(t)
+		accent: Ye(t)
 	}));
 	let r = [...t];
 	return e.map((t, i) => {
-		let a = r.findIndex((e) => Math.abs(e.totalBytes - t.sizeBytes) / Math.max(t.sizeBytes, 1) < .05), o = a >= 0 ? r.splice(a, 1)[0] : void 0, s = rr(t, n), c = o ? nr(Cr(o.slug)) : void 0, l = tr(t.level), u = Et(t.members, n), d = u.length === 0 && e.length === 1 ? n.map((e) => e.diskSlug).filter((e) => !!e) : u;
+		let a = r.findIndex((e) => Math.abs(e.totalBytes - t.sizeBytes) / Math.max(t.sizeBytes, 1) < .05), o = a >= 0 ? r.splice(a, 1)[0] : void 0, s = cr(t, n), c = o ? sr(Dr(o.slug)) : void 0, l = or(t.level), u = Dt(t.members, n), d = u.length === 0 && e.length === 1 ? n.map((e) => e.diskSlug).filter((e) => !!e) : u;
 		return {
 			key: t.slug,
 			name: s ?? c ?? t.name,
 			layout: [l, c].filter(Boolean).join(" | ") || `${t.slug.toUpperCase()} Array`,
-			driveCountText: ir(t.activeDisks, t.totalDisks),
+			driveCountText: lr(t.activeDisks, t.totalDisks),
 			status: t.degradedDisks > 0 ? "degraded" : o?.readOnly ? "warning" : "healthy",
 			usedBytes: o?.usedBytes ?? 0,
 			totalBytes: o?.totalBytes ?? t.sizeBytes,
-			accent: Je(i),
+			accent: Ye(i),
 			driveSlugs: d
 		};
 	});
-}, mt = (e, t) => {
-	let n = _n(e, t), r = gn(e, t, "cpu"), i = e[n ?? ""], a = V(i, "cpu_usage_percent") ?? z(e, r), o = V(i, "memory_usage_bytes") ?? z(e, gn(e, t, "memory")), s = V(i, "total_containers") ?? z(e, gn(e, t, "total")), c = V(i, "running_containers") ?? z(e, gn(e, t, "running"));
+}, ht = (e, t) => {
+	let n = Sn(e, t), r = xn(e, t, "cpu"), i = e[n ?? ""], a = B(i, "cpu_usage_percent") ?? R(e, r), o = B(i, "memory_usage_bytes") ?? R(e, xn(e, t, "memory")), s = B(i, "total_containers") ?? R(e, xn(e, t, "total")), c = B(i, "running_containers") ?? R(e, xn(e, t, "running"));
 	if (a === void 0 || o === void 0 || s === void 0 || c === void 0) return null;
-	let l = ht(t, _t(e, t, n ?? r)), u = gt(t, o, l);
+	let l = gt(t, vt(e, t, n ?? r)), u = _t(t, o, l);
 	return {
 		key: t,
-		title: or(B(i, "project") ?? q(i, "CPU", "") ?? q(e[r ?? ""], "CPU", "") ?? t.split("_").filter(Boolean).map(Tr).join(" ")),
+		title: dr(z(i, "project") ?? K(i, "CPU", "") ?? K(e[r ?? ""], "CPU", "") ?? t.split("_").filter(Boolean).map(kr).join(" ")),
 		cpuPercent: a,
 		memoryBytes: u,
 		runningContainers: Math.round(c),
@@ -909,23 +916,23 @@ var E = {
 		status: c <= 0 ? "down" : c < s ? "partial" : "up",
 		containers: l
 	};
-}, ht = (e, t) => e === "virtual_machines" ? t.map((e) => e.running ? e : {
+}, gt = (e, t) => e === "virtual_machines" ? t.map((e) => e.running ? e : {
 	...e,
 	memoryBytes: 0
-}) : t, gt = (e, t, n) => e !== "virtual_machines" || n.length === 0 ? t : n.reduce((e, t) => e + (t.running ? t.memoryBytes : 0), 0), _t = (e, t, n) => {
-	let r = H(e[n ?? ""], "containers");
-	if (r.length > 0) return r.map((e, n) => vt(e, t, n)).filter((e) => e !== null).sort((e, t) => Number(t.running) - Number(e.running) || t.cpuPercent - e.cpuPercent || t.memoryBytes - e.memoryBytes || e.name.localeCompare(t.name));
+}) : t, _t = (e, t, n) => e !== "virtual_machines" || n.length === 0 ? t : n.reduce((e, t) => e + (t.running ? t.memoryBytes : 0), 0), vt = (e, t, n) => {
+	let r = V(e[n ?? ""], "containers");
+	if (r.length > 0) return r.map((e, n) => yt(e, t, n)).filter((e) => e !== null).sort((e, t) => Number(t.running) - Number(e.running) || t.cpuPercent - e.cpuPercent || t.memoryBytes - e.memoryBytes || e.name.localeCompare(t.name));
 	let i = /* @__PURE__ */ new Map();
-	for (let [n, r] of O(e)) {
-		if (!In(r)) continue;
-		let e = et.exec(n) ?? tt.exec(n), a = hr(r), o = e?.[2] ?? a?.metric, s = B(r, "container"), c = mr(B(r, "project_slug") ?? B(r, "project")), l = B(r, "image"), u = B(r, "status"), d = B(r, "state"), f = Rn(r, "running");
-		if (!(s || l !== void 0 || u !== void 0 || d !== void 0 || f !== void 0 || V(r, "memory_current_bytes") !== void 0 || V(r, "memory_limit_bytes") !== void 0 || o !== void 0)) continue;
-		let p = a?.key ?? J(s ?? B(r, "container_slug") ?? B(r, "container_id") ?? e?.[1] ?? n), m = i.get(p) ?? { key: p };
-		m.projectSlug = c ?? m.projectSlug ?? yr(p, r, t), m.name = m.name ?? s ?? a?.name ?? q(r, "", "") ?? wr(p), m.image = m.image ?? l, m.status = m.status ?? u, m.state = m.state ?? d ?? (o === "running" ? _r(r) : void 0), m.memoryCurrentBytes = m.memoryCurrentBytes ?? V(r, "memory_current_bytes"), m.memoryLimitBytes = m.memoryLimitBytes ?? V(r, "memory_limit_bytes"), m.cpuPercent = V(r, "cpu_usage_percent") ?? (o === "cpu_usage_percent" ? G(r.state) : void 0) ?? m.cpuPercent ?? 0, m.memoryBytes = V(r, "memory_usage_bytes") ?? (o === "memory_usage_bytes" ? G(r.state) : void 0) ?? m.memoryBytes ?? 0, m.running = f ?? (o === "running" ? vr(r, m.state) : void 0) ?? m.running, i.set(p, m);
+	for (let [n, r] of D(e)) {
+		if (!Vn(r)) continue;
+		let e = tt.exec(n) ?? nt.exec(n), a = yr(r), o = e?.[2] ?? a?.metric, s = z(r, "container"), c = vr(z(r, "project_slug") ?? z(r, "project")), l = z(r, "image"), u = z(r, "status"), d = z(r, "state"), f = Un(r, "running");
+		if (!(s || l !== void 0 || u !== void 0 || d !== void 0 || f !== void 0 || B(r, "memory_current_bytes") !== void 0 || B(r, "memory_limit_bytes") !== void 0 || o !== void 0)) continue;
+		let p = a?.key ?? J(s ?? z(r, "container_slug") ?? z(r, "container_id") ?? e?.[1] ?? n), m = i.get(p) ?? { key: p };
+		m.projectSlug = c ?? m.projectSlug ?? Cr(p, r, t), m.name = m.name ?? s ?? a?.name ?? K(r, "", "") ?? Or(p), m.image = m.image ?? l, m.status = m.status ?? u, m.state = m.state ?? d ?? (o === "running" ? xr(r) : void 0), m.memoryCurrentBytes = m.memoryCurrentBytes ?? B(r, "memory_current_bytes"), m.memoryLimitBytes = m.memoryLimitBytes ?? B(r, "memory_limit_bytes"), m.cpuPercent = B(r, "cpu_usage_percent") ?? (o === "cpu_usage_percent" ? W(r.state) : void 0) ?? m.cpuPercent ?? 0, m.memoryBytes = B(r, "memory_usage_bytes") ?? (o === "memory_usage_bytes" ? W(r.state) : void 0) ?? m.memoryBytes ?? 0, m.running = f ?? (o === "running" ? Sr(r, m.state) : void 0) ?? m.running, i.set(p, m);
 	}
-	return Array.from(i.values()).filter((e) => e.projectSlug === void 0 ? br(e, t) : e.projectSlug === t).map((e) => ({
+	return Array.from(i.values()).filter((e) => e.projectSlug === void 0 ? wr(e, t) : e.projectSlug === t).map((e) => ({
 		key: e.key,
-		name: e.name ?? wr(e.key),
+		name: e.name ?? Or(e.key),
 		image: e.image ?? "Unknown",
 		status: e.status ?? "Unavailable",
 		state: e.state ?? "unknown",
@@ -935,71 +942,71 @@ var E = {
 		memoryCurrentBytes: e.memoryCurrentBytes,
 		memoryLimitBytes: e.memoryLimitBytes
 	})).sort((e, t) => Number(t.running) - Number(e.running) || t.cpuPercent - e.cpuPercent || t.memoryBytes - e.memoryBytes || e.name.localeCompare(t.name));
-}, vt = (e, t, n) => {
-	let r = mr(U(e, [
+}, yt = (e, t, n) => {
+	let r = vr(H(e, [
 		"project_slug",
 		"project",
 		"ProjectSlug",
 		"Project"
 	]));
 	if (r !== void 0 && r !== t) return null;
-	let i = U(e, [
+	let i = H(e, [
 		"name",
 		"container",
 		"Name",
 		"Container"
-	]), a = U(e, [
+	]), a = H(e, [
 		"container_slug",
 		"key",
 		"ContainerSlug",
 		"Key"
-	]) ?? J(i ?? U(e, ["container_id", "ContainerID"]) ?? `container_${n}`);
+	]) ?? J(i ?? H(e, ["container_id", "ContainerID"]) ?? `container_${n}`);
 	return {
 		key: a,
-		name: i ?? wr(a),
-		image: U(e, ["image", "Image"]) ?? "Unknown",
-		status: U(e, ["status", "Status"]) ?? "Unavailable",
-		state: U(e, ["state", "State"]) ?? "unknown",
-		running: Vn(e, ["running", "Running"]) ?? U(e, ["state", "State"])?.toLowerCase() === "running",
-		cpuPercent: W(e, [
+		name: i ?? Or(a),
+		image: H(e, ["image", "Image"]) ?? "Unknown",
+		status: H(e, ["status", "Status"]) ?? "Unavailable",
+		state: H(e, ["state", "State"]) ?? "unknown",
+		running: Kn(e, ["running", "Running"]) ?? H(e, ["state", "State"])?.toLowerCase() === "running",
+		cpuPercent: U(e, [
 			"cpu_usage_percent",
 			"cpuPercent",
 			"CPUUsagePercent",
 			"CPUPercent"
 		]) ?? 0,
-		memoryBytes: W(e, [
+		memoryBytes: U(e, [
 			"memory_usage_bytes",
 			"memoryBytes",
 			"MemoryUsageBytes",
 			"MemoryBytes"
 		]) ?? 0,
-		memoryCurrentBytes: W(e, [
+		memoryCurrentBytes: U(e, [
 			"memory_current_bytes",
 			"memoryCurrentBytes",
 			"MemoryCurrentBytes"
 		]),
-		memoryLimitBytes: W(e, [
+		memoryLimitBytes: U(e, [
 			"memory_limit_bytes",
 			"memoryLimitBytes",
 			"MemoryLimitBytes"
 		])
 	};
-}, yt = (e, t) => {
+}, bt = (e, t) => {
 	let n = [];
-	return H(e[t ?? ""], "cpu_cores").forEach((e, t) => {
-		let r = U(e, ["name"]) ?? `cpu${t}`, i = W(e, ["usage_percent", "UsagePercent"]);
+	return V(e[t ?? ""], "cpu_cores").forEach((e, t) => {
+		let r = H(e, ["name"]) ?? `cpu${t}`, i = U(e, ["usage_percent", "UsagePercent"]);
 		i !== void 0 && n.push({
 			key: J(r) || `cpu_${t}`,
-			name: ur(r),
+			name: mr(r),
 			usagePercent: i,
-			currentMHz: W(e, ["current_mhz", "CurrentMHz"]),
-			minMHz: W(e, ["min_mhz", "MinMHz"]),
-			maxMHz: W(e, ["max_mhz", "MaxMHz"]),
-			governor: U(e, ["governor", "Governor"])
+			currentMHz: U(e, ["current_mhz", "CurrentMHz"]),
+			minMHz: U(e, ["min_mhz", "MinMHz"]),
+			maxMHz: U(e, ["max_mhz", "MaxMHz"]),
+			governor: H(e, ["governor", "Governor"])
 		});
-	}), n.sort(dr);
-}, bt = (e, t, n, r) => {
-	let i = e[t ?? ""], a = V(i, "memory_total_bytes") ?? n, o = V(i, "memory_used_bytes") ?? r, s = V(i, "memory_buffers_bytes"), c = V(i, "memory_cached_bytes"), l = V(i, "swap_used_bytes"), u = V(i, "swap_total_bytes");
+	}), n.sort(hr);
+}, xt = (e, t, n, r) => {
+	let i = e[t ?? ""], a = B(i, "memory_total_bytes") ?? n, o = B(i, "memory_used_bytes") ?? r, s = B(i, "memory_buffers_bytes"), c = B(i, "memory_cached_bytes"), l = B(i, "swap_used_bytes"), u = B(i, "swap_total_bytes");
 	return [
 		{
 			key: "total",
@@ -1036,58 +1043,58 @@ var E = {
 			valueBytes: u
 		}]
 	];
-}, xt = (e, t) => {
+}, St = (e, t) => {
 	let n = /* @__PURE__ */ new Map();
-	for (let r of t) H(e[r], "engines").forEach((e, t) => {
-		let r = U(e, ["name", "Name"]), i = W(e, ["busy_percent", "BusyPercent"]);
+	for (let r of t) V(e[r], "engines").forEach((e, t) => {
+		let r = H(e, ["name", "Name"]), i = U(e, ["busy_percent", "BusyPercent"]);
 		if (!r || i === void 0) return;
 		let a = J(r) || `engine_${t}`, o = {
 			key: a,
-			label: fr(r),
+			label: gr(r),
 			busyPercent: i,
-			semaPercent: W(e, ["sema_percent", "SemaPercent"]),
-			waitPercent: W(e, ["wait_percent", "WaitPercent"])
+			semaPercent: U(e, ["sema_percent", "SemaPercent"]),
+			waitPercent: U(e, ["wait_percent", "WaitPercent"])
 		}, s = n.get(a);
 		(!s || o.busyPercent > s.busyPercent) && n.set(a, o);
 	});
 	return Array.from(n.values()).sort((e, t) => t.busyPercent - e.busyPercent || e.label.localeCompare(t.label));
-}, St = (e, t) => {
+}, Ct = (e, t) => {
 	let n = /* @__PURE__ */ new Map();
-	for (let r of t) H(e[r], "stats").forEach((e, t) => {
-		let r = W(e, ["value", "Value"]);
+	for (let r of t) V(e[r], "stats").forEach((e, t) => {
+		let r = U(e, ["value", "Value"]);
 		if (r === void 0) return;
-		let i = U(e, ["key", "Key"]) ?? `stat_${t}`;
+		let i = H(e, ["key", "Key"]) ?? `stat_${t}`;
 		n.set(i, {
 			key: i,
-			label: U(e, ["label", "Label"]) ?? pr(i),
+			label: H(e, ["label", "Label"]) ?? _r(i),
 			value: r,
-			unit: U(e, ["unit", "Unit"])
+			unit: H(e, ["unit", "Unit"])
 		});
 	});
 	return Array.from(n.values());
-}, Ct = (e, t) => {
-	let n = H(t, "top_processes").map((e, t) => wt(e, t)).filter((e) => e !== null);
-	if (n.length > 0) return Tt(n);
+}, wt = (e, t) => {
+	let n = V(t, "top_processes").map((e, t) => Tt(e, t)).filter((e) => e !== null);
+	if (n.length > 0) return Et(n);
 	let r = /* @__PURE__ */ new Map();
-	for (let [t, n] of O(e)) {
-		let e = nt.exec(t), i = e?.[2], a = G(n.state), o = B(n, "name"), s = V(n, "process_count"), c = V(n, "cpu_time_seconds"), l = V(n, "cpu_usage_percent"), u = V(n, "memory_usage_bytes");
-		if (!(s !== void 0 || c !== void 0 || o !== void 0 && lr(n).includes("process") && l !== void 0 && u !== void 0 || e !== null)) continue;
+	for (let [t, n] of D(e)) {
+		let e = rt.exec(t), i = e?.[2], a = W(n.state), o = z(n, "name"), s = B(n, "process_count"), c = B(n, "cpu_time_seconds"), l = B(n, "cpu_usage_percent"), u = B(n, "memory_usage_bytes");
+		if (!(s !== void 0 || c !== void 0 || o !== void 0 && pr(n).includes("process") && l !== void 0 && u !== void 0 || e !== null)) continue;
 		let d = J(o ?? e?.[1] ?? t), f = r.get(d) ?? {
 			key: d,
-			name: o ?? q(n, "", "") ?? wr(e?.[1] ?? d),
+			name: o ?? K(n, "", "") ?? Or(e?.[1] ?? d),
 			processCount: 0,
 			cpuPercent: 0,
 			memoryBytes: 0
 		};
 		f.name = o ?? f.name, f.processCount = Math.round(s ?? (i === "process_count" ? a : void 0) ?? f.processCount), f.cpuPercent = l ?? (i === "cpu_usage_percent" ? a : void 0) ?? f.cpuPercent, f.memoryBytes = u ?? (i === "memory_usage_bytes" ? a : void 0) ?? f.memoryBytes, f.cpuTimeSeconds = c ?? (i === "cpu_time_seconds" ? a : void 0) ?? f.cpuTimeSeconds, r.set(d, f);
 	}
-	return Tt(Array.from(r.values()));
-}, wt = (e, t) => {
-	let n = U(e, ["name", "Name"]), r = W(e, [
+	return Et(Array.from(r.values()));
+}, Tt = (e, t) => {
+	let n = H(e, ["name", "Name"]), r = U(e, [
 		"cpu_usage_percent",
 		"cpu_percent",
 		"CPUPercent"
-	]), i = W(e, [
+	]), i = U(e, [
 		"memory_usage_bytes",
 		"memory_bytes",
 		"MemoryBytes"
@@ -1096,64 +1103,64 @@ var E = {
 	let a = J(n ?? `process_${t}`);
 	return {
 		key: a,
-		name: n ?? wr(a),
-		processCount: Math.round(W(e, ["process_count", "ProcessCount"]) ?? 0),
+		name: n ?? Or(a),
+		processCount: Math.round(U(e, ["process_count", "ProcessCount"]) ?? 0),
 		cpuPercent: r ?? 0,
 		memoryBytes: i ?? 0,
-		cpuTimeSeconds: W(e, ["cpu_time_seconds", "CPUTimeSeconds"])
+		cpuTimeSeconds: U(e, ["cpu_time_seconds", "CPUTimeSeconds"])
 	};
-}, Tt = (e) => e.sort((e, t) => t.cpuPercent - e.cpuPercent || t.memoryBytes - e.memoryBytes || t.processCount - e.processCount || e.name.localeCompare(t.name)).slice(0, 10), Et = (e, t) => {
+}, Et = (e) => e.sort((e, t) => t.cpuPercent - e.cpuPercent || t.memoryBytes - e.memoryBytes || t.processCount - e.processCount || e.name.localeCompare(t.name)).slice(0, 10), Dt = (e, t) => {
 	if (e.length === 0) return [];
 	let n = /* @__PURE__ */ new Map();
 	return t.filter((e) => !!e.diskSlug).forEach((e) => {
 		let t = e.diskSlug;
-		for (let r of [t, e.deviceName ?? ""].flatMap(Sr)) n.set(r, t);
-	}), Array.from(new Set(e.flatMap((e) => Sr(e)).map((e) => n.get(e)).filter((e) => !!e)));
-}, Dt = (e, t, n, r) => {
-	let i = ln(e, t, n, "rx"), a = ln(e, t, n, "tx"), o = z(e, i), s = z(e, a), c = z(e, ln(e, t, n, "speed")), l = un(e, t, n);
+		for (let r of [t, e.deviceName ?? ""].flatMap(Er)) n.set(r, t);
+	}), Array.from(new Set(e.flatMap((e) => Er(e)).map((e) => n.get(e)).filter((e) => !!e)));
+}, Ot = (e, t, n, r) => {
+	let i = mn(e, t, n, "rx"), a = mn(e, t, n, "tx"), o = R(e, i), s = R(e, a), c = R(e, mn(e, t, n, "speed")), l = hn(e, t, n);
 	return o === void 0 && s === void 0 && c === void 0 && !l ? null : {
-		name: Ar(n),
-		status: Un(e[l ?? ""]) ? "up" : "down",
+		name: Pr(n),
+		status: Jn(e[l ?? ""]) ? "up" : "down",
 		linkSpeedMbps: c ?? void 0,
-		temperatureCelsius: Cn(r, n),
+		temperatureCelsius: On(r, n),
 		downloadBps: (o ?? 0) * 8,
 		uploadBps: (s ?? 0) * 8
 	};
-}, Ot = (e, t, n, r) => {
-	let i = z(e, dn(e, t, n, "speed")), a = fn(e, t, n), o = Jt(e, t, n);
+}, kt = (e, t, n, r) => {
+	let i = R(e, gn(e, t, n, "speed")), a = _n(e, t, n), o = $t(e, t, n);
 	return i === void 0 && !a ? null : {
-		name: Ar(n),
-		status: Un(e[a ?? ""]) ? "up" : "down",
+		name: Pr(n),
+		status: Jn(e[a ?? ""]) ? "up" : "down",
 		linkSpeedMbps: i ?? void 0,
-		temperatureCelsius: Cn(r, n),
+		temperatureCelsius: On(r, n),
 		downloadBps: o / 2,
 		uploadBps: o / 2
 	};
-}, kt = (e, t) => Ht(e, t).map((n) => {
-	let r = an(e, t, n, "used"), i = an(e, t, n, "free"), a = z(e, r), o = z(e, i);
+}, At = (e, t) => qt(e, t).map((n) => {
+	let r = un(e, t, n, "used"), i = un(e, t, n, "free"), a = R(e, r), o = R(e, i);
 	return a === void 0 || o === void 0 ? null : {
 		slug: n,
-		name: q(e[r ?? ""], "Used", "") ?? Cr(n),
+		name: K(e[r ?? ""], "Used", "") ?? Dr(n),
 		usedBytes: a,
 		freeBytes: o,
 		totalBytes: a + o,
-		readOnly: Un(e[on(e, t, n) ?? ""])
+		readOnly: Jn(e[dn(e, t, n) ?? ""])
 	};
-}).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), At = (e, t) => {
-	let n = Zt(e, t), r = [];
+}).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), jt = (e, t) => {
+	let n = nn(e, t), r = [];
 	for (let i of n) {
-		let n = sn(e, t, i, "size"), a = z(e, n), o = z(e, sn(e, t, i, "degraded")) ?? 0, s = z(e, sn(e, t, i, "active")), c = z(e, sn(e, t, i, "total")), l = z(e, sn(e, t, i, "sync")), u = cn(e, t, i, "level"), d = Ln(e, u);
+		let n = fn(e, t, i, "size"), a = R(e, n), o = R(e, fn(e, t, i, "degraded")) ?? 0, s = R(e, fn(e, t, i, "active")), c = R(e, fn(e, t, i, "total")), l = R(e, fn(e, t, i, "sync")), u = pn(e, t, i, "level"), d = Hn(e, u);
 		if (a === void 0 && s === void 0 && c === void 0 && l === void 0 && d === void 0) continue;
-		let f = Bn([
+		let f = Gn([
 			e[n ?? ""],
 			e[u ?? ""],
-			e[sn(e, t, i, "active") ?? ""],
-			e[sn(e, t, i, "total") ?? ""],
-			e[sn(e, t, i, "degraded") ?? ""]
+			e[fn(e, t, i, "active") ?? ""],
+			e[fn(e, t, i, "total") ?? ""],
+			e[fn(e, t, i, "degraded") ?? ""]
 		], "members");
 		r.push({
 			slug: i,
-			name: q(e[n ?? ""], "Size", "") ?? q(e[u ?? ""], "Level", "") ?? i.toUpperCase(),
+			name: K(e[n ?? ""], "Size", "") ?? K(e[u ?? ""], "Level", "") ?? i.toUpperCase(),
 			sizeBytes: a ?? 0,
 			degradedDisks: Math.round(o),
 			activeDisks: s === void 0 ? void 0 : Math.round(s),
@@ -1164,32 +1171,86 @@ var E = {
 		});
 	}
 	return r.sort((e, t) => e.name.localeCompare(t.name));
-}, jt = (e, t) => P(e, `hostRootEntries:${t}`, () => O(e).filter(([e]) => Pn(e, t))), Mt = (e, t) => P(e, `temperatures:${t}`, () => {
+}, Mt = (e, t) => N(e, `hostRootEntries:${t}`, () => D(e).filter(([e]) => zn(e, t))), Nt = (e, t) => N(e, `temperatures:${t}`, () => {
 	let n = [
 		`sensor.ugos_bridge_host_${t}_`,
 		`sensor.${t}_`,
 		"sensor.ugos_bridge_disk_",
 		"sensor.ugos_bridge_gpu_"
 	];
-	return O(e).filter(([e, t]) => e.startsWith("sensor.") && n.some((t) => e.startsWith(t)) && (e.endsWith("_temperature_celsius") || K(t, ["temperature"]))).map(([e, t]) => {
-		let n = G(t.state);
+	return D(e).filter(([e, t]) => e.startsWith("sensor.") && n.some((t) => e.startsWith(t)) && (e.endsWith("_temperature_celsius") || G(t, ["temperature"]))).map(([e, t]) => {
+		let n = W(t.state);
 		return n === void 0 ? null : {
 			entityId: e,
-			label: `${cr(t)} ${e}`.trim().toLowerCase(),
+			label: `${q(t)} ${e}`.trim().toLowerCase(),
 			value: n
 		};
 	}).filter((e) => e !== null);
-}), Nt = (e, t) => P(e, `hostSlug:${t ?? ""}`, () => {
-	if (t) {
-		let n = Pt(t);
-		if (kn(e, n) || An(e, n)) return n;
+}), Pt = (e, t) => {
+	if (!t || !e.startsWith("sensor.")) return !1;
+	let n = Xn(t)?.toLowerCase();
+	return n !== void 0 && n !== "rpm" ? !1 : n === "rpm" || /_fan_speed(?:_rpm)?(?:_\d+)?$/.test(e) || /\bfan speed\b/i.test(q(t)) || Object.hasOwn(t.attributes, "fan_speed_rpm");
+}, Ft = (e, t, n) => {
+	let r = z(t, "device_type");
+	if (r !== void 0 && r.toLowerCase() !== "host") return !1;
+	let i = z(t, "host");
+	if (i !== void 0) return J(i) === n;
+	let a = /^sensor\.ugos_bridge_host_(.+?)_sensor_/.exec(e)?.[1] ?? /^sensor\.(?:ugos_bridge_host_)?(.+?)_health_/.exec(e)?.[1];
+	if (a !== void 0) return a === n;
+	let o = J(q(t)), s = /^(.+?)_health_/.exec(o)?.[1];
+	if (s !== void 0) return s === n;
+	let c = /^(?:sensor_|cooling_|(?:cpu|sys(?:tem)?|chassis|case)_?fan(?:_|\d|$))/;
+	return [e.replace(/^sensor\.(?:ugos_bridge_host_)?/, ""), o].some((e) => {
+		if (!e.startsWith(`${n}_`)) return !1;
+		let t = e.slice(n.length + 1).replace(RegExp(`^${Y(n)}_`), "");
+		return c.test(t);
+	});
+}, It = (e) => {
+	let t = J(e), n = /(?:^|_)cpu_?fan(?:_?(\d+))?(?:_|$)/.exec(t);
+	if (n) return {
+		group: "cpu",
+		label: `CPU Fan${n[1] ? ` ${n[1]}` : ""}`
+	};
+	let r = /(?:^|_)(sys(?:tem)?|chassis|case)_?fan(?:_?(\d+))?(?:_|$)/.exec(t);
+	if (r) return {
+		group: "system",
+		label: `${r[1] === "chassis" ? "Chassis" : r[1] === "case" ? "Case" : "System"} Fan${r[2] ? ` ${r[2]}` : ""}`
+	};
+}, Lt = (e, t) => {
+	let n = {
+		cpu: [],
+		system: []
+	};
+	for (let [r, i] of D(e)) {
+		if (!Pt(r, i) || !Ft(r, i, t)) continue;
+		let e = W(i.state.trim());
+		if (e === void 0 || e < 0) continue;
+		let a = [
+			z(i, "label"),
+			z(i, "name"),
+			z(i, "sensor"),
+			q(i),
+			r
+		].map((e) => e ? It(e) : void 0).find((e) => e !== void 0);
+		a && n[a.group].push({
+			key: r,
+			label: a.label,
+			rpm: e
+		});
 	}
-	let n = jn(e), r = n[0];
+	for (let e of Object.values(n)) e.sort((e, t) => e.label.localeCompare(t.label, "en", { numeric: !0 }) || e.key.localeCompare(t.key));
+	return n;
+}, Rt = (e, t) => N(e, `hostSlug:${t ?? ""}`, () => {
+	if (t) {
+		let n = zt(t);
+		if (Pn(e, n) || Fn(e, n)) return n;
+	}
+	let n = In(e), r = n[0];
 	if (!r) return null;
 	if (!t) return r;
-	let i = Pt(t);
+	let i = zt(t);
 	return n.find((e) => e === i) ?? r;
-}), Pt = (e) => {
+}), zt = (e) => {
 	let t = J(e);
 	for (let e of ["sensor_", "binary_sensor_"]) if (t.startsWith(e)) {
 		t = t.slice(e.length);
@@ -1206,43 +1267,43 @@ var E = {
 		"_uptime_seconds"
 	]) if (t.endsWith(e)) return t.slice(0, -e.length);
 	return t;
-}, Ft = (e, t, n) => gr(q(e[I(e, t, "cpu") ?? ""], "CPU", "") ?? n?.trim() ?? wr(t)), It = (e, t) => {
+}, Bt = (e, t, n) => br(K(e[F(e, t, "cpu") ?? ""], "CPU", "") ?? n?.trim() ?? Or(t)), Vt = (e, t) => {
 	if (t?.ipEntity) {
 		let n = e[t.ipEntity]?.state;
 		if (n && n !== "unknown" && n !== "unavailable") return n;
 	}
 	return t?.ipAddress?.trim() || "Unavailable";
-}, Lt = (e, t, n) => n && n > 0 ? n : t > 0 ? Math.max(e, Math.round(e / (t / 100))) : e, Rt = (e, t) => {
+}, Ht = (e, t, n) => n && n > 0 ? n : t > 0 ? Math.max(e, Math.round(e / (t / 100))) : e, Ut = (e, t) => {
 	if (t && t.length > 0) {
-		let n = e.filter((e) => vn(e.slug, e.name, t));
+		let n = e.filter((e) => Cn(e.slug, e.name, t));
 		if (n.length > 0) return n;
 	}
 	let n = e.filter((e) => e.name !== "/");
 	return n.length > 0 ? n : e;
-}, zt = (e, t) => {
+}, Wt = (e, t) => {
 	if (!t || t.length === 0) return e.filter((e) => e !== "lo");
 	let n = t.map((e) => J(e)), r = e.filter((e) => n.includes(J(e)));
 	return r.length > 0 ? r : e;
-}, Bt = (e) => P(e, "projectSlugs", () => {
-	let t = D(e).map((e) => Xe.exec(e)?.[1]).filter((e) => !!e), n = st(e, "sensor.compose_project_").map(([, e]) => ar(e)).filter((e) => !!e), r = O(e).filter(([e, t]) => e.startsWith("sensor.") && (B(t, "project_slug") !== void 0 || B(t, "project") !== void 0)).map(([, e]) => mr(B(e, "project_slug") ?? B(e, "project"))).filter((e) => !!e);
+}, Gt = (e) => N(e, "projectSlugs", () => {
+	let t = E(e).map((e) => Ze.exec(e)?.[1]).filter((e) => !!e), n = ct(e, "sensor.compose_project_").map(([, e]) => ur(e)).filter((e) => !!e), r = D(e).filter(([e, t]) => e.startsWith("sensor.") && (z(t, "project_slug") !== void 0 || z(t, "project") !== void 0)).map(([, e]) => vr(z(e, "project_slug") ?? z(e, "project"))).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...t,
 		...n,
 		...r
 	])).sort();
-}), Vt = (e, t, n) => P(e, `diskSlugs:${t}:${n}`, () => {
-	let r = Fn(e, t, n, "disk", Yn), i = [
-		...R(e, RegExp(`^sensor\\.${Y(n)}_disk_(.+?)_size_bytes$`)),
-		...R(e, /^sensor\.ugos_bridge_disk_(.+?)_size_bytes$/),
-		...R(e, RegExp(`^sensor\\.${Y(n)}_disk_(.+?)_(?:size_bytes|read_bytes_per_second|write_bytes_per_second|busy_percent|model|vendor|serial|media_type)(?:_\\d+)?$`))
+}), Kt = (e, t, n) => N(e, `diskSlugs:${t}:${n}`, () => {
+	let r = Bn(e, t, n, "disk", er), i = [
+		...L(e, RegExp(`^sensor\\.${Y(n)}_disk_(.+?)_size_bytes$`)),
+		...L(e, /^sensor\.ugos_bridge_disk_(.+?)_size_bytes$/),
+		...L(e, RegExp(`^sensor\\.${Y(n)}_disk_(.+?)_(?:size_bytes|read_bytes_per_second|write_bytes_per_second|busy_percent|model|vendor|serial|media_type)(?:_\\d+)?$`))
 	], a = Array.from(/* @__PURE__ */ new Set([...r, ...i])).sort();
 	if (a.length > 0) return a;
-	let o = D(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_disk_([^_]+)_`))?.[1]).filter((e) => !!e), s = k(e).map((e) => Kn(e, t, [
+	let o = E(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_disk_([^_]+)_`))?.[1]).filter((e) => !!e), s = O(e).map((e) => Zn(e, t, [
 		"Size",
 		"Busy",
 		"Read Throughput",
 		"Write Throughput"
-	])).filter((e) => e !== void 0 && Yn(e)), c = k(e).filter((e) => V(e, "size_bytes") !== void 0 || V(e, "read_bytes_per_second") !== void 0 || V(e, "write_bytes_per_second") !== void 0).map((e) => J(B(e, "name") ?? "")).filter((e) => Yn(e));
+	])).filter((e) => e !== void 0 && er(e)), c = O(e).filter((e) => B(e, "size_bytes") !== void 0 || B(e, "read_bytes_per_second") !== void 0 || B(e, "write_bytes_per_second") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => er(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1250,12 +1311,12 @@ var E = {
 		...s,
 		...c
 	])).sort();
-}), Ht = (e, t) => P(e, `filesystemSlugs:${t}`, () => {
-	let n = Fn(e, t, `ugos_bridge_host_${t}`, "filesystem", (e) => !!e), r = [
-		...R(e, RegExp(`^sensor\\.ugos_bridge_host_${Y(t)}_filesystem_(.+?)_used_bytes$`)),
-		...R(e, /^sensor\.ugos_bridge_filesystem_(.+?)_used_bytes$/),
-		...R(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${Y(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only)(?:_\\d+)?$`))
-	], i = D(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_filesystem_([^_]+)_`))?.[1]).filter((e) => !!e), a = k(e).map((e) => qn(e, t)).filter((e) => !!e), o = k(e).filter((e) => V(e, "used_bytes") !== void 0 || V(e, "free_bytes") !== void 0).map((e) => J(B(e, "name") ?? "")).filter((e) => !!e);
+}), qt = (e, t) => N(e, `filesystemSlugs:${t}`, () => {
+	let n = Bn(e, t, `ugos_bridge_host_${t}`, "filesystem", (e) => !!e), r = [
+		...L(e, RegExp(`^sensor\\.ugos_bridge_host_${Y(t)}_filesystem_(.+?)_used_bytes$`)),
+		...L(e, /^sensor\.ugos_bridge_filesystem_(.+?)_used_bytes$/),
+		...L(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${Y(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only)(?:_\\d+)?$`))
+	], i = E(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_filesystem_([^_]+)_`))?.[1]).filter((e) => !!e), a = O(e).map((e) => Qn(e, t)).filter((e) => !!e), o = O(e).filter((e) => B(e, "used_bytes") !== void 0 || B(e, "free_bytes") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...n,
 		...r,
@@ -1263,17 +1324,17 @@ var E = {
 		...a,
 		...o
 	])).sort();
-}), Ut = (e, t, n) => P(e, `networkSlugs:${t}:${n}`, () => {
-	let r = Fn(e, t, n, "network", Qn), i = [
-		...R(e, RegExp(`^sensor\\.${Y(n)}_network_(.+?)_rx_bytes_per_second$`)),
-		...R(e, /^sensor\.ugos_bridge_network_(.+?)_rx_bytes_per_second$/),
-		...R(e, RegExp(`^(?:sensor|binary_sensor)\\.${Y(n)}_network_(.+?)_(?:rx_bytes_per_second|tx_bytes_per_second|speed_mbps|carrier)(?:_\\d+)?$`))
-	], a = D(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_network_([^_]+)_`))?.[1]).filter((e) => !!e), o = k(e).map((e) => Kn(e, t, [
+}), Jt = (e, t, n) => N(e, `networkSlugs:${t}:${n}`, () => {
+	let r = Bn(e, t, n, "network", rr), i = [
+		...L(e, RegExp(`^sensor\\.${Y(n)}_network_(.+?)_rx_bytes_per_second$`)),
+		...L(e, /^sensor\.ugos_bridge_network_(.+?)_rx_bytes_per_second$/),
+		...L(e, RegExp(`^(?:sensor|binary_sensor)\\.${Y(n)}_network_(.+?)_(?:rx_bytes_per_second|tx_bytes_per_second|speed_mbps|carrier)(?:_\\d+)?$`))
+	], a = E(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_network_([^_]+)_`))?.[1]).filter((e) => !!e), o = O(e).map((e) => Zn(e, t, [
 		"RX Throughput",
 		"TX Throughput",
 		"Link Speed",
 		"Carrier"
-	])).filter((e) => e !== void 0 && Qn(e)), s = k(e).filter((e) => V(e, "rx_bytes_per_second") !== void 0 || V(e, "tx_bytes_per_second") !== void 0 || V(e, "speed_mbps") !== void 0).map((e) => J(B(e, "name") ?? "")).filter((e) => Qn(e));
+	])).filter((e) => e !== void 0 && rr(e)), s = O(e).filter((e) => B(e, "rx_bytes_per_second") !== void 0 || B(e, "tx_bytes_per_second") !== void 0 || B(e, "speed_mbps") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => rr(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1281,19 +1342,19 @@ var E = {
 		...o,
 		...s
 	])).sort();
-}), Wt = (e, t, n) => P(e, `bondSlugs:${t}:${n}`, () => {
-	let r = Fn(e, t, n, "bond", Zn), i = [
-		...R(e, RegExp(`^sensor\\.${Y(n)}_bond_(.+?)_speed_mbps$`)),
-		...R(e, /^sensor\.ugos_bridge_bond_(.+?)_speed_mbps$/),
-		...R(e, RegExp(`^(?:sensor|binary_sensor)\\.${Y(n)}_bond_(.+?)_(?:speed_mbps|mode|active_slave|mii_status|slave_count|carrier)(?:_\\d+)?$`))
-	], a = D(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_bond_([^_]+)_`))?.[1]).filter((e) => !!e), o = k(e).map((e) => Kn(e, t, [
+}), Yt = (e, t, n) => N(e, `bondSlugs:${t}:${n}`, () => {
+	let r = Bn(e, t, n, "bond", nr), i = [
+		...L(e, RegExp(`^sensor\\.${Y(n)}_bond_(.+?)_speed_mbps$`)),
+		...L(e, /^sensor\.ugos_bridge_bond_(.+?)_speed_mbps$/),
+		...L(e, RegExp(`^(?:sensor|binary_sensor)\\.${Y(n)}_bond_(.+?)_(?:speed_mbps|mode|active_slave|mii_status|slave_count|carrier)(?:_\\d+)?$`))
+	], a = E(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_bond_([^_]+)_`))?.[1]).filter((e) => !!e), o = O(e).map((e) => Zn(e, t, [
 		"Link Speed",
 		"Mode",
 		"Active Slave",
 		"MII Status",
 		"Slave Count",
 		"Carrier"
-	])).filter((e) => e !== void 0 && Zn(e)), s = k(e).filter((e) => B(e, "mode") !== void 0 || B(e, "active_slave") !== void 0 || V(e, "speed_mbps") !== void 0).map((e) => J(B(e, "name") ?? "")).filter((e) => Zn(e));
+	])).filter((e) => e !== void 0 && nr(e)), s = O(e).filter((e) => z(e, "mode") !== void 0 || z(e, "active_slave") !== void 0 || B(e, "speed_mbps") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => nr(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1301,45 +1362,45 @@ var E = {
 		...o,
 		...s
 	])).sort();
-}), Gt = (e, t) => {
+}), Xt = (e, t) => {
 	if (t && t.length > 0) return e;
 	let n = e.filter((e) => /^(bond\d+|eth\d+)$/i.test(e));
 	return n.length > 0 ? n : e;
-}, Kt = (e) => [...e].filter((e) => /^(bond\d+|eth\d+)$/i.test(e)).sort((e, t) => qt(e) - qt(t) || e.localeCompare(t)).slice(0, 3), qt = (e) => {
+}, Zt = (e) => [...e].filter((e) => /^(bond\d+|eth\d+)$/i.test(e)).sort((e, t) => Qt(e) - Qt(t) || e.localeCompare(t)).slice(0, 3), Qt = (e) => {
 	let t = e.toLowerCase();
 	return t.startsWith("bond") ? 0 : t.startsWith("eth") ? 1 : 2;
-}, Jt = (e, t, n) => {
-	let r = z(e, ln(e, t, n, "rx")), i = z(e, ln(e, t, n, "tx"));
+}, $t = (e, t, n) => {
+	let r = R(e, mn(e, t, n, "rx")), i = R(e, mn(e, t, n, "tx"));
 	return ((r ?? 0) + (i ?? 0)) * 8;
-}, Yt = (e, t) => {
+}, en = (e, t) => {
 	let n = e.toLowerCase();
-	if (n.startsWith("bond")) return E.cyan;
-	if (n === "eth0") return E.good;
-	if (n === "eth1") return E.purple;
+	if (n.startsWith("bond")) return T.cyan;
+	if (n === "eth0") return T.good;
+	if (n === "eth1") return T.purple;
 	let r = [
-		E.softBlue,
-		E.green,
-		E.blue
+		T.softBlue,
+		T.green,
+		T.blue
 	];
-	return r[t % r.length] ?? E.softBlue;
-}, Xt = (e, t, n) => P(e, `gpuSlugs:${t}:${n}`, () => {
-	let r = Fn(e, t, n, "gpu", (e) => !!e), i = [...R(e, RegExp(`^sensor\\.${Y(n)}_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\\d+)?$`)), ...R(e, /^sensor\.ugos_bridge_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\d+)?$/)], a = D(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_gpu_([^_]+)_`))?.[1]).filter((e) => !!e), o = k(e).filter((e) => H(e, "engines").length > 0 || H(e, "stats").length > 0 || V(e, "busy_percent") !== void 0 || V(e, "current_mhz") !== void 0).map((e) => J(B(e, "name") ?? "")).filter((e) => !!e);
+	return r[t % r.length] ?? T.softBlue;
+}, tn = (e, t, n) => N(e, `gpuSlugs:${t}:${n}`, () => {
+	let r = Bn(e, t, n, "gpu", (e) => !!e), i = [...L(e, RegExp(`^sensor\\.${Y(n)}_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\\d+)?$`)), ...L(e, /^sensor\.ugos_bridge_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\d+)?$/)], a = E(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_gpu_([^_]+)_`))?.[1]).filter((e) => !!e), o = O(e).filter((e) => V(e, "engines").length > 0 || V(e, "stats").length > 0 || B(e, "busy_percent") !== void 0 || B(e, "current_mhz") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
 		...a,
 		...o
 	])).sort();
-}), Zt = (e, t) => P(e, `arraySlugs:${t}`, () => {
-	let n = Fn(e, t, `ugos_bridge_host_${t}`, "array", Xn), r = [
-		...R(e, RegExp(`^sensor\\.ugos_bridge_host_${Y(t)}_array_(.+?)_size_bytes$`)),
-		...R(e, /^sensor\.ugos_bridge_array_(.+?)_size_bytes$/),
-		...R(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${Y(t)}_array_(.+?)_(?:size_bytes|degraded_disks|active_disks|total_disks|sync_completed_percent|level|degraded)(?:_\\d+)?$`))
-	], i = D(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_array_([^_]+)_`))?.[1]).filter((e) => !!e), a = k(e).map((e) => Kn(e, t, [
+}), nn = (e, t) => N(e, `arraySlugs:${t}`, () => {
+	let n = Bn(e, t, `ugos_bridge_host_${t}`, "array", tr), r = [
+		...L(e, RegExp(`^sensor\\.ugos_bridge_host_${Y(t)}_array_(.+?)_size_bytes$`)),
+		...L(e, /^sensor\.ugos_bridge_array_(.+?)_size_bytes$/),
+		...L(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${Y(t)}_array_(.+?)_(?:size_bytes|degraded_disks|active_disks|total_disks|sync_completed_percent|level|degraded)(?:_\\d+)?$`))
+	], i = E(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_array_([^_]+)_`))?.[1]).filter((e) => !!e), a = O(e).map((e) => Zn(e, t, [
 		"Size",
 		"Degraded Disks",
 		"Sync Progress"
-	])).filter((e) => e !== void 0 && Xn(e)), o = k(e).filter((e) => V(e, "size_bytes") !== void 0 || B(e, "level") !== void 0 || V(e, "degraded_disks") !== void 0).map((e) => J(B(e, "name") ?? "")).filter((e) => Xn(e));
+	])).filter((e) => e !== void 0 && tr(e)), o = O(e).filter((e) => B(e, "size_bytes") !== void 0 || z(e, "level") !== void 0 || B(e, "degraded_disks") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => tr(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...n,
 		...r,
@@ -1347,7 +1408,7 @@ var E = {
 		...a,
 		...o
 	])).sort();
-}), I = (e, t, n) => F(e, `hostMetric:${t}:${n}`, () => {
+}), F = (e, t, n) => P(e, `hostMetric:${t}:${n}`, () => {
 	let r = {
 		cpu: `sensor.ugos_bridge_host_${t}_cpu_usage_percent`,
 		load1: `sensor.ugos_bridge_host_${t}_load_1`,
@@ -1358,79 +1419,79 @@ var E = {
 		uptime: `sensor.ugos_bridge_host_${t}_uptime_seconds`
 	};
 	if (e[r[n]]) return r[n];
-	let i = jt(e, t);
+	let i = Mt(e, t);
 	switch (n) {
-		case "cpu": return L(i, {
+		case "cpu": return I(i, {
 			entityIncludes: ["_cpu"],
 			friendlyIncludes: ["cpu"],
 			unit: "%"
 		});
-		case "load1": return L(i, {
+		case "load1": return I(i, {
 			entityIncludes: ["load"],
 			friendlyIncludes: ["load", "1"],
 			unit: void 0
 		});
-		case "cpufreq": return L(i, {
+		case "cpufreq": return I(i, {
 			entityIncludes: ["frequency"],
 			friendlyIncludes: ["frequency"],
 			unit: "MHz"
 		});
-		case "memoryUsedBytes": return L(i, {
+		case "memoryUsedBytes": return I(i, {
 			entityIncludes: ["memory"],
 			friendlyIncludes: ["memory", "used"],
 			unit: "B"
 		});
-		case "memoryUsedPercent": return L(i, {
+		case "memoryUsedPercent": return I(i, {
 			entityIncludes: ["memory"],
 			friendlyIncludes: ["memory", "used"],
 			unit: "%"
 		});
-		case "swapUsedPercent": return L(i, {
+		case "swapUsedPercent": return I(i, {
 			entityIncludes: ["swap"],
 			friendlyIncludes: ["swap", "used"],
 			unit: "%"
 		});
-		case "uptime": return L(i, {
+		case "uptime": return I(i, {
 			entityIncludes: ["uptime"],
 			friendlyIncludes: ["uptime"],
 			unit: "s"
 		});
 	}
-}), Qt = (e, t, n) => {
-	let r = I(e, t, n), i = rt[n], a = [
+}), rn = (e, t, n) => {
+	let r = F(e, t, n), i = it[n], a = [
 		r ? e[r] : void 0,
-		e[I(e, t, "cpu") ?? ""],
-		e[I(e, t, "memoryUsedBytes") ?? ""]
+		e[F(e, t, "cpu") ?? ""],
+		e[F(e, t, "memoryUsedBytes") ?? ""]
 	];
 	for (let r of a) {
-		let a = V(r, i);
-		if (tn(e, t, n, a)) return a;
+		let a = B(r, i);
+		if (sn(e, t, n, a)) return a;
 	}
-	for (let [, r] of jt(e, t)) {
-		let a = V(r, i);
-		if (tn(e, t, n, a)) return a;
+	for (let [, r] of Mt(e, t)) {
+		let a = B(r, i);
+		if (sn(e, t, n, a)) return a;
 	}
-	let o = z(e, r);
-	return tn(e, t, n, o) ? o : void 0;
-}, $t = (e, t) => {
-	let n = I(e, t, "load1"), r = e[n ?? ""], i = Qt(e, t, "load1") ?? 0, a = Gn(r) === "%" || en(n, r), o = a ? i : i * 100;
+	let o = R(e, r);
+	return sn(e, t, n, o) ? o : void 0;
+}, an = (e, t) => {
+	let n = F(e, t, "load1"), r = e[n ?? ""], i = rn(e, t, "load1") ?? 0, a = Xn(r) === "%" || on(n, r), o = a ? i : i * 100;
 	return {
 		value: i,
-		valuePercent: Dn(o),
-		valueText: a ? On(i) : i.toFixed(2),
+		valuePercent: Mn(o),
+		valueText: a ? Nn(i) : i.toFixed(2),
 		unit: a ? "percent" : "load",
-		statusText: a ? En(o) : Tn(i)
+		statusText: a ? jn(o) : An(i)
 	};
-}, en = (e, t) => {
-	let n = e?.toLowerCase() ?? "", r = lr(t);
+}, on = (e, t) => {
+	let n = e?.toLowerCase() ?? "", r = pr(t);
 	return n.endsWith("_load_1") || n.includes("_load_1m") || r.includes("load 1m") || r.includes("load (1m)");
-}, tn = (e, t, n, r) => {
+}, sn = (e, t, n, r) => {
 	if (r === void 0 || !Number.isFinite(r) || r < 0) return !1;
 	if (n !== "load1") return !0;
-	let i = e[I(e, t, "cpu") ?? ""], a = H(i, "cpu_cores").length;
+	let i = e[F(e, t, "cpu") ?? ""], a = V(i, "cpu_cores").length;
 	return r <= Math.max(a * 64, 1024);
-}, nn = (e, t, n, r) => F(e, `diskMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, {
+}, cn = (e, t, n, r) => P(e, `diskMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, {
 		size: [`sensor.ugos_bridge_host_${t}_disk_${n}_size_bytes`, `sensor.ugos_bridge_disk_${n}_size_bytes`],
 		temperature: [`sensor.ugos_bridge_host_${t}_disk_${n}_temperature_celsius`, `sensor.ugos_bridge_disk_${n}_temperature_celsius`],
 		read: [`sensor.ugos_bridge_host_${t}_disk_${n}_read_bytes_per_second`, `sensor.ugos_bridge_disk_${n}_read_bytes_per_second`],
@@ -1438,7 +1499,7 @@ var E = {
 		busy: [`sensor.ugos_bridge_host_${t}_disk_${n}_busy_percent`, `sensor.ugos_bridge_disk_${n}_busy_percent`]
 	}[r]);
 	if (i) return i;
-	let a = A(e, [
+	let a = k(e, [
 		`sensor.ugos_bridge_host_${t}_disk_${n}_`,
 		`sensor.${t}_disk_${n}_`,
 		`sensor.ugos_bridge_disk_${n}_`
@@ -1459,15 +1520,15 @@ var E = {
 		friendlyIncludes: [r === "read" ? "read" : "write", "throughput"],
 		unit: "B/s"
 	};
-	if (a.length > 0) return N(a, o);
-	let s = M(e, "disk", n);
-	return s.length > 0 ? N(s, o) : N(O(e).filter(([, e]) => K(e, [n])), {
+	if (a.length > 0) return M(a, o);
+	let s = j(e, "disk", n);
+	return s.length > 0 ? M(s, o) : M(D(e).filter(([, e]) => G(e, [n])), {
 		...o,
 		entityIncludes: [],
 		friendlyIncludes: [n, ...o.friendlyIncludes]
 	});
-}), rn = (e, t, n, r) => F(e, `diskTextMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, {
+}), ln = (e, t, n, r) => P(e, `diskTextMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, {
 		model: [`sensor.ugos_bridge_host_${t}_disk_${n}_model`, `sensor.ugos_bridge_disk_${n}_model`],
 		vendor: [`sensor.ugos_bridge_host_${t}_disk_${n}_vendor`, `sensor.ugos_bridge_disk_${n}_vendor`],
 		serial: [`sensor.ugos_bridge_host_${t}_disk_${n}_serial`, `sensor.ugos_bridge_disk_${n}_serial`],
@@ -1484,61 +1545,61 @@ var E = {
 	} : {
 		entityIncludes: [r],
 		friendlyIncludes: [r]
-	}, s = A(e, a);
-	if (s.length > 0) return N(s, o);
-	let c = M(e, "disk", n);
-	return c.length > 0 ? N(c, o) : N(O(e).filter(([, e]) => K(e, [n])), {
+	}, s = k(e, a);
+	if (s.length > 0) return M(s, o);
+	let c = j(e, "disk", n);
+	return c.length > 0 ? M(c, o) : M(D(e).filter(([, e]) => G(e, [n])), {
 		entityIncludes: [],
 		friendlyIncludes: [n, ...o.friendlyIncludes]
 	});
-}), an = (e, t, n, r) => F(e, `filesystemMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, {
+}), un = (e, t, n, r) => P(e, `filesystemMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, {
 		used: [`sensor.ugos_bridge_host_${t}_filesystem_${n}_used_bytes`, `sensor.ugos_bridge_filesystem_${n}_used_bytes`],
 		free: [`sensor.ugos_bridge_host_${t}_filesystem_${n}_free_bytes`, `sensor.ugos_bridge_filesystem_${n}_free_bytes`]
 	}[r]);
 	if (i) return i;
-	let a = A(e, [
+	let a = k(e, [
 		`sensor.ugos_bridge_host_${t}_filesystem_${n}_`,
 		`sensor.${t}_filesystem_${n}_`,
 		`sensor.ugos_bridge_filesystem_${n}_`
 	]);
-	if (a.length > 0) return N(a, {
+	if (a.length > 0) return M(a, {
 		entityIncludes: [r],
 		friendlyIncludes: [r],
 		unit: "B"
 	});
-	let o = M(e, "filesystem", n);
-	return o.length > 0 ? N(o, {
+	let o = j(e, "filesystem", n);
+	return o.length > 0 ? M(o, {
 		entityIncludes: [r],
 		friendlyIncludes: [r],
 		unit: "B"
-	}) : N(O(e).filter(([, e]) => qn(e, t) === n), {
+	}) : M(D(e).filter(([, e]) => Qn(e, t) === n), {
 		entityIncludes: [r],
 		friendlyIncludes: [r],
 		unit: "B"
 	});
-}), on = (e, t, n) => F(e, `filesystemReadonly:${t}:${n}`, () => {
-	let r = j(e, [`binary_sensor.ugos_bridge_host_${t}_filesystem_${n}_read_only`, `binary_sensor.ugos_bridge_filesystem_${n}_read_only`]);
+}), dn = (e, t, n) => P(e, `filesystemReadonly:${t}:${n}`, () => {
+	let r = A(e, [`binary_sensor.ugos_bridge_host_${t}_filesystem_${n}_read_only`, `binary_sensor.ugos_bridge_filesystem_${n}_read_only`]);
 	if (r) return r;
-	let i = A(e, [
+	let i = k(e, [
 		`binary_sensor.ugos_bridge_host_${t}_filesystem_${n}_`,
 		`binary_sensor.${t}_filesystem_${n}_`,
 		`binary_sensor.ugos_bridge_filesystem_${n}_`
 	]);
-	if (i.length > 0) return N(i, {
+	if (i.length > 0) return M(i, {
 		entityIncludes: ["read"],
 		friendlyIncludes: ["read", "only"]
 	});
-	let a = M(e, "filesystem", n, "binary_sensor.");
-	return a.length > 0 ? N(a, {
+	let a = j(e, "filesystem", n, "binary_sensor.");
+	return a.length > 0 ? M(a, {
 		entityIncludes: ["read"],
 		friendlyIncludes: ["read", "only"]
-	}) : N(O(e).filter(([, e]) => qn(e, t) === n), {
+	}) : M(D(e).filter(([, e]) => Qn(e, t) === n), {
 		entityIncludes: ["read"],
 		friendlyIncludes: ["read", "only"]
 	});
-}), sn = (e, t, n, r) => F(e, `arrayMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, {
+}), fn = (e, t, n, r) => P(e, `arrayMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, {
 		size: [`sensor.ugos_bridge_host_${t}_array_${n}_size_bytes`, `sensor.ugos_bridge_array_${n}_size_bytes`],
 		degraded: [`sensor.ugos_bridge_host_${t}_array_${n}_degraded_disks`, `sensor.ugos_bridge_array_${n}_degraded_disks`],
 		active: [`sensor.ugos_bridge_host_${t}_array_${n}_active_disks`, `sensor.ugos_bridge_array_${n}_active_disks`],
@@ -1567,36 +1628,36 @@ var E = {
 		entityIncludes: ["sync"],
 		friendlyIncludes: ["sync"],
 		unit: "%"
-	}, s = A(e, a);
-	if (s.length > 0) return N(s, o);
-	let c = M(e, "array", n);
-	return c.length > 0 ? N(c, o) : N(O(e).filter(([, e]) => K(e, [n])), {
+	}, s = k(e, a);
+	if (s.length > 0) return M(s, o);
+	let c = j(e, "array", n);
+	return c.length > 0 ? M(c, o) : M(D(e).filter(([, e]) => G(e, [n])), {
 		...o,
 		entityIncludes: [],
 		friendlyIncludes: [n, ...o.friendlyIncludes]
 	});
-}), cn = (e, t, n, r) => F(e, `arrayTextMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, { level: [`sensor.ugos_bridge_host_${t}_array_${n}_level`, `sensor.ugos_bridge_array_${n}_level`] }[r]);
+}), pn = (e, t, n, r) => P(e, `arrayTextMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, { level: [`sensor.ugos_bridge_host_${t}_array_${n}_level`, `sensor.ugos_bridge_array_${n}_level`] }[r]);
 	if (i) return i;
-	let a = A(e, [
+	let a = k(e, [
 		`sensor.ugos_bridge_host_${t}_array_${n}_`,
 		`sensor.${t}_array_${n}_`,
 		`sensor.ugos_bridge_array_${n}_`
 	]);
-	if (a.length > 0) return N(a, {
+	if (a.length > 0) return M(a, {
 		entityIncludes: ["level"],
 		friendlyIncludes: ["level"]
 	});
-	let o = M(e, "array", n);
-	return o.length > 0 ? N(o, {
+	let o = j(e, "array", n);
+	return o.length > 0 ? M(o, {
 		entityIncludes: ["level"],
 		friendlyIncludes: ["level"]
-	}) : N(O(e).filter(([, e]) => K(e, [n, "level"])), {
+	}) : M(D(e).filter(([, e]) => G(e, [n, "level"])), {
 		entityIncludes: [],
 		friendlyIncludes: [n, "level"]
 	});
-}), ln = (e, t, n, r) => F(e, `networkMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, {
+}), mn = (e, t, n, r) => P(e, `networkMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, {
 		rx: [`sensor.ugos_bridge_host_${t}_network_${n}_rx_bytes_per_second`, `sensor.ugos_bridge_network_${n}_rx_bytes_per_second`],
 		tx: [`sensor.ugos_bridge_host_${t}_network_${n}_tx_bytes_per_second`, `sensor.ugos_bridge_network_${n}_tx_bytes_per_second`],
 		speed: [`sensor.ugos_bridge_host_${t}_network_${n}_speed_mbps`, `sensor.ugos_bridge_network_${n}_speed_mbps`]
@@ -1614,36 +1675,36 @@ var E = {
 		entityIncludes: [r],
 		friendlyIncludes: [r === "rx" ? "rx" : "tx", "throughput"],
 		unit: "B/s"
-	}, s = A(e, a);
-	if (s.length > 0) return N(s, o);
-	let c = M(e, "network", n);
-	return c.length > 0 ? N(c, o) : N(O(e).filter(([, e]) => K(e, [n])), {
+	}, s = k(e, a);
+	if (s.length > 0) return M(s, o);
+	let c = j(e, "network", n);
+	return c.length > 0 ? M(c, o) : M(D(e).filter(([, e]) => G(e, [n])), {
 		...o,
 		entityIncludes: [],
 		friendlyIncludes: [n, ...o.friendlyIncludes]
 	});
-}), un = (e, t, n) => F(e, `networkCarrier:${t}:${n}`, () => {
-	let r = j(e, [`binary_sensor.ugos_bridge_host_${t}_network_${n}_carrier`, `binary_sensor.ugos_bridge_network_${n}_carrier`]);
+}), hn = (e, t, n) => P(e, `networkCarrier:${t}:${n}`, () => {
+	let r = A(e, [`binary_sensor.ugos_bridge_host_${t}_network_${n}_carrier`, `binary_sensor.ugos_bridge_network_${n}_carrier`]);
 	if (r) return r;
-	let i = A(e, [
+	let i = k(e, [
 		`binary_sensor.ugos_bridge_host_${t}_network_${n}_`,
 		`binary_sensor.${t}_network_${n}_`,
 		`binary_sensor.ugos_bridge_network_${n}_`
 	]);
-	if (i.length > 0) return N(i, {
+	if (i.length > 0) return M(i, {
 		entityIncludes: ["carrier"],
 		friendlyIncludes: ["carrier"]
 	});
-	let a = M(e, "network", n, "binary_sensor.");
-	return a.length > 0 ? N(a, {
+	let a = j(e, "network", n, "binary_sensor.");
+	return a.length > 0 ? M(a, {
 		entityIncludes: ["carrier"],
 		friendlyIncludes: ["carrier"]
-	}) : N(st(e, "binary_sensor.").filter(([, e]) => K(e, [n, "carrier"])), {
+	}) : M(ct(e, "binary_sensor.").filter(([, e]) => G(e, [n, "carrier"])), {
 		entityIncludes: [],
 		friendlyIncludes: [n, "carrier"]
 	});
-}), dn = (e, t, n, r) => F(e, `bondMetric:${t}:${n}:${r}`, () => {
-	let i = j(e, {
+}), gn = (e, t, n, r) => P(e, `bondMetric:${t}:${n}:${r}`, () => {
+	let i = A(e, {
 		speed: [`sensor.ugos_bridge_host_${t}_bond_${n}_speed_mbps`, `sensor.ugos_bridge_bond_${n}_speed_mbps`],
 		mode: [`sensor.ugos_bridge_host_${t}_bond_${n}_mode`, `sensor.ugos_bridge_bond_${n}_mode`],
 		active_slave: [`sensor.ugos_bridge_host_${t}_bond_${n}_active_slave`, `sensor.ugos_bridge_bond_${n}_active_slave`]
@@ -1663,42 +1724,42 @@ var E = {
 	} : {
 		entityIncludes: ["active"],
 		friendlyIncludes: ["active", "slave"]
-	}, s = A(e, a);
-	if (s.length > 0) return N(s, o);
-	let c = M(e, "bond", n);
-	return c.length > 0 ? N(c, o) : N(O(e).filter(([, e]) => K(e, [n])), {
+	}, s = k(e, a);
+	if (s.length > 0) return M(s, o);
+	let c = j(e, "bond", n);
+	return c.length > 0 ? M(c, o) : M(D(e).filter(([, e]) => G(e, [n])), {
 		...o,
 		entityIncludes: [],
 		friendlyIncludes: [n, ...o.friendlyIncludes]
 	});
-}), fn = (e, t, n) => F(e, `bondCarrier:${t}:${n}`, () => {
-	let r = j(e, [`binary_sensor.ugos_bridge_host_${t}_bond_${n}_carrier`, `binary_sensor.ugos_bridge_bond_${n}_carrier`]);
+}), _n = (e, t, n) => P(e, `bondCarrier:${t}:${n}`, () => {
+	let r = A(e, [`binary_sensor.ugos_bridge_host_${t}_bond_${n}_carrier`, `binary_sensor.ugos_bridge_bond_${n}_carrier`]);
 	if (r) return r;
-	let i = A(e, [
+	let i = k(e, [
 		`binary_sensor.ugos_bridge_host_${t}_bond_${n}_`,
 		`binary_sensor.${t}_bond_${n}_`,
 		`binary_sensor.ugos_bridge_bond_${n}_`
 	]);
-	if (i.length > 0) return N(i, {
+	if (i.length > 0) return M(i, {
 		entityIncludes: ["carrier"],
 		friendlyIncludes: ["carrier"]
 	});
-	let a = M(e, "bond", n, "binary_sensor.");
-	return a.length > 0 ? N(a, {
+	let a = j(e, "bond", n, "binary_sensor.");
+	return a.length > 0 ? M(a, {
 		entityIncludes: ["carrier"],
 		friendlyIncludes: ["carrier"]
-	}) : N(st(e, "binary_sensor.").filter(([, e]) => K(e, [n, "carrier"])), {
+	}) : M(ct(e, "binary_sensor.").filter(([, e]) => G(e, [n, "carrier"])), {
 		entityIncludes: [],
 		friendlyIncludes: [n, "carrier"]
 	});
-}), pn = (e, t, n, r, i) => F(e, `gpuMetric:${t}:${n}:${r}:${i}`, () => {
-	let a = j(e, {
+}), vn = (e, t, n, r, i) => P(e, `gpuMetric:${t}:${n}:${r}:${i}`, () => {
+	let a = A(e, {
 		busy: [`sensor.${n}_gpu_${r}_busy_percent`, `sensor.ugos_bridge_gpu_${r}_busy_percent`],
 		current: [`sensor.${n}_gpu_${r}_current_mhz`, `sensor.ugos_bridge_gpu_${r}_current_mhz`],
 		max: [`sensor.${n}_gpu_${r}_max_mhz`, `sensor.ugos_bridge_gpu_${r}_max_mhz`]
 	}[i]);
 	if (a) return a;
-	let o = A(e, [
+	let o = k(e, [
 		`sensor.${n}_gpu_${r}_`,
 		`sensor.${t}_gpu_${r}_`,
 		`sensor.ugos_bridge_gpu_${r}_`
@@ -1711,22 +1772,22 @@ var E = {
 		friendlyIncludes: [i, "frequency"],
 		unit: "MHz"
 	};
-	return N(o, s) ?? N(M(e, "gpu", r), s);
-}), mn = (e, t, n, r, i) => {
-	let a = i.filter((t) => In(e[t ?? ""])), o = hn(e, t, n, r).filter(([, e]) => H(e, "engines").length > 0 || H(e, "stats").length > 0).map(([e]) => e);
+	return M(o, s) ?? M(j(e, "gpu", r), s);
+}), yn = (e, t, n, r, i) => {
+	let a = i.filter((t) => Vn(e[t ?? ""])), o = bn(e, t, n, r).filter(([, e]) => V(e, "engines").length > 0 || V(e, "stats").length > 0).map(([e]) => e);
 	return Array.from(/* @__PURE__ */ new Set([...a, ...o]));
-}, hn = (e, t, n, r) => P(e, `gpuEntries:${t}:${n}:${r}`, () => {
-	let i = A(e, [
+}, bn = (e, t, n, r) => N(e, `gpuEntries:${t}:${n}:${r}`, () => {
+	let i = k(e, [
 		`sensor.${n}_gpu_${r}_`,
 		`sensor.${t}_gpu_${r}_`,
 		`sensor.ugos_bridge_gpu_${r}_`
-	]), a = M(e, "gpu", r), o = O(e).filter(([e, t]) => e.startsWith("sensor.") && J(B(t, "name") ?? "") === r && (H(t, "engines").length > 0 || H(t, "stats").length > 0 || V(t, "busy_percent") !== void 0 || V(t, "current_mhz") !== void 0 || V(t, "max_mhz") !== void 0));
+	]), a = j(e, "gpu", r), o = D(e).filter(([e, t]) => e.startsWith("sensor.") && J(z(t, "name") ?? "") === r && (V(t, "engines").length > 0 || V(t, "stats").length > 0 || B(t, "busy_percent") !== void 0 || B(t, "current_mhz") !== void 0 || B(t, "max_mhz") !== void 0));
 	return Array.from(new Map([
 		...i,
 		...a,
 		...o
 	]).entries());
-}), gn = (e, t, n) => F(e, `projectMetric:${t}:${n}`, () => {
+}), xn = (e, t, n) => P(e, `projectMetric:${t}:${n}`, () => {
 	let r = {
 		cpu: `sensor.ugos_bridge_project_${t}_cpu_usage_percent`,
 		memory: `sensor.ugos_bridge_project_${t}_memory_usage_bytes`,
@@ -1734,7 +1795,7 @@ var E = {
 		running: `sensor.ugos_bridge_project_${t}_running_containers`
 	};
 	if (e[r[n]]) return r[n];
-	let i = A(e, [
+	let i = k(e, [
 		`sensor.ugos_bridge_project_${t}_`,
 		`sensor.compose_project_${t}_`,
 		`sensor.project_${t}_`,
@@ -1754,26 +1815,26 @@ var E = {
 		entityIncludes: ["running"],
 		friendlyIncludes: ["running", "containers"]
 	};
-	return i.length > 0 ? L(i, a) : L(O(e).filter(([, e]) => ar(e) === t), a);
-}), _n = (e, t) => F(e, `projectPayload:${t}`, () => {
+	return i.length > 0 ? I(i, a) : I(D(e).filter(([, e]) => ur(e) === t), a);
+}), Sn = (e, t) => P(e, `projectPayload:${t}`, () => {
 	let n, r = -1;
-	for (let [i, a] of O(e)) {
-		if (!i.startsWith("sensor.") || mr(B(a, "project_slug") ?? B(a, "project")) !== t) continue;
+	for (let [i, a] of D(e)) {
+		if (!i.startsWith("sensor.") || vr(z(a, "project_slug") ?? z(a, "project")) !== t) continue;
 		let e = 0;
-		H(a, "containers").length > 0 && (e += 8), V(a, "total_containers") !== void 0 && (e += 4), V(a, "running_containers") !== void 0 && (e += 3), V(a, "memory_usage_bytes") !== void 0 && (e += 2), V(a, "cpu_usage_percent") !== void 0 && (e += 2), i.startsWith("sensor.compose_project_") && (e += 3), i.startsWith("sensor.ugos_bridge_project_") && (e += 3), (e > r || e === r && n !== void 0 && i.localeCompare(n) < 0 || n === void 0) && (n = i, r = e);
+		V(a, "containers").length > 0 && (e += 8), B(a, "total_containers") !== void 0 && (e += 4), B(a, "running_containers") !== void 0 && (e += 3), B(a, "memory_usage_bytes") !== void 0 && (e += 2), B(a, "cpu_usage_percent") !== void 0 && (e += 2), i.startsWith("sensor.compose_project_") && (e += 3), i.startsWith("sensor.ugos_bridge_project_") && (e += 3), (e > r || e === r && n !== void 0 && i.localeCompare(n) < 0 || n === void 0) && (n = i, r = e);
 	}
 	return n;
-}), vn = (e, t, n) => {
+}), Cn = (e, t, n) => {
 	let r = J(e), i = J(t);
 	return n.some((e) => {
 		let t = J(e);
 		return t === r || t === i;
 	});
-}, yn = (e, t) => e.samples.at(-1)?.key === t.key ? e : { samples: [...e.samples, t].slice(-21) }, bn = (e, t, n) => {
+}, wn = (e, t) => e.samples.at(-1)?.key === t.key ? e : { samples: [...e.samples, t].slice(-21) }, Tn = (e, t, n) => {
 	if (e.length >= n) return e.slice(-21);
 	let r = Math.max(n - e.length, 0);
 	return [...Array.from({ length: r }, () => t), ...e];
-}, xn = (e, t, n) => {
+}, En = (e, t, n) => {
 	let r = {
 		key: "initial",
 		timestampLabel: "",
@@ -1787,22 +1848,22 @@ var E = {
 		timestampLabel: e.timestampLabel,
 		totalsByInterface: Object.fromEntries(t.map((t) => [t, e.networkBpsBySlug[t] ?? 0]))
 	}));
-}, Sn = (e, t) => {
+}, Dn = (e, t) => {
 	let n = e.find((e) => t.some((t) => e.label.includes(t)));
 	return n ? n.value : e.find((e) => !e.entityId.includes("_disk_"))?.value;
-}, Cn = (e, t) => {
+}, On = (e, t) => {
 	let n = t.toLowerCase(), r = e.find((e) => e.label.includes(n) && (e.label.includes("phy temperature") || e.label.includes("mac temperature")));
 	return r ? r.value : e.find((e) => e.label.includes(n))?.value;
-}, wn = (e) => e === void 0 ? "healthy" : e >= 55 ? "degraded" : e >= 48 ? "warning" : "healthy", Tn = (e) => e >= 3 ? "High" : e >= 1 ? "Busy" : "Good", En = (e) => e >= 90 ? "High" : e >= 70 ? "Busy" : "Good", Dn = (e) => Math.max(0, Math.min(100, e)), On = (e) => {
+}, kn = (e) => e === void 0 ? "healthy" : e >= 55 ? "degraded" : e >= 48 ? "warning" : "healthy", An = (e) => e >= 3 ? "High" : e >= 1 ? "Busy" : "Good", jn = (e) => e >= 90 ? "High" : e >= 70 ? "Busy" : "Good", Mn = (e) => Math.max(0, Math.min(100, e)), Nn = (e) => {
 	let t = e >= 100 ? 0 : e >= 10 ? 1 : 2;
 	return `${e.toFixed(t)}%`;
-}, kn = (e, t) => P(e, `hasEntityPrefix:${t}`, () => D(e).some((e) => e.startsWith(`sensor.${t}_`) || e.startsWith(`binary_sensor.${t}_`))), An = (e, t) => P(e, `hasBridgeHostEntityPrefix:${t}`, () => D(e).some((e) => e.startsWith(`sensor.ugos_bridge_host_${t}_`) || e.startsWith(`binary_sensor.ugos_bridge_host_${t}_`))), jn = (e) => P(e, "hostSlugCandidates", () => {
+}, Pn = (e, t) => N(e, `hasEntityPrefix:${t}`, () => E(e).some((e) => e.startsWith(`sensor.${t}_`) || e.startsWith(`binary_sensor.${t}_`))), Fn = (e, t) => N(e, `hasBridgeHostEntityPrefix:${t}`, () => E(e).some((e) => e.startsWith(`sensor.ugos_bridge_host_${t}_`) || e.startsWith(`binary_sensor.ugos_bridge_host_${t}_`))), In = (e) => N(e, "hostSlugCandidates", () => {
 	let t = /* @__PURE__ */ new Map(), n = (e, n) => {
 		e === void 0 || e.startsWith("ugos_bridge_") || t.set(e, (t.get(e) ?? 0) + n);
 	};
-	for (let t of D(e)) n(Ye.exec(t)?.[1], 1e3), n(Qe.exec(t)?.[1], 500), n(Ze.exec(t)?.[1], 100), n($e.exec(t)?.[1], 1);
+	for (let t of E(e)) n(Xe.exec(t)?.[1], 1e3), n($e.exec(t)?.[1], 500), n(Qe.exec(t)?.[1], 100), n(et.exec(t)?.[1], 1);
 	return Array.from(t.entries()).sort(([e, t], [n, r]) => r - t || e.localeCompare(n)).map(([e]) => e);
-}), Mn = (e) => [
+}), Ln = (e) => [
 	`sensor.ugos_bridge_host_${e}_`,
 	`binary_sensor.ugos_bridge_host_${e}_`,
 	`sensor.${e}_`,
@@ -1824,11 +1885,11 @@ var E = {
 	"sensor.ugos_bridge_vm_",
 	"binary_sensor.ugos_bridge_vm_",
 	"sensor.ugos_bridge_process_"
-], Nn = (e, t, n) => D(e).filter((r) => {
-	if (n !== void 0 && r === n || t.some((e) => r.startsWith(e))) return !0;
-	let i = e[r];
-	return B(i, "container") !== void 0 || B(i, "project") !== void 0 || V(i, "process_count") !== void 0 || V(i, "cpu_time_seconds") !== void 0;
-}).sort(), Pn = (e, t) => e.startsWith(`sensor.${t}_`) && ![
+], Rn = (e, t, n, r) => E(e).filter((i) => {
+	if (n !== void 0 && i === n || t.some((e) => i.startsWith(e))) return !0;
+	let a = e[i];
+	return Pt(i, a) && a !== void 0 && Ft(i, a, r) || z(a, "container") !== void 0 || z(a, "project") !== void 0 || B(a, "process_count") !== void 0 || B(a, "cpu_time_seconds") !== void 0;
+}).sort(), zn = (e, t) => e.startsWith(`sensor.${t}_`) && ![
 	"_array_",
 	"_bond_",
 	"_cooling_",
@@ -1839,10 +1900,10 @@ var E = {
 	"_network_",
 	"_software_",
 	"_ups_"
-].some((t) => e.includes(t)), L = (e, t) => {
+].some((t) => e.includes(t)), I = (e, t) => {
 	let n, r = -1;
 	entryLoop: for (let [i, a] of e) {
-		let e = i.toLowerCase(), o = lr(a), s = Gn(a), c = In(a);
+		let e = i.toLowerCase(), o = pr(a), s = Xn(a), c = Vn(a);
 		if (t.unit && s !== t.unit) continue;
 		let l = c ? 100 : -100;
 		for (let n of t.entityIncludes) {
@@ -1856,30 +1917,30 @@ var E = {
 		(l > r || l === r && n !== void 0 && i.localeCompare(n) < 0 || n === void 0) && (n = i, r = l);
 	}
 	return n;
-}, R = (e, t) => P(e, `entitySlugs:${t.source}`, () => Array.from(new Set(D(e).map((e) => t.exec(e)?.[1]).filter((e) => !!e))).sort()), Fn = (e, t, n, r, i) => P(e, `componentSlugs:${t}:${n}:${r}`, () => {
+}, L = (e, t) => N(e, `entitySlugs:${t.source}`, () => Array.from(new Set(E(e).map((e) => t.exec(e)?.[1]).filter((e) => !!e))).sort()), Bn = (e, t, n, r, i) => N(e, `componentSlugs:${t}:${n}:${r}`, () => {
 	let a = [
 		RegExp(`^(?:sensor|binary_sensor)\\.${Y(n)}_${r}_([^_]+)_`),
 		RegExp(`^(?:sensor|binary_sensor)\\.${Y(t)}_${r}_([^_]+)_`),
 		RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_${r}_([^_]+)_`)
 	];
-	return Array.from(new Set(D(e).flatMap((e) => a.map((t) => t.exec(e)?.[1]).filter((e) => !!e)).map((e) => J(e)).filter((e) => !!e && i(e)))).sort();
-}), In = (e) => e !== void 0 && e.state !== "unknown" && e.state !== "unavailable", z = (e, t) => t ? Hn(e[t]) : void 0, Ln = (e, t) => {
+	return Array.from(new Set(E(e).flatMap((e) => a.map((t) => t.exec(e)?.[1]).filter((e) => !!e)).map((e) => J(e)).filter((e) => !!e && i(e)))).sort();
+}), Vn = (e) => e !== void 0 && e.state !== "unknown" && e.state !== "unavailable", R = (e, t) => t ? qn(e[t]) : void 0, Hn = (e, t) => {
 	if (!t) return;
 	let n = e[t];
 	if (!n) return;
-	let r = ct(n);
+	let r = lt(n);
 	if (!r) return;
 	if (r.textState !== void 0) return r.textState ?? void 0;
 	let i = n.state;
 	return r.textState = !i || i === "unknown" || i === "unavailable" ? null : i, r.textState ?? void 0;
-}, B = (e, t) => {
+}, z = (e, t) => {
 	let n = e?.attributes[t];
 	return typeof n == "string" && n.trim() !== "" ? n : void 0;
-}, V = (e, t) => {
+}, B = (e, t) => {
 	let n = e?.attributes[t];
 	if (typeof n == "number" && Number.isFinite(n)) return n;
-	if (typeof n == "string") return G(n);
-}, Rn = (e, t) => {
+	if (typeof n == "string") return W(n);
+}, Un = (e, t) => {
 	let n = e?.attributes[t];
 	if (typeof n == "boolean") return n;
 	if (typeof n == "number") return n !== 0;
@@ -1888,24 +1949,24 @@ var E = {
 		if (e === "1" || e === "true" || e === "on" || e === "running") return !0;
 		if (e === "0" || e === "false" || e === "off" || e === "stopped") return !1;
 	}
-}, zn = (e, t) => {
+}, Wn = (e, t) => {
 	let n = e?.attributes[t];
 	return Array.isArray(n) ? n.filter((e) => typeof e == "string" && e.trim() !== "") : [];
-}, Bn = (e, t) => {
+}, Gn = (e, t) => {
 	for (let n of e) {
-		let e = zn(n, t);
+		let e = Wn(n, t);
 		if (e.length > 0) return e;
 	}
 	return [];
-}, H = (e, t) => {
+}, V = (e, t) => {
 	let n = e?.attributes[t];
 	return Array.isArray(n) ? n.filter((e) => typeof e == "object" && !!e) : [];
-}, U = (e, t) => {
+}, H = (e, t) => {
 	for (let n of t) {
 		let t = e[n];
 		if (typeof t == "string" && t.trim() !== "") return t;
 	}
-}, Vn = (e, t) => {
+}, Kn = (e, t) => {
 	for (let n of t) {
 		let t = e[n];
 		if (typeof t == "boolean") return t;
@@ -1916,35 +1977,35 @@ var E = {
 			if (e === "0" || e === "false" || e === "off" || e === "stopped") return !1;
 		}
 	}
-}, W = (e, t) => {
+}, U = (e, t) => {
 	for (let n of t) {
 		let t = e[n];
 		if (typeof t == "number" && Number.isFinite(t)) return t;
 		if (typeof t == "string") {
-			let e = G(t);
+			let e = W(t);
 			if (e !== void 0) return e;
 		}
 	}
-}, G = (e) => {
+}, W = (e) => {
 	if (!e || e === "unknown" || e === "unavailable") return;
 	let t = Number(e);
 	return Number.isFinite(t) ? t : void 0;
-}, Hn = (e) => {
-	let t = ct(e);
-	if (!(!t || !e)) return t.parsedNumber === void 0 && (t.parsedNumber = G(e.state) ?? null), t.parsedNumber ?? void 0;
-}, Un = (e) => e?.state === "on";
-function Wn(e) {
+}, qn = (e) => {
+	let t = lt(e);
+	if (!(!t || !e)) return t.parsedNumber === void 0 && (t.parsedNumber = W(e.state) ?? null), t.parsedNumber ?? void 0;
+}, Jn = (e) => e?.state === "on";
+function Yn(e) {
 	if (!e) return;
 	let t = e.trim();
 	return t === "°C" || t === "ºC" || t === "Â°C" || t === "В°C" ? "°C" : t || void 0;
 }
-var Gn = (e) => ct(e)?.unit, K = (e, t) => {
-	let n = lr(e);
+var Xn = (e) => lt(e)?.unit, G = (e, t) => {
+	let n = pr(e);
 	return t.every((e) => n.includes(e));
-}, Kn = (e, t, n) => {
-	let r = cr(e);
+}, Zn = (e, t, n) => {
+	let r = q(e);
 	if (!r) return;
-	let i = Jn(r, t);
+	let i = $n(r, t);
 	if (!i) return;
 	let a = i.toLowerCase();
 	for (let e of n) {
@@ -1953,43 +2014,43 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		let n = i.slice(0, i.length - e.length).trim();
 		return n ? J(n) : void 0;
 	}
-}, qn = (e, t) => {
-	let n = cr(e);
+}, Qn = (e, t) => {
+	let n = q(e);
 	if (!n) return;
 	let r = n.toLowerCase(), i = t.replace(/_/g, " ");
 	if (!r.includes(i) || !r.includes("/")) return;
 	let a = n.match(/(\/[^\s]*)/)?.[1];
 	return a ? J(a) : void 0;
-}, Jn = (e, t) => {
+}, $n = (e, t) => {
 	let n = t.replace(/_/g, " ");
 	if (e.toLowerCase().startsWith(`${n.toLowerCase()} `)) return e.slice(n.length + 1).trim();
-}, Yn = (e) => /^(sd[a-z]+|hd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+|loop\d+|serial_[a-z0-9_]+|path_[a-f0-9]+|name_[a-z0-9_]+)$/i.test(e), Xn = (e) => /^md\d+$/i.test(e), Zn = (e) => /^bond\d+$/i.test(e), Qn = (e) => /^(eth\d+|en[a-z0-9]+|eno\d+|ens\d+|enp[a-z0-9]+|wlan\d+|wl[a-z0-9]+|lo)$/i.test(e), $n = (e) => {
+}, er = (e) => /^(sd[a-z]+|hd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+|loop\d+|serial_[a-z0-9_]+|path_[a-f0-9]+|name_[a-z0-9_]+)$/i.test(e), tr = (e) => /^md\d+$/i.test(e), nr = (e) => /^bond\d+$/i.test(e), rr = (e) => /^(eth\d+|en[a-z0-9]+|eno\d+|ens\d+|enp[a-z0-9]+|wlan\d+|wl[a-z0-9]+|lo)$/i.test(e), ir = (e) => {
 	if (e) return e.replace(/\s+/g, " ").trim() || void 0;
-}, er = (e) => {
+}, ar = (e) => {
 	let t = e?.trim().toLowerCase();
 	if (t) return t === "hdd" || t === "sata" ? "hdd" : t === "nvme" || t === "ssd" ? "nvme" : t;
-}, tr = (e) => {
+}, or = (e) => {
 	let t = e?.trim().toLowerCase();
 	if (t) return t === "linear" ? "JBOD" : t.toUpperCase();
-}, nr = (e) => {
+}, sr = (e) => {
 	let t = e.match(/^\/volume(\d+)$/i);
 	return t ? `Volume ${t[1]}` : e;
-}, rr = (e, t) => {
+}, cr = (e, t) => {
 	let n = t.reduce((e, t) => (t.mediaType && (e[t.mediaType] = (e[t.mediaType] ?? 0) + t.capacityBytes), e), {}), r = Object.entries(n).map(([t, n]) => ({
 		mediaType: t,
 		distance: Math.abs(n - e.sizeBytes) / Math.max(e.sizeBytes, n, 1)
 	})).sort((e, t) => e.distance - t.distance)[0];
 	if (r) return r.mediaType === "hdd" ? "SATA" : r.mediaType.toUpperCase();
-}, ir = (e, t) => {
+}, lr = (e, t) => {
 	if (e !== void 0 || t !== void 0) return `Drives ${e ?? t ?? 0}/${t ?? e ?? 0}`;
-}, ar = (e) => {
-	let t = cr(e);
+}, ur = (e) => {
+	let t = q(e);
 	if (!t) return;
 	let n = t.replace(/^(?:(?:compose|docker)\s+)?project\s+/i, "").replace(/\s+(CPU|Memory|Total Containers|Running Containers)$/i, "").trim();
 	if (!n) return;
 	let r = n.split(/\s+/).filter((e, t, n) => t === 0 || e.toLowerCase() !== n[t - 1]?.toLowerCase()).join(" ");
 	return r ? J(r) : void 0;
-}, or = (e) => {
+}, dr = (e) => {
 	let t = e.trim();
 	if (!t) return t;
 	let n = t.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim(), r = n.split(" ");
@@ -1998,64 +2059,64 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		if (r.slice(0, e).join(" ").toLowerCase() === r.slice(e).join(" ").toLowerCase()) return r.slice(0, e).join(" ");
 	}
 	return n;
-}, sr = (e, t, n, r) => {
+}, fr = (e, t, n, r) => {
 	let i = Object.entries(e).filter(([e, n]) => {
-		if (!e.startsWith("sensor.") || Gn(n) !== "%") return !1;
-		let i = `${e} ${cr(n)}`.toLowerCase(), a = i.includes(t) || i.includes(t.replace(/_/g, " ")), o = i.includes(r), s = i.includes("busy"), c = i.includes("render/3d") || i.includes("render_3d") || i.includes("blitter") || i.includes("videoenhance") || i.includes("video_enhance") || i.includes("video/") || i.includes("video_");
+		if (!e.startsWith("sensor.") || Xn(n) !== "%") return !1;
+		let i = `${e} ${q(n)}`.toLowerCase(), a = i.includes(t) || i.includes(t.replace(/_/g, " ")), o = i.includes(r), s = i.includes("busy"), c = i.includes("render/3d") || i.includes("render_3d") || i.includes("blitter") || i.includes("videoenhance") || i.includes("video_enhance") || i.includes("video/") || i.includes("video_");
 		return a && o && s && c;
-	}).map(([, e]) => G(e.state)).filter((e) => e !== void 0);
-	return i.length > 0 ? Math.max(...i) : z(e, pn(e, t, n, r, "busy")) ?? 0;
-}, q = (e, t, n) => {
-	let r = cr(e);
+	}).map(([, e]) => W(e.state)).filter((e) => e !== void 0);
+	return i.length > 0 ? Math.max(...i) : R(e, vn(e, t, n, r, "busy")) ?? 0;
+}, K = (e, t, n) => {
+	let r = q(e);
 	if (!r) return null;
 	let i = r.trim();
 	return t && i.endsWith(` ${t}`) && (i = i.slice(0, -` ${t}`.length)), n && i.startsWith(`${n} `) && (i = i.slice(n.length + 1)), i.startsWith("Compose project ") && (i = i.slice(16)), i.trim() || null;
-}, cr = (e) => ct(e)?.friendlyName ?? "", lr = (e) => ct(e)?.friendlyNameLower ?? "", ur = (e) => {
+}, q = (e) => lt(e)?.friendlyName ?? "", pr = (e) => lt(e)?.friendlyNameLower ?? "", mr = (e) => {
 	let t = e.match(/^cpu\s*(\d+)$/i);
 	return t ? `Core ${t[1]}` : e.replace(/\s+/g, " ").trim();
-}, dr = (e, t) => (G(e.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) - (G(t.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) || e.name.localeCompare(t.name), fr = (e) => {
+}, hr = (e, t) => (W(e.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) - (W(t.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) || e.name.localeCompare(t.name), gr = (e) => {
 	let t = e.replace(/\/\d+$/g, "").replace(/\/3d/gi, "").replace(/\s+/g, "");
 	return /^render/i.test(t) ? "Render" : /^blitter/i.test(t) ? "Blitter" : /^videoenhance/i.test(t) ? "VideoEnhance" : /^video/i.test(t) ? "Video" : e.replace(/\/\d+$/g, "").trim();
-}, pr = (e) => e.split("_").filter(Boolean).map((e) => e === "imc" ? "IMC" : e === "rc6" ? "RC6" : e === "mhz" ? "MHz" : e === "mib" ? "MiB" : Tr(e)).join(" "), mr = (e) => {
+}, _r = (e) => e.split("_").filter(Boolean).map((e) => e === "imc" ? "IMC" : e === "rc6" ? "RC6" : e === "mhz" ? "MHz" : e === "mib" ? "MiB" : kr(e)).join(" "), vr = (e) => {
 	if (!e) return;
 	let t = J(e);
 	return t === "unknown" ? void 0 : t;
-}, hr = (e) => {
-	let t = cr(e), n = /^(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(t);
+}, yr = (e) => {
+	let t = q(e), n = /^(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(t);
 	if (!n) return;
 	let r = n[1], i = n[2];
 	if (!r || !i) return;
-	let a = gr(r), o = i.toLowerCase(), s = o === "cpu" ? "cpu_usage_percent" : o.startsWith("memory") ? "memory_usage_bytes" : "running";
+	let a = br(r), o = i.toLowerCase(), s = o === "cpu" ? "cpu_usage_percent" : o.startsWith("memory") ? "memory_usage_bytes" : "running";
 	return {
 		key: J(a),
 		name: a,
 		metric: s
 	};
-}, gr = (e) => {
+}, br = (e) => {
 	let t = e.trim().split(/\s+/).filter(Boolean);
 	if (t.length > 1 && t.length % 2 == 0) {
 		let e = t.length / 2, n = t.slice(0, e), r = t.slice(e);
 		if (n.every((e, t) => e.toLowerCase() === r[t]?.toLowerCase())) return n.join(" ");
 	}
 	return t.filter((e, n) => n === 0 || e.toLowerCase() !== t[n - 1]?.toLowerCase()).join(" ");
-}, _r = (e) => {
+}, xr = (e) => {
 	let t = String(e?.state ?? "").trim().toLowerCase();
 	return t ? t === "1" || t === "on" ? "running" : t === "0" || t === "off" ? "stopped" : t : "unknown";
-}, vr = (e, t) => {
-	let n = Rn(e, "running");
+}, Sr = (e, t) => {
+	let n = Un(e, "running");
 	if (n !== void 0) return n;
 	let r = String(e?.state ?? t ?? "").trim().toLowerCase();
 	if (r === "1" || r === "on" || r === "running") return !0;
 	if (r === "0" || r === "off" || r === "stopped" || r === "exited") return !1;
-}, yr = (e, t, n) => mr(B(t, "project_slug") ?? B(t, "project")) || ([
+}, Cr = (e, t, n) => vr(z(t, "project_slug") ?? z(t, "project")) || ([
 	e,
-	B(t, "container") ?? "",
-	B(t, "image") ?? ""
-].some((e) => xr(e, n)) ? n : void 0), br = (e, t) => [
+	z(t, "container") ?? "",
+	z(t, "image") ?? ""
+].some((e) => Tr(e, n)) ? n : void 0), wr = (e, t) => [
 	e.key,
 	e.name ?? "",
 	e.image ?? ""
-].some((e) => xr(e, t)), xr = (e, t) => {
+].some((e) => Tr(e, t)), Tr = (e, t) => {
 	let n = e.trim().toLowerCase();
 	if (!n) return !1;
 	let r = t.trim().toLowerCase(), i = r.replace(/[^a-z0-9]+/g, ""), a = n.replace(/[^a-z0-9]+/g, "");
@@ -2068,7 +2129,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		let t = e.replace(/[^a-z0-9]+/g, "");
 		return t ? n.startsWith(`${e}_`) || n.startsWith(`${e}-`) || n.endsWith(`_${e}`) || n.endsWith(`-${e}`) || n.includes(`_${e}_`) || n.includes(`-${e}-`) || a.includes(t) : !1;
 	});
-}, Sr = (e) => {
+}, Er = (e) => {
 	let t = e.trim().toLowerCase();
 	if (!t) return [];
 	let n = /* @__PURE__ */ new Set(), r = (e) => {
@@ -2093,17 +2154,17 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		}
 	}
 	return Array.from(n);
-}, Cr = (e) => e === "root" ? "/" : `/${e.replace(/_/g, "/")}`, wr = (e) => e.split("_").filter(Boolean).map(Tr).join(" "), Tr = (e) => e.charAt(0).toUpperCase() + e.slice(1), J = (e) => {
+}, Dr = (e) => e === "root" ? "/" : `/${e.replace(/_/g, "/")}`, Or = (e) => e.split("_").filter(Boolean).map(kr).join(" "), kr = (e) => e.charAt(0).toUpperCase() + e.slice(1), J = (e) => {
 	let t = e.trim().toLowerCase();
 	return t ? t === "/" ? "root" : t.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unknown" : "unknown";
-}, Y = (e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), Er = (e) => {
+}, Y = (e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), Ar = (e) => {
 	let t = new Date(e);
 	return Number.isNaN(t.getTime()) ? "" : new Intl.DateTimeFormat("en-US", {
 		hour: "2-digit",
 		minute: "2-digit",
 		hour12: !1
 	}).format(t);
-}, Dr = (e) => {
+}, jr = (e) => {
 	let t = new Date(e);
 	return Number.isNaN(t.getTime()) ? "Unavailable" : new Intl.DateTimeFormat("en-US", {
 		year: "numeric",
@@ -2114,7 +2175,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		second: "2-digit",
 		hour12: !1
 	}).format(t);
-}, Or = (e) => `${Math.floor(e / 86400)}d ${Math.floor(e % 86400 / 3600)}h ${Math.floor(e % 3600 / 60)}m`, kr = (e) => {
+}, Mr = (e) => `${Math.floor(e / 86400)}d ${Math.floor(e % 86400 / 3600)}h ${Math.floor(e % 3600 / 60)}m`, Nr = (e) => {
 	let t = [
 		"B",
 		"KB",
@@ -2129,7 +2190,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		minimumFractionDigits: i,
 		maximumFractionDigits: i
 	})} ${t[n]}`;
-}, Ar = (e) => e.trim().toLowerCase(), X = (e) => e * 1024 ** 3, Z = (e) => e * 1024 ** 4, Q = (e) => e * 1e6, $ = (e) => e * 1e9, jr = (e, t) => t.map((t) => Math.max(0, Number((e + t).toFixed(3)))), Mr = [
+}, Pr = (e) => e.trim().toLowerCase(), X = (e) => e * 1024 ** 3, Z = (e) => e * 1024 ** 4, Q = (e) => e * 1e6, $ = (e) => e * 1e9, Fr = (e, t) => t.map((t) => Math.max(0, Number((e + t).toFixed(3)))), Ir = [
 	{
 		key: "gitea",
 		title: "Gitea",
@@ -2573,18 +2634,18 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 			}
 		]
 	}
-], Nr = (e) => ({
+], Lr = (e) => ({
 	totalContainers: e.reduce((e, t) => e + t.totalContainers, 0),
 	runningContainers: e.reduce((e, t) => e + t.runningContainers, 0),
 	totalProjects: e.length,
 	onlineProjects: e.filter((e) => e.status === "up").length
-}), Pr = [{
+}), Rr = [{
 	name: "Pool 1",
 	layout: "RAID 6 | 6 Drives",
 	status: "healthy",
 	usedBytes: Z(10.2),
 	totalBytes: Z(40.5),
-	accent: E.green,
+	accent: T.green,
 	key: "pool_1",
 	driveSlugs: [
 		"sda",
@@ -2600,17 +2661,22 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 	status: "healthy",
 	usedBytes: Z(6.1),
 	totalBytes: Z(8.2),
-	accent: E.purple,
+	accent: T.purple,
 	key: "pool_2",
 	driveSlugs: ["nvme0n1", "nvme1n1"]
-}], Fr = Pr.reduce((e, t) => e + t.totalBytes, 0), Ir = Pr.reduce((e, t) => e + t.usedBytes, 0), Lr = [
+}], zr = Rr.reduce((e, t) => e + t.totalBytes, 0), Br = Rr.reduce((e, t) => e + t.usedBytes, 0), Vr = [
 	{
 		kind: "cpu",
 		title: "CPU",
-		accent: E.blue,
+		accent: T.blue,
 		valuePercent: 18,
 		temperatureCelsius: 45,
-		series: jr(18, [
+		fanSpeeds: [{
+			key: "ugos_it86_cpufan",
+			label: "CPU Fan",
+			rpm: 3139
+		}],
+		series: Fr(18, [
 			-2.2,
 			-1.8,
 			.3,
@@ -2626,11 +2692,11 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 	{
 		kind: "ram",
 		title: "RAM",
-		accent: E.purple,
+		accent: T.purple,
 		valuePercent: 46,
 		usedBytes: X(14.6),
 		totalBytes: X(32),
-		series: jr(46, [
+		series: Fr(46, [
 			-2.1,
 			-.5,
 			1.1,
@@ -2646,10 +2712,10 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 	{
 		kind: "gpu",
 		title: "GPU",
-		accent: E.green,
+		accent: T.green,
 		valuePercent: 32,
 		temperatureCelsius: 48,
-		series: jr(32, [
+		series: Fr(32, [
 			-1.5,
 			-1.1,
 			.2,
@@ -2665,13 +2731,22 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 	{
 		kind: "system-load",
 		title: "System Load",
-		accent: E.softBlue,
+		accent: T.softBlue,
 		value: .78,
 		valuePercent: .78,
 		valueText: "0.78%",
 		unit: "percent",
 		statusText: "Good",
-		series: jr(.78, [
+		fanSpeeds: [{
+			key: "ugos_it86_sysfan1",
+			label: "System Fan 1",
+			rpm: 2295
+		}, {
+			key: "ugos_it86_sysfan2",
+			label: "System Fan 2",
+			rpm: 2295
+		}],
+		series: Fr(.78, [
 			-.12,
 			-.08,
 			.04,
@@ -2687,23 +2762,23 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 	{
 		kind: "total-storage",
 		title: "Total Storage",
-		accent: E.cyan,
-		totalBytes: Fr,
-		usedBytes: Ir
+		accent: T.cyan,
+		totalBytes: zr,
+		usedBytes: Br
 	},
 	{
 		kind: "network",
 		title: "Network",
-		accent: E.green,
+		accent: T.green,
 		downloadBps: $(1.2),
 		uploadBps: Q(123)
 	}
-], Rr = [
+], Hr = [
 	{
 		key: "cpu",
 		title: "CPU",
 		subtitle: "Intel Core i5-1235U",
-		accent: E.blue,
+		accent: T.blue,
 		utilizationPercent: 18,
 		detailRows: [
 			{
@@ -2719,11 +2794,15 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 				value: "45°C"
 			},
 			{
+				label: "CPU Fan",
+				value: "3139 RPM"
+			},
+			{
 				label: "Power Usage",
 				value: "18 W"
 			}
 		],
-		series: jr(18, [
+		series: Fr(18, [
 			-2.5,
 			-1.8,
 			.1,
@@ -2751,7 +2830,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		key: "ram",
 		title: "RAM",
 		subtitle: "32 GB DDR5",
-		accent: E.purple,
+		accent: T.purple,
 		utilizationPercent: 46,
 		detailRows: [
 			{
@@ -2771,7 +2850,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 				value: "4800 MT/s"
 			}
 		],
-		series: jr(46, [
+		series: Fr(46, [
 			-2.1,
 			-1.1,
 			.9,
@@ -2799,7 +2878,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		key: "gpu",
 		title: "GPU",
 		subtitle: "Intel Iris Xe",
-		accent: E.green,
+		accent: T.green,
 		utilizationPercent: 32,
 		detailRows: [
 			{
@@ -2819,7 +2898,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 				value: "15 W"
 			}
 		],
-		series: jr(32, [
+		series: Fr(32, [
 			-3.8,
 			-2,
 			-1,
@@ -2843,7 +2922,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 			-2
 		])
 	}
-], zr = [
+], Ur = [
 	{
 		name: "M.2 1",
 		model: "Lexar NM790 1TB SSD",
@@ -2908,7 +2987,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		status: "healthy",
 		diskSlug: "sdf"
 	}
-], Br = [
+], Wr = [
 	{
 		key: "cpu0",
 		name: "CPU 0",
@@ -3017,7 +3096,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		maxMHz: 4400,
 		governor: "powersave"
 	}
-], Vr = [
+], Gr = [
 	{
 		key: "total",
 		label: "Total",
@@ -3052,7 +3131,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		label: "Swap Total",
 		valueBytes: 37.3 * 1024 ** 3
 	}
-], Hr = [
+], Kr = [
 	{
 		key: "blitter",
 		label: "Blitter",
@@ -3081,7 +3160,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		semaPercent: .1,
 		waitPercent: .4
 	}
-], Ur = [
+], qr = [
 	{
 		key: "frequency_actual_mhz",
 		label: "Actual Frequency",
@@ -3136,7 +3215,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		value: 100,
 		unit: "%"
 	}
-], Wr = [
+], Jr = [
 	{
 		key: "taskmgr_serv",
 		name: "Taskmgr Serv",
@@ -3217,7 +3296,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		memoryBytes: 354 * 1024 ** 2,
 		cpuTimeSeconds: 1550.7
 	}
-], Gr = [
+], Yr = [
 	{
 		timestampLabel: "14:25",
 		totalsByInterface: {
@@ -3338,7 +3417,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 			eth1: Q(938)
 		}
 	}
-], Kr = {
+], Xr = {
 	deviceInfo: {
 		model: "DXP6800 Pro",
 		ugosVersion: "1.2.0",
@@ -3347,12 +3426,12 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		uptimeSeconds: 1104120,
 		lastUpdated: "2026-04-23 20:30"
 	},
-	hardwareSummary: Lr,
-	hardwareDetails: Rr,
-	drives: zr,
-	storagePools: Pr,
-	dockerProjects: Mr,
-	dockerTotals: Nr(Mr),
+	hardwareSummary: Vr,
+	hardwareDetails: Hr,
+	drives: Ur,
+	storagePools: Rr,
+	dockerProjects: Ir,
+	dockerTotals: Lr(Ir),
 	networkInterfaces: [
 		{
 			name: "bond0",
@@ -3379,36 +3458,36 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 			uploadBps: Q(400)
 		}
 	],
-	networkTrafficHistory: Gr,
+	networkTrafficHistory: Yr,
 	networkTrafficLines: [
 		{
 			key: "bond0",
 			label: "bond0",
-			color: E.cyan,
+			color: T.cyan,
 			currentBps: $(1.46),
-			series: Gr.map((e) => e.totalsByInterface.bond0 ?? 0)
+			series: Yr.map((e) => e.totalsByInterface.bond0 ?? 0)
 		},
 		{
 			key: "eth0",
 			label: "eth0",
-			color: E.good,
+			color: T.good,
 			currentBps: Q(521),
-			series: Gr.map((e) => e.totalsByInterface.eth0 ?? 0)
+			series: Yr.map((e) => e.totalsByInterface.eth0 ?? 0)
 		},
 		{
 			key: "eth1",
 			label: "eth1",
-			color: E.purple,
+			color: T.purple,
 			currentBps: Q(938),
-			series: Gr.map((e) => e.totalsByInterface.eth1 ?? 0)
+			series: Yr.map((e) => e.totalsByInterface.eth1 ?? 0)
 		}
 	],
-	cpuCores: Br,
-	ramBreakdown: Vr,
-	gpuEngines: Hr,
-	gpuStats: Ur,
-	topProcesses: Wr
-}, qr = () => ({
+	cpuCores: Wr,
+	ramBreakdown: Gr,
+	gpuEngines: Kr,
+	gpuStats: qr,
+	topProcesses: Jr
+}, Zr = () => ({
 	deviceInfo: {
 		model: "UGREEN NAS",
 		ugosVersion: "Unavailable",
@@ -3421,7 +3500,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		{
 			kind: "cpu",
 			title: "CPU",
-			accent: E.blue,
+			accent: T.blue,
 			valuePercent: 0,
 			temperatureCelsius: 0,
 			series: [
@@ -3436,7 +3515,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		{
 			kind: "ram",
 			title: "RAM",
-			accent: E.purple,
+			accent: T.purple,
 			valuePercent: 0,
 			usedBytes: 0,
 			totalBytes: 0,
@@ -3452,7 +3531,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		{
 			kind: "system-load",
 			title: "System Load",
-			accent: E.softBlue,
+			accent: T.softBlue,
 			value: 0,
 			valuePercent: 0,
 			valueText: "0.00%",
@@ -3470,14 +3549,14 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		{
 			kind: "total-storage",
 			title: "Total Storage",
-			accent: E.cyan,
+			accent: T.cyan,
 			totalBytes: 0,
 			usedBytes: 0
 		},
 		{
 			kind: "network",
 			title: "Network",
-			accent: E.green,
+			accent: T.green,
 			downloadBps: 0,
 			uploadBps: 0
 		}
@@ -3486,7 +3565,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		key: "cpu",
 		title: "CPU",
 		subtitle: "No live data",
-		accent: E.blue,
+		accent: T.blue,
 		utilizationPercent: 0,
 		series: [
 			0,
@@ -3518,7 +3597,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		key: "ram",
 		title: "RAM",
 		subtitle: "No live data",
-		accent: E.purple,
+		accent: T.purple,
 		utilizationPercent: 0,
 		series: [
 			0,
@@ -3585,7 +3664,7 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 	gpuEngines: [],
 	gpuStats: [],
 	topProcesses: []
-}), Jr = o`
+}), Qr = o`
   :host {
     --ugreen-bg: #030b17;
     --ugreen-panel: #071424;
@@ -3655,6 +3734,43 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 
   .tile-body-identity {
     grid-template-rows: auto 40px 24px auto auto;
+  }
+
+  .tile-body-with-fans {
+    height: auto;
+  }
+
+  .fan-speeds {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ugreen-border);
+    min-width: 0;
+  }
+
+  .fan-speed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 6px;
+    font-size: 11px;
+    line-height: 1.3;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .fan-label {
+    flex: 1 1 4.5em;
+    min-width: 0;
+    color: var(--ugreen-text-dim);
+  }
+
+  .fan-rpm {
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
   }
 
   .tile-top {
@@ -3811,35 +3927,36 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
     .tile-label,
     .tile-secondary,
     .tile-status,
-    .traffic-row {
+    .traffic-row,
+    .fan-speed-row {
       font-size: 10px;
     }
   }
-`, Yr = [
+`, $r = [
 	"B",
 	"KB",
 	"MB",
 	"GB",
 	"TB",
 	"PB"
-], Xr = [
+], ei = [
 	"bps",
 	"Kbps",
 	"Mbps",
 	"Gbps",
 	"Tbps"
-], Zr = (e, t) => new Intl.NumberFormat("en-US", {
+], ti = (e, t) => new Intl.NumberFormat("en-US", {
 	minimumFractionDigits: t,
 	maximumFractionDigits: t
-}).format(e), Qr = (e, t = 0) => `${Zr(e, t)}%`, $r = (e, t = 1) => {
+}).format(e), ni = (e, t = 0) => `${ti(e, t)}%`, ri = (e, t = 1) => {
 	if (!Number.isFinite(e) || e <= 0) return "0 B";
-	let n = Math.min(Math.floor(Math.log(e) / Math.log(1024)), Yr.length - 1);
-	return `${Zr(e / 1024 ** n, n === 0 ? 0 : t)} ${Yr[n]}`;
-}, ei = (e) => $r(e, +(e >= 1024 ** 4)), ti = (e, t = 1) => {
+	let n = Math.min(Math.floor(Math.log(e) / Math.log(1024)), $r.length - 1);
+	return `${ti(e / 1024 ** n, n === 0 ? 0 : t)} ${$r[n]}`;
+}, ii = (e) => ri(e, +(e >= 1024 ** 4)), ai = (e, t = 1) => {
 	if (!Number.isFinite(e) || e <= 0) return "0 bps";
-	let n = Math.min(Math.floor(Math.log(e) / Math.log(1e3)), Xr.length - 1);
-	return `${Zr(e / 1e3 ** n, n === 0 ? 0 : t)} ${Xr[n]}`;
-}, ni = (e) => `${Zr(e, 0)}°C`, ri = (e, t) => `${ei(e)} / ${ei(t)}`, ii = (e, t) => t > 0 ? e / t * 100 : 0, ai = (e) => e.kind === "cpu" || e.kind === "gpu", oi = (e) => e.kind === "ram", si = (e) => e.kind === "system-load", ci = (e) => Math.max(0, Math.min(1, e)), li = (e) => {
+	let n = Math.min(Math.floor(Math.log(e) / Math.log(1e3)), ei.length - 1);
+	return `${ti(e / 1e3 ** n, n === 0 ? 0 : t)} ${ei[n]}`;
+}, oi = (e) => `${ti(e, 0)}°C`, si = (e, t) => `${ii(e)} / ${ii(t)}`, ci = (e, t) => t > 0 ? e / t * 100 : 0, li = (e) => e.kind === "cpu" || e.kind === "gpu", ui = (e) => e.kind === "ram", di = (e) => e.kind === "system-load", fi = (e) => Math.max(0, Math.min(1, e)), pi = (e) => {
 	let t = e.drives.reduce((e, t) => (t.mediaType === "nvme" ? e.nvme += t.capacityBytes : t.mediaType === "hdd" && (e.sata += t.capacityBytes), e), {
 		nvme: 0,
 		sata: 0
@@ -3854,44 +3971,44 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		}
 	}, r = [...e.storagePools];
 	for (let t of e.storagePools) {
-		let e = ui(t.name, t.layout);
+		let e = mi(t.name, t.layout);
 		e && (n[e].totalBytes += t.totalBytes, n[e].usedBytes += t.usedBytes, r.splice(r.indexOf(t), 1));
 	}
 	for (let e of r) {
-		let r = di(e.totalBytes, t, n);
+		let r = hi(e.totalBytes, t, n);
 		n[r].totalBytes += e.totalBytes, n[r].usedBytes += e.usedBytes;
 	}
 	return n;
-}, ui = (e, t) => {
+}, mi = (e, t) => {
 	let n = `${e} ${t}`.toLowerCase();
 	return n.includes("nvme") || n.includes("m.2") || n.includes("ssd") ? "nvme" : n.includes("sata") || n.includes("hdd") ? "sata" : null;
-}, di = (e, t, n) => ["nvme", "sata"].filter((e) => t[e] > 0).map((r) => ({
+}, hi = (e, t, n) => ["nvme", "sata"].filter((e) => t[e] > 0).map((r) => ({
 	media: r,
 	distance: Math.abs(t[r] - n[r].totalBytes - e)
-})).sort((e, t) => e.distance - t.distance)[0]?.media ?? "sata", fi = (e, t, n, r, i) => {
-	let a = r > 0 ? ci(ii(i, r) / 100) : 0;
+})).sort((e, t) => e.distance - t.distance)[0]?.media ?? "sata", gi = (e, t, n, r, i) => {
+	let a = r > 0 ? fi(ci(i, r) / 100) : 0;
 	return {
 		id: e,
 		label: t,
 		icon: "database",
 		accent: n,
-		value: ei(r),
-		secondary: r > 0 ? ri(i, r) : "Unavailable",
+		value: ii(r),
+		secondary: r > 0 ? si(i, r) : "Unavailable",
 		progress: a
 	};
-}, pi = (e) => {
+}, _i = (e) => {
 	let t = e.networkInterfaces.map((e) => e.name), n = e.networkInterfaces.reduce((e, t) => e + t.downloadBps, 0), r = e.networkInterfaces.reduce((e, t) => e + t.uploadBps, 0), i = e.networkInterfaces.filter((e) => e.status === "up").length, a = e.networkInterfaces.length;
 	return {
 		id: "network",
 		label: "Network State",
 		icon: "network",
-		accent: E.softBlue,
+		accent: T.softBlue,
 		value: a > 0 ? `${i}/${a} Up` : "Unavailable",
 		secondary: t.length > 0 ? t.join(" | ") : "No interfaces",
-		down: ti(n),
-		up: ti(r)
+		down: ai(n),
+		up: ai(r)
 	};
-}, mi = (e) => {
+}, vi = (e) => {
 	switch (e) {
 		case "live": return {
 			label: "Online",
@@ -3906,47 +4023,49 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 			color: "var(--ugreen-soft-blue)"
 		};
 	}
-}, hi = (e, t, n) => {
-	let r = e.hardwareSummary.filter(ai).find((e) => e.kind === "cpu"), i = e.hardwareSummary.filter(oi).find((e) => e.kind === "ram"), a = e.hardwareSummary.filter(ai).find((e) => e.kind === "gpu"), o = e.hardwareSummary.filter(si).find((e) => e.kind === "system-load"), s = mi(t), c = li(e), l = [
+}, yi = (e, t, n) => {
+	let r = e.hardwareSummary.filter(li).find((e) => e.kind === "cpu"), i = e.hardwareSummary.filter(ui).find((e) => e.kind === "ram"), a = e.hardwareSummary.filter(li).find((e) => e.kind === "gpu"), o = e.hardwareSummary.filter(di).find((e) => e.kind === "system-load"), s = vi(t), c = pi(e), l = [
 		{
 			id: "cpu",
 			label: "CPU",
 			icon: "chip",
-			accent: E.blue,
-			value: Qr(r?.valuePercent ?? 0),
-			secondary: r ? ni(r.temperatureCelsius) : "Unavailable",
-			progress: ci((r?.valuePercent ?? 0) / 100)
+			accent: T.blue,
+			value: ni(r?.valuePercent ?? 0),
+			secondary: r ? oi(r.temperatureCelsius) : "Unavailable",
+			progress: fi((r?.valuePercent ?? 0) / 100),
+			fanSpeeds: r?.fanSpeeds
 		},
 		{
 			id: "ram",
 			label: "RAM",
 			icon: "memory",
-			accent: E.purple,
-			value: Qr(i?.valuePercent ?? 0),
-			secondary: i ? ri(i.usedBytes, i.totalBytes) : "Unavailable",
-			progress: ci((i?.valuePercent ?? 0) / 100)
+			accent: T.purple,
+			value: ni(i?.valuePercent ?? 0),
+			secondary: i ? si(i.usedBytes, i.totalBytes) : "Unavailable",
+			progress: fi((i?.valuePercent ?? 0) / 100)
 		},
 		{
 			id: "gpu",
 			label: "GPU",
 			icon: "gpu",
-			accent: E.green,
-			value: a ? Qr(a.valuePercent) : "N/A",
-			secondary: a ? ni(a.temperatureCelsius) : "Unavailable",
-			progress: ci((a?.valuePercent ?? 0) / 100)
+			accent: T.green,
+			value: a ? ni(a.valuePercent) : "N/A",
+			secondary: a ? oi(a.temperatureCelsius) : "Unavailable",
+			progress: fi((a?.valuePercent ?? 0) / 100)
 		},
 		{
 			id: "systemLoad",
 			label: "Load",
 			icon: "pulse",
-			accent: E.softBlue,
+			accent: T.softBlue,
 			value: o?.valueText ?? "0.00",
 			secondary: o?.statusText ?? "Unavailable",
-			progress: ci((o?.valuePercent ?? 0) / 100)
+			progress: fi((o?.valuePercent ?? 0) / 100),
+			fanSpeeds: o?.fanSpeeds
 		},
-		fi("nvme", "NVMe Volume", E.cyan, c.nvme.totalBytes, c.nvme.usedBytes),
-		fi("sata", "SATA Volume", E.green, c.sata.totalBytes, c.sata.usedBytes),
-		pi(e)
+		gi("nvme", "NVMe Volume", T.cyan, c.nvme.totalBytes, c.nvme.usedBytes),
+		gi("sata", "SATA Volume", T.green, c.sata.totalBytes, c.sata.usedBytes),
+		_i(e)
 	];
 	return {
 		title: e.deviceInfo.model,
@@ -3954,10 +4073,10 @@ var Gn = (e) => ct(e)?.unit, K = (e, t) => {
 		statusColor: s.color,
 		metricTiles: l
 	};
-}, gi = (e) => hi(Kr, "preview", e);
+}, bi = (e) => yi(Xr, "preview", e);
 //#endregion
 //#region \0@oxc-project+runtime@0.147.0/helpers/esm/decorate.js
-function _i(e, t, n, r) {
+function xi(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
 	else for (var s = e.length - 1; s >= 0; s--) (o = e[s]) && (a = (i < 3 ? o(a) : i > 3 ? o(t, n, a) : o(t, n)) || a);
@@ -3965,12 +4084,12 @@ function _i(e, t, n, r) {
 }
 //#endregion
 //#region src/ugreen-nas-mini-card.ts
-var vi = class extends Be {
+var Si = class extends Ve {
 	constructor(...e) {
-		super(...e), this.config = { type: "custom:ugreen-nas-mini-card" }, this.model = gi(), this.history = lt(), this.dataMode = "preview", this.watchEntityIds = [], this.watchPrefixes = [];
+		super(...e), this.config = { type: "custom:ugreen-nas-mini-card" }, this.model = bi(), this.history = ut(), this.dataMode = "preview", this.watchEntityIds = [], this.watchPrefixes = [];
 	}
 	static {
-		this.styles = Jr;
+		this.styles = Qr;
 	}
 	set hass(e) {
 		let t = this._hass;
@@ -3994,7 +4113,7 @@ var vi = class extends Be {
 		return 2;
 	}
 	render() {
-		return y`
+		return b`
       <ha-card>
         <div class="card-shell">
           <section class="metrics">
@@ -4006,7 +4125,7 @@ var vi = class extends Be {
     `;
 	}
 	renderIdentityTile() {
-		return y`
+		return b`
       <article class="tile tile-identity">
         <div class="tile-body tile-body-identity">
           <div class="tile-top">
@@ -4025,25 +4144,35 @@ var vi = class extends Be {
 	}
 	renderMetricTile(e) {
 		let t = e.id === "cpu" || e.id === "gpu" || e.id === "systemLoad" ? "tile-secondary success" : "tile-secondary";
-		return y`
+		return b`
       <article class="tile">
-        <div class="tile-body">
+        <div class=${e.fanSpeeds?.length ? "tile-body tile-body-with-fans" : "tile-body"}>
           <div class="tile-top">
             ${this.renderIcon(e.icon, `icon icon-${e.icon} accent`)}
             <div class="tile-label">${e.label}</div>
           </div>
 
-          ${e.value ? y`<div class="tile-value">${e.value}</div>` : S}
-          ${e.secondary ? y`<div class=${t}>${e.secondary}</div>` : S}
+          ${e.value ? b`<div class="tile-value">${e.value}</div>` : C}
+          ${e.secondary ? b`<div class=${t}>${e.secondary}</div>` : C}
 
-          ${typeof e.progress == "number" ? this.renderProgress(e.progress, e.accent) : S}
-          ${e.down || e.up ? this.renderNetworkRows(e.down, e.up) : S}
+          ${typeof e.progress == "number" ? this.renderProgress(e.progress, e.accent) : C}
+          ${e.down || e.up ? this.renderNetworkRows(e.down, e.up) : C}
+          ${e.fanSpeeds?.length ? b`
+            <div class="fan-speeds">
+              ${e.fanSpeeds.map((e) => b`
+                <div class="fan-speed-row">
+                  <span class="fan-label">${e.label}</span>
+                  <span class="fan-rpm">${Math.round(e.rpm)} RPM</span>
+                </div>
+              `)}
+            </div>
+          ` : C}
         </div>
       </article>
     `;
 	}
 	renderProgress(e, t) {
-		return y`
+		return b`
       <div class="progress-bar" aria-hidden="true">
         <div
           class="progress-fill"
@@ -4053,37 +4182,37 @@ var vi = class extends Be {
     `;
 	}
 	renderNetworkRows(e, t) {
-		return y`
+		return b`
       <div class="network-lines">
-        ${e ? y`
+        ${e ? b`
           <div class="traffic-row down">
             ${this.renderArrowDown()}
             <span>${e}</span>
           </div>
-        ` : S}
-        ${t ? y`
+        ` : C}
+        ${t ? b`
           <div class="traffic-row up">
             ${this.renderArrowUp()}
             <span>${t}</span>
           </div>
-        ` : S}
+        ` : C}
       </div>
     `;
 	}
 	refreshModel() {
-		let e = ut(this._hass, this.config, this.history);
+		let e = dt(this._hass, this.config, this.history);
 		if (!e) {
-			if (this.history = lt(), this.watchEntityIds = [], this.watchPrefixes = [], this._hass?.states) {
-				let e = qr();
+			if (this.history = ut(), this.watchEntityIds = [], this.watchPrefixes = [], this._hass?.states) {
+				let e = Zr();
 				e.deviceInfo = {
 					...e.deviceInfo,
 					model: this.config.deviceModel ?? e.deviceInfo.model,
 					hostname: this.config.host ?? e.deviceInfo.hostname
-				}, this.model = hi(e, "missing", this.config), this.dataMode = "missing";
-			} else this.model = gi(this.config), this.dataMode = "preview";
+				}, this.model = yi(e, "missing", this.config), this.dataMode = "missing";
+			} else this.model = bi(this.config), this.dataMode = "preview";
 			return;
 		}
-		this.history = e.history, this.watchEntityIds = e.watchEntityIds, this.watchPrefixes = e.watchPrefixes, this.model = hi(e.model, "live", this.config), this.dataMode = "live";
+		this.history = e.history, this.watchEntityIds = e.watchEntityIds, this.watchPrefixes = e.watchPrefixes, this.model = yi(e.model, "live", this.config), this.dataMode = "live";
 	}
 	shouldRefreshForHassUpdate(e, t) {
 		let n = e?.states, r = t?.states;
@@ -4091,11 +4220,11 @@ var vi = class extends Be {
 	}
 	countWatchedEntities(e) {
 		let t = 0;
-		for (let n of Object.keys(e)) this.watchPrefixes.some((e) => n.startsWith(e)) && (t += 1);
+		for (let n of Object.keys(e)) (this.watchPrefixes.some((e) => n.startsWith(e)) || Pt(n, e[n])) && (t += 1);
 		return t;
 	}
 	renderArrowDown() {
-		return b`
+		return x`
       <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <path d="M10 3v11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M5 11.5 10 16l5-4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -4103,7 +4232,7 @@ var vi = class extends Be {
     `;
 	}
 	renderArrowUp() {
-		return b`
+		return x`
       <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <path d="M10 17V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
         <path d="M5 8.5 10 4l5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -4112,19 +4241,19 @@ var vi = class extends Be {
 	}
 	renderIcon(e, t) {
 		switch (e) {
-			case "chip": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"></rect><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3M4 4l2 2M18 18l2 2M20 4l-2 2M4 20l2-2"></path></svg>`;
-			case "memory": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"></rect><path d="M7 10v4M11 10v4M15 10v4M19 10v4M5 19v2M9 19v2M13 19v2M17 19v2"></path></svg>`;
-			case "gpu": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="10" rx="2"></rect><circle cx="9" cy="11" r="2.2"></circle><path d="M16 9.5h2M16 12.5h2M8 18h8"></path></svg>`;
-			case "pulse": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.2-6 4 12 2.2-8H22"></path></svg>`;
-			case "database": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg>`;
-			case "network": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="4" height="4" rx="1"></rect><rect x="3" y="16" width="4" height="4" rx="1"></rect><rect x="17" y="16" width="4" height="4" rx="1"></rect><path d="M12 7v4M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></svg>`;
-			case "device": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"></rect><circle cx="12" cy="16" r="1"></circle><path d="M9 2h6"></path></svg>`;
-			case "clock": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6l4 2"></path></svg>`;
-			case "monitor": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 17v3"></path></svg>`;
-			case "calendar": return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 9h18"></path><path d="M8 14h.01M12 14h.01M16 14h.01"></path></svg>`;
-			default: return b`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle></svg>`;
+			case "chip": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"></rect><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3M4 4l2 2M18 18l2 2M20 4l-2 2M4 20l2-2"></path></svg>`;
+			case "memory": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"></rect><path d="M7 10v4M11 10v4M15 10v4M19 10v4M5 19v2M9 19v2M13 19v2M17 19v2"></path></svg>`;
+			case "gpu": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="10" rx="2"></rect><circle cx="9" cy="11" r="2.2"></circle><path d="M16 9.5h2M16 12.5h2M8 18h8"></path></svg>`;
+			case "pulse": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.2-6 4 12 2.2-8H22"></path></svg>`;
+			case "database": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg>`;
+			case "network": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="4" height="4" rx="1"></rect><rect x="3" y="16" width="4" height="4" rx="1"></rect><rect x="17" y="16" width="4" height="4" rx="1"></rect><path d="M12 7v4M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></svg>`;
+			case "device": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"></rect><circle cx="12" cy="16" r="1"></circle><path d="M9 2h6"></path></svg>`;
+			case "clock": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6l4 2"></path></svg>`;
+			case "monitor": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 17v3"></path></svg>`;
+			case "calendar": return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 9h18"></path><path d="M8 14h.01M12 14h.01M16 14h.01"></path></svg>`;
+			default: return x`<svg class=${t} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle></svg>`;
 		}
 	}
 };
-_i([Ke()], vi.prototype, "config", void 0), _i([Ke()], vi.prototype, "model", void 0), _i([Ke()], vi.prototype, "history", void 0), _i([Ke()], vi.prototype, "dataMode", void 0), _i([Ge({ attribute: !1 })], vi.prototype, "hass", null), vi = _i([He("ugreen-nas-mini-card")], vi);
+xi([qe()], Si.prototype, "config", void 0), xi([qe()], Si.prototype, "model", void 0), xi([qe()], Si.prototype, "history", void 0), xi([qe()], Si.prototype, "dataMode", void 0), xi([Ke({ attribute: !1 })], Si.prototype, "hass", null), Si = xi([Ue("ugreen-nas-mini-card")], Si);
 //#endregion

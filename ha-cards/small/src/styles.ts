@@ -72,6 +72,43 @@ export const styles = css`
     grid-template-rows: auto 40px 24px auto auto;
   }
 
+  .tile-body-with-fans {
+    height: auto;
+  }
+
+  .fan-speeds {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ugreen-border);
+    min-width: 0;
+  }
+
+  .fan-speed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 6px;
+    font-size: 11px;
+    line-height: 1.3;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .fan-label {
+    flex: 1 1 4.5em;
+    min-width: 0;
+    color: var(--ugreen-text-dim);
+  }
+
+  .fan-rpm {
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
   .tile-top {
     display: flex;
     align-items: center;
@@ -226,7 +263,8 @@ export const styles = css`
     .tile-label,
     .tile-secondary,
     .tile-status,
-    .traffic-row {
+    .traffic-row,
+    .fan-speed-row {
       font-size: 10px;
     }
   }

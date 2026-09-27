@@ -287,6 +287,34 @@ export const cardStyles = css`
     color: var(--ug-good);
   }
 
+  .fan-readings {
+    display: grid;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ug-border);
+  }
+
+  .fan-reading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 12px;
+    font-size: 12px;
+    color: var(--ug-text-soft);
+  }
+
+  .fan-reading span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .fan-reading strong {
+    color: var(--ug-text-main);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
   .mini-storage-meta,
   .mini-network-meta {
     display: grid;

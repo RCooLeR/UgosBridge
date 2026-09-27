@@ -164,7 +164,8 @@ export const buildMiniDashboardModel = (
       accent: THEME_COLORS.blue,
       value: formatPercent(cpu?.valuePercent ?? 0),
       secondary: cpu ? formatTemperature(cpu.temperatureCelsius) : 'Unavailable',
-      progress: clampProgress((cpu?.valuePercent ?? 0) / 100)
+      progress: clampProgress((cpu?.valuePercent ?? 0) / 100),
+      fanSpeeds: cpu?.fanSpeeds
     },
     {
       id: 'ram',
@@ -191,7 +192,8 @@ export const buildMiniDashboardModel = (
       accent: THEME_COLORS.softBlue,
       value: load?.valueText ?? '0.00',
       secondary: load?.statusText ?? 'Unavailable',
-      progress: clampProgress((load?.valuePercent ?? 0) / 100)
+      progress: clampProgress((load?.valuePercent ?? 0) / 100),
+      fanSpeeds: load?.fanSpeeds
     },
     buildVolumeTile('nvme', 'NVMe Volume', THEME_COLORS.cyan, volumes.nvme.totalBytes, volumes.nvme.usedBytes),
     buildVolumeTile('sata', 'SATA Volume', THEME_COLORS.green, volumes.sata.totalBytes, volumes.sata.usedBytes),

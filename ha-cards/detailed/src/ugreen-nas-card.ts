@@ -18,7 +18,7 @@ import {
 import { html, LitElement, svg, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { buildLiveDashboardModel, emptyMetricHistoryState, type MetricHistoryState } from './live-model';
+import { buildLiveDashboardModel, emptyMetricHistoryState, isFanSpeedEntity, type MetricHistoryState } from './live-model';
 import { createEmptyDashboardModel, fakeDashboardModel } from './model';
 import {
   clamp,
@@ -40,6 +40,8 @@ import type {
   CardConfig,
   DockerProject,
   DriveInfo,
+  FanSpeedReading,
+  HassEntityLike,
   HardwareMetricCard,
   HardwareSummaryCard,
   HomeAssistantLike,
@@ -176,6 +178,7 @@ export class UgreenNasCard extends LitElement {
             <div class="mini-value">${formatPercent(summary.valuePercent)}</div>
             ${this.renderLineIndicator(summary.valuePercent, summary.accent)}
             <div class="mini-footer positive">${formatTemperature(summary.temperatureCelsius)}</div>
+            ${this.renderFanSpeeds(summary.fanSpeeds)}
           </div>
         `;
       case 'ram':
@@ -209,6 +212,7 @@ export class UgreenNasCard extends LitElement {
               <div class="mini-value">${summary.valueText}</div>
               ${this.renderLineIndicator(summary.valuePercent, summary.accent)}
               <div class="mini-footer positive">${summary.statusText}</div>
+              ${this.renderFanSpeeds(summary.fanSpeeds)}
             </div>
           `;
         }
@@ -221,6 +225,7 @@ export class UgreenNasCard extends LitElement {
             <div class="mini-value">${summary.valueText}</div>
             ${this.renderLineIndicator(summary.valuePercent, summary.accent)}
             <div class="mini-footer positive">${summary.statusText}</div>
+            ${this.renderFanSpeeds(summary.fanSpeeds)}
           </div>
         `;
       case 'total-storage':
@@ -256,6 +261,22 @@ export class UgreenNasCard extends LitElement {
         `;
       }
     }
+  }
+
+  private renderFanSpeeds(fans: FanSpeedReading[] | undefined): TemplateResult {
+    if (!fans?.length) {
+      return html``;
+    }
+    return html`
+      <div class="fan-readings">
+        ${fans.map((fan) => html`
+          <div class="fan-reading">
+            <span>${fan.label}</span>
+            <strong>${Math.round(fan.rpm)} RPM</strong>
+          </div>
+        `)}
+      </div>
+    `;
   }
 
   private renderStorageSummaryMeta(summary: TotalStorageSummaryCard): TemplateResult {
@@ -1142,10 +1163,10 @@ export class UgreenNasCard extends LitElement {
     return this._watchEntityIds.some((entityId) => previousStates[entityId] !== nextStates[entityId]);
   }
 
-  private countWatchedEntities(states: Record<string, unknown>): number {
+  private countWatchedEntities(states: Record<string, HassEntityLike>): number {
     let count = 0;
     for (const entityId of Object.keys(states)) {
-      if (this._watchPrefixes.some((prefix) => entityId.startsWith(prefix))) {
+      if (this._watchPrefixes.some((prefix) => entityId.startsWith(prefix)) || isFanSpeedEntity(entityId, states[entityId])) {
         count += 1;
       }
     }

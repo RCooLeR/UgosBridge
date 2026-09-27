@@ -1,7 +1,8 @@
 import { LitElement, html, svg, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { buildLiveDashboardModel, emptyMetricHistoryState, type MetricHistoryState } from '../../detailed/src/live-model';
+import { buildLiveDashboardModel, emptyMetricHistoryState, isFanSpeedEntity, type MetricHistoryState } from '../../detailed/src/live-model';
 import { createEmptyDashboardModel } from '../../detailed/src/model';
+import type { HassEntityLike } from '../../detailed/src/types';
 import { styles } from './styles';
 import { buildMiniDashboardModel, previewMiniModel } from './model';
 import type { HomeAssistantLike, MetricTile, NasMiniDashboardModel, UgreenNasMiniCardConfig } from './types';
@@ -108,7 +109,7 @@ export class UgreenNasMiniCard extends LitElement {
 
     return html`
       <article class="tile">
-        <div class="tile-body">
+        <div class=${tile.fanSpeeds?.length ? 'tile-body tile-body-with-fans' : 'tile-body'}>
           <div class="tile-top">
             ${this.renderIcon(tile.icon, `icon icon-${tile.icon} accent`)}
             <div class="tile-label">${tile.label}</div>
@@ -119,6 +120,16 @@ export class UgreenNasMiniCard extends LitElement {
 
           ${typeof tile.progress === 'number' ? this.renderProgress(tile.progress, tile.accent) : nothing}
           ${tile.down || tile.up ? this.renderNetworkRows(tile.down, tile.up) : nothing}
+          ${tile.fanSpeeds?.length ? html`
+            <div class="fan-speeds">
+              ${tile.fanSpeeds.map((fan) => html`
+                <div class="fan-speed-row">
+                  <span class="fan-label">${fan.label}</span>
+                  <span class="fan-rpm">${Math.round(fan.rpm)} RPM</span>
+                </div>
+              `)}
+            </div>
+          ` : nothing}
         </div>
       </article>
     `;
@@ -206,10 +217,10 @@ export class UgreenNasMiniCard extends LitElement {
     return this.watchEntityIds.some((entityId) => previousStates[entityId] !== nextStates[entityId]);
   }
 
-  private countWatchedEntities(states: Record<string, unknown>): number {
+  private countWatchedEntities(states: Record<string, HassEntityLike>): number {
     let count = 0;
     for (const entityId of Object.keys(states)) {
-      if (this.watchPrefixes.some((prefix) => entityId.startsWith(prefix))) {
+      if (this.watchPrefixes.some((prefix) => entityId.startsWith(prefix)) || isFanSpeedEntity(entityId, states[entityId])) {
         count += 1;
       }
     }

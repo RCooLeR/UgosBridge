@@ -4,6 +4,10 @@
 
 ### Added
 
+- CPU fan RPM in the CPU section and individual system fan RPMs in System Load
+  in both Home Assistant cards, discovered automatically from the selected
+  host's fan entities. Missing readings are hidden and genuine zero RPM is
+  preserved.
 - Read-only fan RPM collection from the UGOS `/proc/it86/fan` interface when
   hwmon exposes no valid fan readings. CPU and system fans are exported through
   the existing Prometheus and Home Assistant sensors using the existing host

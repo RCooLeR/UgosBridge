@@ -1,5 +1,6 @@
 import type {
   CardConfig as DetailedCardConfig,
+  FanSpeedReading,
   HomeAssistantLike as DetailedHomeAssistantLike
 } from '../../detailed/src/types';
 
@@ -15,6 +16,7 @@ export interface MetricTile {
   value: string;
   secondary: string;
   progress?: number;
+  fanSpeeds?: FanSpeedReading[];
   down?: string;
   up?: string;
 }

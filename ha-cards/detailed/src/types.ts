@@ -60,10 +60,17 @@ export interface BaseSummaryCard {
   series?: number[];
 }
 
+export interface FanSpeedReading {
+  key: string;
+  label: string;
+  rpm: number;
+}
+
 export interface UtilizationSummaryCard extends BaseSummaryCard {
   kind: 'cpu' | 'gpu';
   valuePercent: number;
   temperatureCelsius: number;
+  fanSpeeds?: FanSpeedReading[];
 }
 
 export interface MemorySummaryCard extends BaseSummaryCard {
@@ -80,6 +87,7 @@ export interface LoadSummaryCard extends BaseSummaryCard {
   valueText: string;
   unit: 'load' | 'percent';
   statusText: string;
+  fanSpeeds?: FanSpeedReading[];
 }
 
 export interface TotalStorageSummaryCard extends BaseSummaryCard {

@@ -58,3 +58,9 @@ changes its `unique_id`, so the cards also resolve the legacy project, container
 and virtual-machine namespaces. Container metadata is taken from the scalar entity
 that provides it and explicit `project` metadata always takes precedence over name
 matching.
+
+Both cards automatically show CPU fan RPM with CPU and individual system/chassis
+fan RPMs with System Load (Load in the mini card). They read Home Assistant's MQTT
+sensor entities, not the Prometheus endpoint. No additional card configuration
+is required for UGOS `cpufan` and `sysfan*` sensors. Unavailable readings are
+hidden; stopped fans reporting zero remain visible as `0 RPM`.
