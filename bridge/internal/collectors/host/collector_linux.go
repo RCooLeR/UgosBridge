@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -853,6 +854,11 @@ func (c *Collector) collectGPUs() []model.GPUSnapshot {
 func (c *Collector) collectSensors() []model.SensorSnapshot {
 	var result []model.SensorSnapshot
 	result = append(result, c.collectHwmonSensors()...)
+	// Prefer hwmon when it exposes fans: its channel names cannot reliably be
+	// matched to UGOS names, so merging both sources could duplicate a fan.
+	if !slices.ContainsFunc(result, func(sensor model.SensorSnapshot) bool { return sensor.Kind == "fan" }) {
+		result = append(result, c.collectUGOSFanSensors()...)
+	}
 	result = append(result, c.collectThermalZoneSensors()...)
 
 	sort.Slice(result, func(i, j int) bool {

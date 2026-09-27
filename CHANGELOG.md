@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Read-only fan RPM collection from the UGOS `/proc/it86/fan` interface when
+  hwmon exposes no valid fan readings. CPU and system fans are exported through
+  the existing Prometheus and Home Assistant sensors using the existing host
+  procfs mount. The format is confirmed on DXP6800 Pro; DXP2800GT support still
+  requires confirmation of the same interface ([#7](https://github.com/RCooLeR/UgosBridge/issues/7)).
+
 ### Changed
 
 - Documented that the UGOS Pro 1.19+ Docker Projects UI rejects the direct

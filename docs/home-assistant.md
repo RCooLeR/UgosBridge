@@ -699,6 +699,12 @@ For a disk-associated sensor it is instead:
 | Fan Speed | `sensor` | `fan_speed_rpm` | `fan_speed_rpm` | `rpm` | | `measurement` |
 
 Only sensor kinds `temperature` and `fan` are published to Home Assistant.
+On supported UGOS hosts without hwmon fan readings, `/proc/it86/fan` supplies
+CPU Fan and System Fan sensors automatically. They appear under the host's
+`Health it86` device, with sensor slugs such as `ugos_it86_cpufan` and
+`ugos_it86_sysfan1`; no MQTT configuration changes are required. These are
+standard Home Assistant sensor entities; the bundled cards do not currently
+display fan RPM.
 Temperature values use the same rolling average as Prometheus, controlled by
 `UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW`.
 

@@ -367,10 +367,40 @@ bandwidth, interrupts, package/GPU power, and RC6 percent.
 
 ## Hardware Health And Cooling
 
-Temperature and fan data comes from:
+Temperature data comes from:
 
 - `/sys/class/hwmon`
 - `/sys/class/thermal/thermal_zone*`
+
+Fan RPM normally comes from `/sys/class/hwmon/hwmon*/fan*_input`. When no valid
+hwmon fan readings are available, the bridge automatically tries the UGOS vendor
+interface `/proc/it86/fan`, resolved under `UGOS_BRIDGE_HOST_PROCFS` (normally
+`/host/proc/it86/fan`). The existing `/proc:/host/proc:ro` mount is sufficient;
+no new configuration, host-root mount, or fan-control permissions are needed.
+
+The supported format is one reading per line, for example:
+
+```text
+cpufan speed:3125
+sysfan1 speed:2288
+sysfan2 speed:2280
+```
+
+These become CPU Fan, System Fan 1, and System Fan 2 sensors in Prometheus and
+Home Assistant, with `source="ugos"` and `chip="it86"`. Unnumbered `sysfan` is
+also supported. Values are actual RPM, including zero for a stopped fan;
+missing, malformed, negative, or unreadable values are omitted.
+
+The fallback is intentionally all-or-nothing: any valid hwmon fan reading,
+including zero RPM or a GPU fan, takes precedence over the vendor source. It
+does not fill missing channels when hwmon already exposes fans, because their
+channel names cannot reliably be matched to UGOS names without duplicating
+physical fans. Temperature collection is unaffected.
+
+The vendor format was confirmed on a DXP6800 Pro. Other models, including the
+DXP2800GT reported in [issue #7](https://github.com/RCooLeR/UgosBridge/issues/7),
+need confirmation that they expose the same interface. The bridge does not
+currently query the authenticated UGOS web API for fan readings.
 
 Temperature readings are exported as a rolling average over
 `UGOS_BRIDGE_HOST_TEMPERATURE_AVERAGE_WINDOW` to avoid short hardware sensor

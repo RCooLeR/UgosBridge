@@ -297,6 +297,62 @@ func TestHealthSensorsUseUniqueEntityIDsPerSensor(t *testing.T) {
 	}
 }
 
+func TestUGOSFansPublishDistinctEntitiesAndRPMIncludingStoppedFan(t *testing.T) {
+	client := &recordingClient{connectionOpen: true}
+	publisher := &MQTTPublisher{
+		client:             client,
+		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		availabilityTopic:  "ugos_bridge/status",
+		discoveredEntities: map[string]publishedEntity{},
+	}
+	sensors := []model.SensorSnapshot{
+		{Source: "ugos", Chip: "it86", Name: "cpufan", Label: "CPU Fan", Kind: "fan", Value: 3125, DeviceType: "host"},
+		{Source: "ugos", Chip: "it86", Name: "sysfan1", Label: "System Fan 1", Kind: "fan", Value: 2288, DeviceType: "host"},
+		{Source: "ugos", Chip: "it86", Name: "sysfan2", Label: "System Fan 2", Kind: "fan", Value: 0, DeviceType: "host"},
+	}
+	snapshot := model.Snapshot{Host: &model.HostSnapshot{Name: "dxp6800_pro", Sensors: sensors}}
+	if err := publisher.publishHost(snapshot, map[string]publishedEntity{}); err != nil {
+		t.Fatalf("publishHost returned error: %v", err)
+	}
+
+	uniqueIDs := make(map[string]bool)
+	objectIDs := make(map[string]bool)
+	for _, sensor := range sensors {
+		slug := "ugos_it86_" + sensor.Name
+		config := configPayload(t, client, publisher.discoveryTopic("sensor", slug, "fan_speed_rpm"))
+		uniqueID, ok := config["unique_id"].(string)
+		if !ok || uniqueID == "" || uniqueIDs[uniqueID] {
+			t.Fatalf("%s has missing or duplicate unique_id: %#v", sensor.Name, config["unique_id"])
+		}
+		uniqueIDs[uniqueID] = true
+		objectID, ok := config["object_id"].(string)
+		if !ok || objectID == "" || objectIDs[objectID] {
+			t.Fatalf("%s has missing or duplicate object_id: %#v", sensor.Name, config["object_id"])
+		}
+		objectIDs[objectID] = true
+		device, ok := config["device"].(map[string]any)
+		if !ok {
+			t.Fatalf("%s has no device: %#v", sensor.Name, config["device"])
+		}
+		if want := []any{"ugos_bridge_host_dxp6800_pro_health_it86"}; !reflect.DeepEqual(device["identifiers"], want) {
+			t.Errorf("%s device identifiers = %#v, want %#v", sensor.Name, device["identifiers"], want)
+		}
+		if got := viaDevice(t, config); got != "ugos_bridge_host_dxp6800_pro" {
+			t.Errorf("%s parent device = %q", sensor.Name, got)
+		}
+		if config["unit_of_measurement"] != "rpm" || config["state_class"] != "measurement" {
+			t.Errorf("%s has unexpected RPM metadata: %#v", sensor.Name, config)
+		}
+		stateTopic := "ugos_bridge/host/sensors/" + slug + "/fan_speed_rpm/state"
+		if config["state_topic"] != stateTopic {
+			t.Errorf("%s state_topic = %#v, want %q", sensor.Name, config["state_topic"], stateTopic)
+		}
+		if got, want := messagePayload(t, client, stateTopic), fmt.Sprintf("%g", sensor.Value); got != want {
+			t.Errorf("%s scalar RPM = %q, want %q", sensor.Name, got, want)
+		}
+	}
+}
+
 func TestHostLoadSensorUsesPercentUnit(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
 	publisher := &MQTTPublisher{
