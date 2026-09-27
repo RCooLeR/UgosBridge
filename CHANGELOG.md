@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-09-27
+
+This patch adds UGOS fan RPM telemetry and displays CPU and system fans in both
+Home Assistant cards. It also documents the UGOS Pro 1.19+ rootfs mount restriction.
+
 ### Added
 
 - CPU fan RPM in the CPU section and individual system fan RPMs in System Load
@@ -11,15 +16,26 @@
 - Read-only fan RPM collection from the UGOS `/proc/it86/fan` interface when
   hwmon exposes no valid fan readings. CPU and system fans are exported through
   the existing Prometheus and Home Assistant sensors using the existing host
-  procfs mount. The format is confirmed on DXP6800 Pro; DXP2800GT support still
-  requires confirmation of the same interface ([#7](https://github.com/RCooLeR/UgosBridge/issues/7)).
+  procfs mount. The format is confirmed on DXP6800 Pro and reported on DXP2800GT
+  ([#7](https://github.com/RCooLeR/UgosBridge/issues/7)); end-to-end exporter
+  verification was performed on DXP6800 Pro.
 
 ### Changed
 
+- Include both built Home Assistant card JavaScript files as release downloads,
+  with SHA-256 checksums and the existing release artifact attestation.
 - Documented that the UGOS Pro 1.19+ Docker Projects UI rejects the direct
   host-root bind `/:/rootfs:ro` with a generic `invalid configuration file`
   message, and made the example deployment UI-compatible without reducing
   `/volume1` or `/volume2` telemetry.
+
+### Upgrade
+
+- Pull `rcooler/ugos-bridge:1.0.5` or rebuild from the tagged source. Keep the
+  existing read-only host procfs mount (`/proc:/host/proc:ro`); fan collection
+  requires neither host-root access nor new privileges.
+- Replace both Home Assistant card JavaScript resources and hard-refresh the
+  dashboard. No additional card configuration is needed for UGOS fan sensors.
 
 ## [1.0.4] - 2026-09-02
 
@@ -164,7 +180,8 @@ rebuilds, adds NUT UPS monitoring, and restores complete NAS card telemetry.
 - Refresh the bundled detailed and compact Home Assistant card resources after
   deployment.
 
-[Unreleased]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.2...v1.0.3
 

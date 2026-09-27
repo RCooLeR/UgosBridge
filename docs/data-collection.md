@@ -397,9 +397,10 @@ does not fill missing channels when hwmon already exposes fans, because their
 channel names cannot reliably be matched to UGOS names without duplicating
 physical fans. Temperature collection is unaffected.
 
-The vendor format was confirmed on a DXP6800 Pro. Other models, including the
-DXP2800GT reported in [issue #7](https://github.com/RCooLeR/UgosBridge/issues/7),
-need confirmation that they expose the same interface. The bridge does not
+The vendor format was confirmed on a DXP6800 Pro and reported on DXP2800GT in
+[issue #7](https://github.com/RCooLeR/UgosBridge/issues/7#issuecomment-5579596372).
+End-to-end exporter verification was performed on DXP6800 Pro; other models
+must expose the same interface to use this fallback. The bridge does not
 currently query the authenticated UGOS web API for fan readings.
 
 Temperature readings are exported as a rolling average over

@@ -27,6 +27,9 @@ builds:
 
 checksum:
   name_template: checksums.txt
+  extra_files:
+    - glob: ./ha-cards/detailed/dist/ugreen-nas-card.js
+    - glob: ./ha-cards/small/dist/ugreen-nas-mini-card.js
 
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
@@ -35,6 +38,9 @@ release:
   prerelease: auto
   preflight:
     fail_on_error: true
+  extra_files:
+    - glob: ./ha-cards/detailed/dist/ugreen-nas-card.js
+    - glob: ./ha-cards/small/dist/ugreen-nas-mini-card.js
 
 changelog:
   use: git
