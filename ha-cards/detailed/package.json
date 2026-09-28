@@ -14,10 +14,10 @@
   "dependencies": {
     "@mdi/js": "^7.4.47",
     "lit": "^3.3.3",
-    "simple-icons": "^16.28.0"
+    "simple-icons": "^16.32.0"
   },
   "devDependencies": {
     "typescript": "^7.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.3.1"
   }
 }
