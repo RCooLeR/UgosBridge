@@ -1992,7 +1992,7 @@ var T = {
 	return Number.isFinite(t) ? t : void 0;
 }, qn = (e) => {
 	let t = lt(e);
-	if (!(!t || !e)) return t.parsedNumber === void 0 && (t.parsedNumber = W(e.state) ?? null), t.parsedNumber ?? void 0;
+	if (t && e) return t.parsedNumber === void 0 && (t.parsedNumber = W(e.state) ?? null), t.parsedNumber ?? void 0;
 }, Jn = (e) => e?.state === "on";
 function Yn(e) {
 	if (!e) return;
@@ -4075,7 +4075,7 @@ var Xn = (e) => lt(e)?.unit, G = (e, t) => {
 	};
 }, bi = (e) => yi(Xr, "preview", e);
 //#endregion
-//#region \0@oxc-project+runtime@0.147.0/helpers/esm/decorate.js
+//#region \0@oxc-project+runtime@0.151.0/helpers/esm/decorate.js
 function xi(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);

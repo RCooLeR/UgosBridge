@@ -2040,7 +2040,7 @@ var ft = ct(dt), S = {
 	return Number.isFinite(t) ? t : void 0;
 }, mr = (e) => {
 	let t = kt(e);
-	if (!(!t || !e)) return t.parsedNumber === void 0 && (t.parsedNumber = B(e.state) ?? null), t.parsedNumber ?? void 0;
+	if (t && e) return t.parsedNumber === void 0 && (t.parsedNumber = B(e.state) ?? null), t.parsedNumber ?? void 0;
 }, hr = (e) => e?.state === "on";
 function gr(e) {
 	if (!e) return;
@@ -4863,7 +4863,7 @@ var Xi = te`
   }
 `;
 //#endregion
-//#region \0@oxc-project+runtime@0.147.0/helpers/esm/decorate.js
+//#region \0@oxc-project+runtime@0.151.0/helpers/esm/decorate.js
 function Zi(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
@@ -5483,7 +5483,7 @@ var Qi = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 	buildDeviceIdentityRows(e, t, n) {
 		let r = /* @__PURE__ */ new Set([this.normalizeHeaderValue(e)]), i = [], a = (e, t, n) => {
 			let a = this.normalizeHeaderValue(n);
-			!a || r.has(a) || (r.add(a), i.push(this.renderInfoRow(e, t, n)));
+			a && !r.has(a) && (r.add(a), i.push(this.renderInfoRow(e, t, n)));
 		};
 		return a("M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69M12 3L2 12H5V20H11V14H13V20H19V12H22", "Model", t), a("M13,19H14A1,1 0 0,1 15,20H22V22H15A1,1 0 0,1 14,23H10A1,1 0 0,1 9,22H2V20H9A1,1 0 0,1 10,19H11V17H4A1,1 0 0,1 3,16V12A1,1 0 0,1 4,11H20A1,1 0 0,1 21,12V16A1,1 0 0,1 20,17H13V19M4,3H20A1,1 0 0,1 21,4V8A1,1 0 0,1 20,9H4A1,1 0 0,1 3,8V4A1,1 0 0,1 4,3M9,7H10V5H9V7M9,15H10V13H9V15M5,5V7H7V5H5M5,13V15H7V13H5Z", "Hostname", n), i;
 	}
