@@ -1,6 +1,6 @@
 # ugos-bridge
 
-![ugos-bridge overview](https://raw.githubusercontent.com/RCooLeR/UgosBridge/main/ugos-nas-bridge.png)
+![ugos-bridge overview](https://raw.githubusercontent.com/RCooLeR/UgosBridge/master/ugos-nas-bridge.png)
 
 Lightweight metrics bridge for UGOS / UGREEN NAS hosts, Docker Compose stacks,
 and QEMU/libvirt virtual machines. It collects Docker, VM, host, storage,

@@ -17,6 +17,14 @@ GPU, and health telemetry and exports it to Prometheus and MQTT/Home Assistant.
 - [Lovelace cards](./ha-cards/README.md)
 - [Changelog](./CHANGELOG.md)
 
+## Development
+
+`master` is the default branch. Changes must pass the `bridge`, `cards`,
+`container`, and `release-snapshot` GitHub Actions checks before merging.
+These cover Go tests and race detection, dependency audits, card builds and
+committed bundles, container smoke tests, and release packaging. Branches must
+be up to date with `master`; force pushes and deletion of `master` are disabled.
+
 ## Disclaimer
 
 UgosBridge is an unofficial DIY open-source project for compatibility and

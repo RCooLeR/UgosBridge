@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated development on the `master` default branch with required bridge,
+  card, container, and release-snapshot checks.
+- Updated Go dependencies (`urfave/cli` 3.13 and `x/sys` 0.48), the Go build image
+  to 1.27.1, the Debian runtime image to 13.7, and pinned GitHub Actions versions.
+- Updated Vite to 8.3.1 and Simple Icons to 16.32.0, and regenerated both Home
+  Assistant card bundles with the updated toolchain.
+
 ## [1.0.5] - 2026-09-27
 
 This patch adds UGOS fan RPM telemetry and displays CPU and system fans in both
