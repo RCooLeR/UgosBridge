@@ -6,10 +6,20 @@
 
 - Consolidated development on the `master` default branch with required bridge,
   card, container, and release-snapshot checks.
-- Updated Go dependencies (`urfave/cli` 3.13 and `x/sys` 0.48), the Go build image
-  to 1.27.1, the Debian runtime image to 13.7, and pinned GitHub Actions versions.
-- Updated Vite to 8.3.1 and Simple Icons to 16.32.0, and regenerated both Home
+- Updated Go dependencies (Prometheus client 1.25, `urfave/cli` 3.14, and `x/sys`
+  0.49), the Go build image to 1.27.2, the Debian 13.7 runtime image digest, and
+  pinned GitHub Actions versions, including `setup-node` 7.1.
+- Updated Vite to 8.3.2 and Simple Icons to 16.33.0, and regenerated both Home
   Assistant card bundles with the updated toolchain.
+- Use Dependabot's default labels so it can create missing dependency and
+  ecosystem labels automatically instead of warning about a custom label.
+
+### Security
+
+- Require Go 1.27.2 for source, CI, release, and container builds, and update
+  `golang.org/x/net` to 0.60.0 to include the October HTTP and TLS security fixes.
+- Update the development-only `source-map-js` dependency to 1.2.2 to address
+  indexed source-map denial of service (GHSA-68fv-2mgg-jv7q).
 
 ## [1.0.5] - 2026-09-27
 
