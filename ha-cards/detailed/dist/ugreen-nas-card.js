@@ -4863,7 +4863,7 @@ var Xi = te`
   }
 `;
 //#endregion
-//#region \0@oxc-project+runtime@0.151.0/helpers/esm/decorate.js
+//#region \0@oxc-project+runtime@0.153.0/helpers/esm/decorate.js
 function Zi(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
@@ -4885,11 +4885,7 @@ var Qi = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 	}
 	set hass(e) {
 		let t = this._hass;
-		if (!this.shouldRefreshForHassUpdate(t, e)) {
-			this._hass = e;
-			return;
-		}
-		this._hass = e, this.requestUpdate("hass", t), this.refreshModel();
+		this.shouldRefreshForHassUpdate(t, e) ? (this._hass = e, this.requestUpdate("hass", t), this.refreshModel()) : this._hass = e;
 	}
 	get hass() {
 		return this._hass;
@@ -5640,7 +5636,8 @@ var Qi = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 	}
 	refreshModel() {
 		let e = jt(this._hass, this._config, this._history);
-		if (!e) {
+		if (e) this._history = e.history, this._watchEntityIds = e.watchEntityIds, this._watchPrefixes = e.watchPrefixes, this._model = e.model, this._detailSelection = this.isDetailSelectionAvailable(this._detailSelection) ? this._detailSelection : { kind: "default" }, this._dataMode = "live";
+		else {
 			if (this._hass?.states) {
 				let e = vi();
 				e.deviceInfo = {
@@ -5651,9 +5648,7 @@ var Qi = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 				}, this._model = e, this._dataMode = "missing";
 			} else this._model = _i, this._dataMode = "preview";
 			this._detailSelection = { kind: "default" }, this._history = At(), this._watchEntityIds = [], this._watchPrefixes = [];
-			return;
 		}
-		this._history = e.history, this._watchEntityIds = e.watchEntityIds, this._watchPrefixes = e.watchPrefixes, this._model = e.model, this._detailSelection = this.isDetailSelectionAvailable(this._detailSelection) ? this._detailSelection : { kind: "default" }, this._dataMode = "live";
 	}
 	shouldRefreshForHassUpdate(e, t) {
 		let n = e?.states, r = t?.states;

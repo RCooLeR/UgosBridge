@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-10-12
+
+### Changed
+
+- Updated Vite to 8.3.4 and Simple Icons to 16.34.0 after Dependabot's follow-up
+  scan, including Rolldown 1.2.13 and PostCSS 8.5.29, and regenerated both Home
+  Assistant card bundles. The bridge runtime and configuration are unchanged.
+
 ## [1.0.6] - 2026-10-12
 
 This patch updates the bridge and card dependencies and fixes the October Go

@@ -4075,7 +4075,7 @@ var Xn = (e) => lt(e)?.unit, G = (e, t) => {
 	};
 }, bi = (e) => yi(Xr, "preview", e);
 //#endregion
-//#region \0@oxc-project+runtime@0.151.0/helpers/esm/decorate.js
+//#region \0@oxc-project+runtime@0.153.0/helpers/esm/decorate.js
 function xi(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
@@ -4093,11 +4093,7 @@ var Si = class extends Ve {
 	}
 	set hass(e) {
 		let t = this._hass;
-		if (!this.shouldRefreshForHassUpdate(t, e)) {
-			this._hass = e;
-			return;
-		}
-		this._hass = e, this.requestUpdate("hass", t), this.refreshModel();
+		this.shouldRefreshForHassUpdate(t, e) ? (this._hass = e, this.requestUpdate("hass", t), this.refreshModel()) : this._hass = e;
 	}
 	get hass() {
 		return this._hass;
@@ -4201,18 +4197,15 @@ var Si = class extends Ve {
 	}
 	refreshModel() {
 		let e = dt(this._hass, this.config, this.history);
-		if (!e) {
-			if (this.history = ut(), this.watchEntityIds = [], this.watchPrefixes = [], this._hass?.states) {
-				let e = Zr();
-				e.deviceInfo = {
-					...e.deviceInfo,
-					model: this.config.deviceModel ?? e.deviceInfo.model,
-					hostname: this.config.host ?? e.deviceInfo.hostname
-				}, this.model = yi(e, "missing", this.config), this.dataMode = "missing";
-			} else this.model = bi(this.config), this.dataMode = "preview";
-			return;
-		}
-		this.history = e.history, this.watchEntityIds = e.watchEntityIds, this.watchPrefixes = e.watchPrefixes, this.model = yi(e.model, "live", this.config), this.dataMode = "live";
+		if (e) this.history = e.history, this.watchEntityIds = e.watchEntityIds, this.watchPrefixes = e.watchPrefixes, this.model = yi(e.model, "live", this.config), this.dataMode = "live";
+		else if (this.history = ut(), this.watchEntityIds = [], this.watchPrefixes = [], this._hass?.states) {
+			let e = Zr();
+			e.deviceInfo = {
+				...e.deviceInfo,
+				model: this.config.deviceModel ?? e.deviceInfo.model,
+				hostname: this.config.host ?? e.deviceInfo.hostname
+			}, this.model = yi(e, "missing", this.config), this.dataMode = "missing";
+		} else this.model = bi(this.config), this.dataMode = "preview";
 	}
 	shouldRefreshForHassUpdate(e, t) {
 		let n = e?.states, r = t?.states;
