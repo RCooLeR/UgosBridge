@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-10-12
+
+This patch updates the bridge and card dependencies and fixes the October Go
+and card-build dependency security findings. Public metrics, configuration, and
+Home Assistant card behavior remain unchanged.
+
 ### Changed
 
 - Consolidated development on the `master` default branch with required bridge,
