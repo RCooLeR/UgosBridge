@@ -1,4 +1,4 @@
-package prometheusoutput
+package metrics
 
 import (
 	"strconv"
@@ -9,6 +9,7 @@ import (
 	"github.com/RCooLeR/UgosBridge/bridge/internal/model"
 )
 
+// Metrics owns the Prometheus gauges updated from bridge snapshots.
 type Metrics struct {
 	containerCPU                    *prometheus.GaugeVec
 	containerMemory                 *prometheus.GaugeVec
@@ -129,7 +130,9 @@ type Metrics struct {
 	statsErrors    prometheus.Gauge
 }
 
-func NewMetrics(registry prometheus.Registerer) *Metrics {
+// New registers the bridge gauges with registry. It panics if registration fails,
+// including when the same metrics have already been registered.
+func New(registry prometheus.Registerer) *Metrics {
 	m := &Metrics{
 		containerCPU: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "ugos_bridge_container_cpu_usage_percent",

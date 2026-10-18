@@ -1,5 +1,7 @@
 # Data Collection
 
+[Bridge documentation](index.md)
+
 `ugos-bridge` collects one snapshot on each scrape interval. The same snapshot is
 used for Prometheus, the JSON APIs, and MQTT/Home Assistant publishing.
 
@@ -550,4 +552,5 @@ services:
       - /dev/dri:/dev/dri
 ```
 
-The repository also includes [bridge/docker-compose.example.yml](../bridge/docker-compose.example.yml).
+The repository also includes a [Compose example](../docker-compose.example.yml)
+that builds from source. Review its mounts and MQTT settings before use.

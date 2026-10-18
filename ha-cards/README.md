@@ -1,66 +1,28 @@
 # Home Assistant Cards
 
-This repository now keeps both Home Assistant cards under `ha-cards/`.
+Two optional Lovelace cards for the Home Assistant MQTT entities published by
+`ugos-bridge`. Both read Home Assistant state; neither calls the bridge directly.
 
-## Packages
+| Card | Purpose | Bundle |
+| --- | --- | --- |
+| [Detailed](detailed/README.md) | NAS dashboard with hardware, storage, network, containers and VMs | `detailed/dist/ugreen-nas-card.js` |
+| [Mini](small/README.md) | Compact hardware, storage and network overview | `small/dist/ugreen-nas-mini-card.js` |
 
-- `detailed/` - full NAS dashboard card
-- `small/` - compact overview card
+- [Installation and updates](docs/installation.md)
+- [Configuration, entity compatibility and fan RPM](docs/configuration.md)
+- [Bridge MQTT setup](../bridge/docs/home-assistant.md)
 
-## Build
+## Development
 
-Install both workspaces from the shared lockfile and run the complete check, test,
-and build pipeline:
+From the repository root, install both workspaces from the shared lockfile:
 
-```bash
+```sh
 cd ha-cards
 npm ci
 npm run verify
 ```
 
-You can still target one card while working locally:
-
-```bash
-npm run check --workspace ugreen-nas-card
-npm test --workspace ugreen-nas-card
-npm run build --workspace ugreen-nas-card
-
-npm run check --workspace ugreen-nas-mini-card
-npm run build --workspace ugreen-nas-mini-card
-```
-
-## Production Bundles
-
-- `ha-cards/detailed/dist/ugreen-nas-card.js`
-- `ha-cards/small/dist/ugreen-nas-mini-card.js`
-
-## Home Assistant Resources
-
-Detailed card:
-
-```yaml
-url: /local/nas/ugreen-nas-card.js
-type: module
-```
-
-Mini card:
-
-```yaml
-url: /local/nas/ugreen-nas-mini-card.js
-type: module
-```
-
-## Entity Compatibility
-
-Both cards consume the compact scalar MQTT entities published by `ugos-bridge`.
-Home Assistant can preserve an entity's older `entity_id` after MQTT discovery
-changes its `unique_id`, so the cards also resolve the legacy project, container,
-and virtual-machine namespaces. Container metadata is taken from the scalar entity
-that provides it and explicit `project` metadata always takes precedence over name
-matching.
-
-Both cards automatically show CPU fan RPM with CPU and individual system/chassis
-fan RPMs with System Load (Load in the mini card). They read Home Assistant's MQTT
-sensor entities, not the Prometheus endpoint. No additional card configuration
-is required for UGOS `cpufan` and `sysfan*` sensors. Unavailable readings are
-hidden; stopped fans reporting zero remain visible as `0 RPM`.
+`verify` runs TypeScript checks, tests, both bundle builds and the dependency audit.
+CI uses Node.js 24 and checks that the committed bundles match a fresh build.
+Keep source changes and regenerated bundles together. The per-card READMEs list
+workspace commands for working on one card.

@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Organize documentation by component, with a minimal root README, bridge
+  references under `bridge/docs/`, and shared card guides under `ha-cards/docs/`.
+  Build paths and configuration are unchanged.
+- Move Prometheus and Home Assistant MQTT packages to `internal/metrics` and
+  `internal/hamqtt`, matching the other bridges. Simplify their Go API names;
+  metric names, MQTT topics, discovery IDs, and publishing behavior are unchanged.
+
 ## [1.0.7] - 2026-10-12
 
 ### Changed
@@ -213,7 +222,9 @@ rebuilds, adds NUT UPS monitoring, and restores complete NAS card telemetry.
 - Refresh the bundled detailed and compact Home Assistant card resources after
   deployment.
 
-[Unreleased]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.6...v1.0.7
+[1.0.6]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/RCooLeR/UgosBridge/compare/v1.0.2...v1.0.3

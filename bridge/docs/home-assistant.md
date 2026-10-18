@@ -1,5 +1,11 @@
 # Home Assistant Sensors And Devices
 
+[Bridge documentation](index.md) · [Lovelace cards](../../ha-cards/README.md)
+
+Implementation: [`internal/hamqtt`](../internal/hamqtt/publisher.go). Its
+`Publisher` consumes collected snapshots; MQTT topics and Home Assistant
+identities do not depend on the internal Go package name.
+
 This guide describes what `ugos-bridge` creates in Home Assistant when MQTT
 publishing is enabled: devices, sensors, binary sensors, topics, and generated
 IDs.

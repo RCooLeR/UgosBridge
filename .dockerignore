@@ -5,7 +5,7 @@
 .ai/
 claude-review/
 .cache/
-docs/
+bridge/docs/
 ha-cards/
 dist/
 bin/

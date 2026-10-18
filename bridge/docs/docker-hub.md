@@ -1,6 +1,6 @@
 # ugos-bridge
 
-![ugos-bridge overview](https://raw.githubusercontent.com/RCooLeR/UgosBridge/master/ugos-nas-bridge.png)
+![ugos-bridge overview](https://raw.githubusercontent.com/RCooLeR/UgosBridge/master/bridge/docs/images/ugos-nas-bridge.png)
 
 Lightweight metrics bridge for UGOS / UGREEN NAS hosts, Docker Compose stacks,
 and QEMU/libvirt virtual machines. It collects Docker, VM, host, storage,
@@ -10,7 +10,8 @@ MQTT/Home Assistant discovery.
 Prometheus listens on `:9877` by default. MQTT/Home Assistant export is optional
 and can be enabled with environment variables.
 
-GitHub: https://github.com/RCooLeR/UgosBridge
+[Bridge documentation](https://github.com/RCooLeR/UgosBridge/blob/master/bridge/README.md)
+· [Home Assistant cards](https://github.com/RCooLeR/UgosBridge/blob/master/ha-cards/README.md)
 
 ## Docker Compose
 
@@ -61,7 +62,7 @@ Enable MQTT/Home Assistant discovery by setting:
       UGOS_BRIDGE_MQTT_TOPIC_PREFIX: "ugos_bridge"
       UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX: "homeassistant"
       UGOS_BRIDGE_MQTT_RETAIN: "true"
-      UGOS_BRIDGE_MQTT_EXPIRE_AFTER: "360"
+      UGOS_BRIDGE_MQTT_ENTITY_GRACE: "360s"
 ```
 
 UgosBridge is an unofficial compatibility project and is not affiliated with,
