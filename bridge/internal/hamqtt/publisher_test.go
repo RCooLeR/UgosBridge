@@ -1,4 +1,4 @@
-package mqttoutput
+package hamqtt
 
 import (
 	"encoding/json"
@@ -80,7 +80,7 @@ func (stubToken) Done() <-chan struct{} {
 
 func (t stubToken) Error() error { return t.err }
 
-func markConnectionCommitted(publisher *MQTTPublisher) {
+func markConnectionCommitted(publisher *Publisher) {
 	publisher.connectionGeneration.Store(1)
 	publisher.replayReadyGeneration.Store(1)
 	publisher.committedGeneration.Store(1)
@@ -88,9 +88,9 @@ func markConnectionCommitted(publisher *MQTTPublisher) {
 
 func TestPublishSnapshotReturnsWhenConnectionIsNotOpen(t *testing.T) {
 	client := &recordingClient{}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client: client,
-		cfg: MQTTConfig{
+		cfg: Config{
 			Broker: "tcp://mqtt:1883",
 			QoS:    1,
 			Retain: true,
@@ -114,9 +114,9 @@ func TestPublishSnapshotReturnsWhenConnectionIsNotOpen(t *testing.T) {
 
 func TestPublishSnapshotCommitsAvailabilityAfterFullReplay(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", QoS: 1, Retain: true},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", QoS: 1, Retain: true},
 		availabilityTopic:  "ugos_bridge/status",
 		availabilityOnline: "online_generation",
 		discoveredEntities: map[string]publishedEntity{},
@@ -175,9 +175,9 @@ func TestPublishSnapshotCommitsAvailabilityAfterFullReplay(t *testing.T) {
 
 func TestPublishSnapshotRetriesEntireReplayWhenAvailabilityCommitFails(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
 		availabilityTopic:  "ugos_bridge/status",
 		availabilityOnline: "online_generation",
 		discoveredEntities: map[string]publishedEntity{},
@@ -212,9 +212,9 @@ func TestPublishSnapshotRetriesEntireReplayWhenAvailabilityCommitFails(t *testin
 
 func TestPublishSnapshotUsesUnavailableGraceBeforeRemovingDiscovery(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client: client,
-		cfg: MQTTConfig{
+		cfg: Config{
 			QoS:              1,
 			Retain:           true,
 			UnavailableAfter: 3,
@@ -265,9 +265,9 @@ func TestPublishSnapshotUsesUnavailableGraceBeforeRemovingDiscovery(t *testing.T
 
 func TestHealthSensorsUseUniqueEntityIDsPerSensor(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -299,9 +299,9 @@ func TestHealthSensorsUseUniqueEntityIDsPerSensor(t *testing.T) {
 
 func TestUGOSFansPublishDistinctEntitiesAndRPMIncludingStoppedFan(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -355,9 +355,9 @@ func TestUGOSFansPublishDistinctEntitiesAndRPMIncludingStoppedFan(t *testing.T) 
 
 func TestHostLoadSensorUsesPercentUnit(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -382,9 +382,9 @@ func TestHostLoadSensorUsesPercentUnit(t *testing.T) {
 
 func TestDiscoveryUsesScalarStateAndCompactAttributes(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -440,9 +440,9 @@ func TestContainerCPUDiscoverySuggestsPrecisionWithoutRoundingState(t *testing.T
 	const cpuPercent = 0.0736593591905565
 
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -562,9 +562,9 @@ func TestSensorDefinitionsUseExpectedDisplayPrecision(t *testing.T) {
 
 func TestPublishSnapshotOnlyPublishesChangedEntityState(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -615,9 +615,9 @@ func TestProcessEntitiesRequireAllowlist(t *testing.T) {
 	}
 
 	disabledClient := &recordingClient{connectionOpen: true}
-	disabled := &MQTTPublisher{
+	disabled := &Publisher{
 		client:             disabledClient,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -638,9 +638,9 @@ func TestProcessEntitiesRequireAllowlist(t *testing.T) {
 	}
 
 	allowedClient := &recordingClient{connectionOpen: true}
-	allowed := &MQTTPublisher{
+	allowed := &Publisher{
 		client: allowedClient,
-		cfg: MQTTConfig{
+		cfg: Config{
 			TopicPrefix:      "ugos_bridge",
 			DiscoveryPrefix:  "homeassistant",
 			ProcessAllowlist: []string{"search_serv"},
@@ -662,9 +662,9 @@ func TestProcessEntitiesRequireAllowlist(t *testing.T) {
 func TestContainerEntityIdentityDoesNotUseRuntimeID(t *testing.T) {
 	publishContainer := func(runtimeID string) (map[string]any, map[string]any) {
 		client := &recordingClient{connectionOpen: true}
-		publisher := &MQTTPublisher{
+		publisher := &Publisher{
 			client:             client,
-			cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
+			cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant", Retain: true},
 			availabilityTopic:  "ugos_bridge/status",
 			discoveredEntities: map[string]publishedEntity{},
 		}
@@ -698,9 +698,9 @@ func TestContainerEntityIdentityDoesNotUseRuntimeID(t *testing.T) {
 
 func TestDiskAndDiskSensorIdentityUseSerial(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -751,9 +751,9 @@ func TestDiskAndDiskSensorIdentityUseSerial(t *testing.T) {
 
 func TestUPSPublishesHomeAssistantEntities(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -814,9 +814,9 @@ func TestUPSPublishesHomeAssistantEntities(t *testing.T) {
 
 func TestBondSlaveEntitiesDoNotReuseNetworkEntityIDs(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}
@@ -860,9 +860,9 @@ func TestBondSlaveEntitiesDoNotReuseNetworkEntityIDs(t *testing.T) {
 
 func TestChildDeviceDiscoveryPublishesParentsFirst(t *testing.T) {
 	client := &recordingClient{connectionOpen: true}
-	publisher := &MQTTPublisher{
+	publisher := &Publisher{
 		client:             client,
-		cfg:                MQTTConfig{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
+		cfg:                Config{TopicPrefix: "ugos_bridge", DiscoveryPrefix: "homeassistant"},
 		availabilityTopic:  "ugos_bridge/status",
 		discoveredEntities: map[string]publishedEntity{},
 	}

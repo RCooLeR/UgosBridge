@@ -1,5 +1,11 @@
 # Prometheus Metrics Guide
 
+[Bridge documentation](index.md)
+
+Implementation: [`internal/metrics`](../internal/metrics/metrics.go), updated
+from collected snapshots by the bridge runtime. Metric names and labels are
+independent of the internal Go package name.
+
 `ugos-bridge` exposes Prometheus metrics from the HTTP server.
 
 Default listen address:

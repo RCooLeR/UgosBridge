@@ -24,9 +24,9 @@ import (
 	dockercollector "github.com/RCooLeR/UgosBridge/bridge/internal/collectors/docker"
 	hostcollector "github.com/RCooLeR/UgosBridge/bridge/internal/collectors/host"
 	"github.com/RCooLeR/UgosBridge/bridge/internal/dockerapi"
+	"github.com/RCooLeR/UgosBridge/bridge/internal/hamqtt"
+	"github.com/RCooLeR/UgosBridge/bridge/internal/metrics"
 	"github.com/RCooLeR/UgosBridge/bridge/internal/model"
-	mqttoutput "github.com/RCooLeR/UgosBridge/bridge/internal/outputs/mqtt"
-	prometheusoutput "github.com/RCooLeR/UgosBridge/bridge/internal/outputs/prometheus"
 )
 
 var (
@@ -327,7 +327,7 @@ func run(ctx context.Context, cfg config) error {
 	logger := log.With().Str("listen", cfg.ListenAddress).Str("docker_host", cfg.DockerHost).Logger()
 
 	registry := prometheus.NewRegistry()
-	metrics := prometheusoutput.NewMetrics(registry)
+	bridgeMetrics := metrics.New(registry)
 
 	dockerClient, err := dockerapi.NewClient(cfg.DockerHost, cfg.DockerTimeout)
 	if err != nil {
@@ -374,13 +374,13 @@ func run(ctx context.Context, cfg config) error {
 
 	mqttEnabled := cfg.MQTTEnabled || cfg.MQTTBroker != ""
 
-	var publisher *mqttoutput.MQTTPublisher
+	var publisher *hamqtt.Publisher
 	if mqttEnabled {
 		if cfg.MQTTBroker == "" {
 			return fmt.Errorf("mqtt is enabled but mqtt-broker is empty")
 		}
 		unavailableAfter := pollCount(cfg.HomeAssistantEntityGrace, cfg.MQTTInterval)
-		publisher, err = mqttoutput.NewMQTTPublisher(mqttoutput.MQTTConfig{
+		publisher, err = hamqtt.NewPublisher(hamqtt.Config{
 			Broker:           cfg.MQTTBroker,
 			ClientID:         cfg.MQTTClientID,
 			Username:         cfg.MQTTUsername,
@@ -455,7 +455,7 @@ func run(ctx context.Context, cfg config) error {
 		if snapshot.Host != nil {
 			snapshot.Host.Name = preferredHostName(snapshot.Host.Name, cfg.HostNameOverride)
 		}
-		metrics.Update(snapshot, collectErr)
+		bridgeMetrics.Update(snapshot, collectErr)
 		if collectErr != nil {
 			logger.Error().Err(collectErr).Msg("collection failed")
 			return
@@ -464,7 +464,7 @@ func run(ctx context.Context, cfg config) error {
 
 		if publisher != nil && (lastMQTTPublish.IsZero() || time.Since(lastMQTTPublish) >= cfg.MQTTInterval) {
 			if err := publisher.PublishSnapshot(snapshot); err != nil {
-				if errors.Is(err, mqttoutput.ErrNotConnected) {
+				if errors.Is(err, hamqtt.ErrNotConnected) {
 					logger.Warn().Err(err).Msg("MQTT broker is not connected; skipping snapshot publish")
 				} else {
 					logger.Error().Err(err).Msg("failed to publish snapshot to MQTT")

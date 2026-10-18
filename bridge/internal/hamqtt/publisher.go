@@ -1,4 +1,4 @@
-package mqttoutput
+package hamqtt
 
 import (
 	"crypto/sha256"
@@ -20,6 +20,8 @@ import (
 
 var nonAlphaNum = regexp.MustCompile(`[^a-z0-9]+`)
 
+// ErrNotConnected indicates that the broker connection or availability replay
+// is not ready to publish a snapshot.
 var ErrNotConnected = errors.New("mqtt broker is not connected")
 
 const (
@@ -28,7 +30,8 @@ const (
 	defaultTopProcessLimit  = 10
 )
 
-type MQTTConfig struct {
+// Config controls the MQTT connection, discovery identities, and publication.
+type Config struct {
 	Broker           string
 	ClientID         string
 	Username         string
@@ -44,9 +47,11 @@ type MQTTConfig struct {
 	Log              zerolog.Logger
 }
 
-type MQTTPublisher struct {
+// Publisher publishes snapshots as Home Assistant discovery, state, and
+// availability messages. Close releases its broker connection.
+type Publisher struct {
 	client                mqtt.Client
-	cfg                   MQTTConfig
+	cfg                   Config
 	log                   zerolog.Logger
 	availabilityTopic     string
 	availabilityOnline    string
@@ -261,7 +266,9 @@ var upsBinarySensors = map[string]binarySensorDefinition{
 	"low_battery": {NameSuffix: "Low Battery", ObjectID: "low_battery", ValueKey: "low_battery", PayloadOn: "1", PayloadOff: "0", DeviceClass: "problem", Icon: "mdi:battery-alert"},
 }
 
-func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
+// NewPublisher creates a publisher and attempts an initial broker connection.
+// A connection timeout leaves the client retrying in the background.
+func NewPublisher(cfg Config) (*Publisher, error) {
 	if cfg.TopicPrefix == "" {
 		cfg.TopicPrefix = "ugos_bridge"
 	}
@@ -275,7 +282,7 @@ func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
 		cfg.ConnectTimeout = 10 * time.Second
 	}
 
-	p := &MQTTPublisher{
+	p := &Publisher{
 		cfg:                cfg,
 		log:                cfg.Log,
 		availabilityTopic:  fmt.Sprintf("%s/status", trimSlashes(cfg.TopicPrefix)),
@@ -321,7 +328,7 @@ func NewMQTTPublisher(cfg MQTTConfig) (*MQTTPublisher, error) {
 }
 
 // A connection stays globally offline until its complete retained entity set is replayed.
-func (p *MQTTPublisher) beginAvailabilityReplay(client mqtt.Client) {
+func (p *Publisher) beginAvailabilityReplay(client mqtt.Client) {
 	generation := p.connectionGeneration.Add(1)
 	p.replayReadyGeneration.Store(0)
 
@@ -336,7 +343,7 @@ func (p *MQTTPublisher) beginAvailabilityReplay(client mqtt.Client) {
 	}
 }
 
-func (p *MQTTPublisher) commitAvailabilityReplay(generation uint64) error {
+func (p *Publisher) commitAvailabilityReplay(generation uint64) error {
 	if p.connectionGeneration.Load() != generation || p.replayReadyGeneration.Load() != generation {
 		return fmt.Errorf("%w: MQTT connection changed during availability replay", ErrNotConnected)
 	}
@@ -354,7 +361,8 @@ func (p *MQTTPublisher) commitAvailabilityReplay(generation uint64) error {
 	return nil
 }
 
-func (p *MQTTPublisher) Close() {
+// Close publishes offline availability and disconnects an active broker client.
+func (p *Publisher) Close() {
 	if p.client == nil || !p.client.IsConnected() {
 		return
 	}
@@ -363,7 +371,10 @@ func (p *MQTTPublisher) Close() {
 	p.client.Disconnect(250)
 }
 
-func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
+// PublishSnapshot serializes publication of a snapshot's discovery, attributes,
+// states, and availability. Use errors.Is(err, ErrNotConnected) to detect a broker
+// connection or replay that is not ready.
+func (p *Publisher) PublishSnapshot(snapshot model.Snapshot) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -439,7 +450,7 @@ func (p *MQTTPublisher) PublishSnapshot(snapshot model.Snapshot) error {
 	return nil
 }
 
-func (p *MQTTPublisher) publishProjects(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
+func (p *Publisher) publishProjects(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
 	for _, project := range snapshot.Projects {
 		if err := p.publishProjectState(currentEntities, project.Name, project.CPUPercent, project.MemoryUsageBytes, project.TotalContainers, project.RunningContainers, "Project", "Project"); err != nil {
 			return err
@@ -454,7 +465,7 @@ func (p *MQTTPublisher) publishProjects(snapshot model.Snapshot, currentEntities
 	return nil
 }
 
-func (p *MQTTPublisher) publishProjectState(currentEntities map[string]publishedEntity, name string, cpuPercent float64, memoryBytes uint64, total int, running int, modelName string, entityPrefix string) error {
+func (p *Publisher) publishProjectState(currentEntities map[string]publishedEntity, name string, cpuPercent float64, memoryBytes uint64, total int, running int, modelName string, entityPrefix string) error {
 	slug := slugify(name)
 	stateTopic := fmt.Sprintf("%s/projects/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
 	values := map[string]any{
@@ -483,7 +494,7 @@ func (p *MQTTPublisher) publishProjectState(currentEntities map[string]published
 	return nil
 }
 
-func (p *MQTTPublisher) publishContainers(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
+func (p *Publisher) publishContainers(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
 	for _, container := range snapshot.Containers {
 		slug := slugify(container.Name)
 		stateTopic := fmt.Sprintf("%s/containers/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
@@ -534,7 +545,7 @@ func (p *MQTTPublisher) publishContainers(snapshot model.Snapshot, currentEntiti
 	return nil
 }
 
-func (p *MQTTPublisher) publishVirtualMachines(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
+func (p *Publisher) publishVirtualMachines(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
 	if snapshot.Host == nil {
 		return nil
 	}
@@ -587,7 +598,7 @@ func (p *MQTTPublisher) publishVirtualMachines(snapshot model.Snapshot, currentE
 	return nil
 }
 
-func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
+func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
 	hostSnapshot := snapshot.Host
 	hostSlug := slugify(hostSnapshot.Name)
 	hostDeviceID := fmt.Sprintf("ugos_bridge_host_%s", hostSlug)
@@ -1188,7 +1199,7 @@ func (p *MQTTPublisher) publishHost(snapshot model.Snapshot, currentEntities map
 	return nil
 }
 
-func (p *MQTTPublisher) ensureSensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def sensorDefinition, device deviceDescriptor) error {
+func (p *Publisher) ensureSensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def sensorDefinition, device deviceDescriptor) error {
 	prepared, ok := p.preparedPayloads[stateTopic]
 	if !ok {
 		return fmt.Errorf("MQTT payload for %q was not prepared", stateTopic)
@@ -1268,7 +1279,7 @@ func (p *MQTTPublisher) ensureSensor(discoveryTopic string, stateTopic string, c
 	return p.publishStateValueIfChanged(entityStateTopic, value)
 }
 
-func (p *MQTTPublisher) ensureBinarySensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def binarySensorDefinition, device deviceDescriptor) error {
+func (p *Publisher) ensureBinarySensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def binarySensorDefinition, device deviceDescriptor) error {
 	prepared, ok := p.preparedPayloads[stateTopic]
 	if !ok {
 		return fmt.Errorf("MQTT payload for %q was not prepared", stateTopic)
@@ -1332,11 +1343,11 @@ func (p *MQTTPublisher) ensureBinarySensor(discoveryTopic string, stateTopic str
 	return p.publishRawIfChanged(entityStateTopic, binaryStatePayload(value, def))
 }
 
-func (p *MQTTPublisher) discoveryTopic(component string, slug string, objectID string) string {
+func (p *Publisher) discoveryTopic(component string, slug string, objectID string) string {
 	return fmt.Sprintf("%s/%s/ugos_bridge_%s/%s/config", trimSlashes(p.cfg.DiscoveryPrefix), component, slug, objectID)
 }
 
-func (p *MQTTPublisher) preparePayload(stateTopic string, values map[string]any, attributes map[string]any) {
+func (p *Publisher) preparePayload(stateTopic string, values map[string]any, attributes map[string]any) {
 	if p.preparedPayloads == nil {
 		p.preparedPayloads = map[string]preparedPayload{}
 	}
@@ -1349,7 +1360,7 @@ func (p *MQTTPublisher) preparePayload(stateTopic string, values map[string]any,
 	}
 }
 
-func (p *MQTTPublisher) entityAvailability(entityTopic string) []map[string]any {
+func (p *Publisher) entityAvailability(entityTopic string) []map[string]any {
 	return []map[string]any{
 		{
 			"topic":                 p.availabilityTopic,
@@ -1364,25 +1375,25 @@ func (p *MQTTPublisher) entityAvailability(entityTopic string) []map[string]any 
 	}
 }
 
-func (p *MQTTPublisher) availablePayload() string {
+func (p *Publisher) availablePayload() string {
 	return firstNonEmpty(p.availabilityOnline, "online")
 }
 
-func (p *MQTTPublisher) unavailableAfter() int {
+func (p *Publisher) unavailableAfter() int {
 	if p.cfg.UnavailableAfter < 2 {
 		return defaultUnavailableAfter
 	}
 	return p.cfg.UnavailableAfter
 }
 
-func (p *MQTTPublisher) removeAfter() int {
+func (p *Publisher) removeAfter() int {
 	if p.cfg.RemoveAfter <= p.unavailableAfter() {
 		return p.unavailableAfter() * (defaultRemoveAfter / defaultUnavailableAfter)
 	}
 	return p.cfg.RemoveAfter
 }
 
-func (p *MQTTPublisher) allowedProcesses(processes []model.ProcessSnapshot) []model.ProcessSnapshot {
+func (p *Publisher) allowedProcesses(processes []model.ProcessSnapshot) []model.ProcessSnapshot {
 	if len(p.cfg.ProcessAllowlist) == 0 {
 		return nil
 	}
@@ -1433,7 +1444,7 @@ func topProcessAttributes(processes []model.ProcessSnapshot, limit int) []map[st
 	return result
 }
 
-func (p *MQTTPublisher) publishJSONIfChanged(topic string, payload any) error {
+func (p *Publisher) publishJSONIfChanged(topic string, payload any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -1441,7 +1452,7 @@ func (p *MQTTPublisher) publishJSONIfChanged(topic string, payload any) error {
 	return p.publishRawIfChanged(topic, string(body))
 }
 
-func (p *MQTTPublisher) publishStateValueIfChanged(topic string, value any) error {
+func (p *Publisher) publishStateValueIfChanged(topic string, value any) error {
 	if text, ok := value.(string); ok {
 		if strings.TrimSpace(text) == "" {
 			text = "unknown"
@@ -1456,15 +1467,15 @@ func (p *MQTTPublisher) publishStateValueIfChanged(topic string, value any) erro
 	return p.publishRawIfChanged(topic, string(body))
 }
 
-func (p *MQTTPublisher) publishRawIfChanged(topic string, payload string) error {
+func (p *Publisher) publishRawIfChanged(topic string, payload string) error {
 	return p.publishRawWithRetainIfChanged(topic, payload, p.cfg.Retain)
 }
 
-func (p *MQTTPublisher) publishRetainedRawIfChanged(topic string, payload string) error {
+func (p *Publisher) publishRetainedRawIfChanged(topic string, payload string) error {
 	return p.publishRawWithRetainIfChanged(topic, payload, true)
 }
 
-func (p *MQTTPublisher) publishRawWithRetainIfChanged(topic string, payload string, retained bool) error {
+func (p *Publisher) publishRawWithRetainIfChanged(topic string, payload string, retained bool) error {
 	if p.lastPayloads == nil {
 		p.lastPayloads = map[string]string{}
 	}
@@ -1478,7 +1489,7 @@ func (p *MQTTPublisher) publishRawWithRetainIfChanged(topic string, payload stri
 	return nil
 }
 
-func (p *MQTTPublisher) publishRawWithRetain(topic string, payload string, retained bool) error {
+func (p *Publisher) publishRawWithRetain(topic string, payload string, retained bool) error {
 	token := p.client.Publish(topic, p.cfg.QoS, retained, payload)
 	token.Wait()
 	return token.Error()

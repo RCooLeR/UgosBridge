@@ -1,4 +1,4 @@
-package prometheusoutput
+package metrics
 
 import (
 	"reflect"
@@ -11,7 +11,7 @@ import (
 
 func TestUGOSFansExportDistinctRPMSeriesIncludingStoppedFan(t *testing.T) {
 	registry := prometheus.NewRegistry()
-	metrics := NewMetrics(registry)
+	metrics := New(registry)
 	sensors := []model.SensorSnapshot{
 		{Source: "ugos", Chip: "it86", Name: "cpufan", Label: "CPU Fan", Kind: "fan", Value: 3125, DeviceType: "host"},
 		{Source: "ugos", Chip: "it86", Name: "sysfan1", Label: "System Fan 1", Kind: "fan", Value: 2288, DeviceType: "host"},
