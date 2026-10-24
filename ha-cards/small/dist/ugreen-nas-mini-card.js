@@ -1,4 +1,4 @@
-//#region ../node_modules/@lit/reactive-element/css-tag.js
+// ../node_modules/@lit/reactive-element/css-tag.js
 var e = globalThis, t = e.ShadowRoot && (e.ShadyCSS === void 0 || e.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, n = Symbol(), r = /* @__PURE__ */ new WeakMap(), i = class {
 	constructor(e, t, r) {
 		if (this._$cssResult$ = !0, r !== n) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -252,8 +252,7 @@ var h = class extends HTMLElement {
 	firstUpdated(e) {}
 };
 h.elementStyles = [], h.shadowRootOptions = { mode: "open" }, h[ie("elementProperties")] = /* @__PURE__ */ new Map(), h[ie("finalized")] = /* @__PURE__ */ new Map(), re?.({ ReactiveElement: h }), (ee.reactiveElementVersions ??= []).push("2.1.2");
-//#endregion
-//#region ../node_modules/lit-html/lit-html.js
+// ../node_modules/lit-html/lit-html.js
 var g = globalThis, ce = (e) => e, le = g.trustedTypes, ue = le ? le.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, de = "$lit$", _ = `lit$${Math.random().toFixed(9).slice(2)}$`, fe = "?" + _, pe = `<${fe}>`, v = document, me = () => v.createComment(""), he = (e) => e === null || typeof e != "object" && typeof e != "function", ge = Array.isArray, _e = (e) => ge(e) || typeof e?.[Symbol.iterator] == "function", ve = "[ 	\n\f\r]", ye = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, be = /-->/g, xe = />/g, y = RegExp(`>|${ve}(?:([^\\s"'>=/]+)(${ve}*=${ve}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), Se = /'/g, Ce = /"/g, we = /^(?:script|style|textarea|title)$/i, Te = (e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
@@ -508,8 +507,7 @@ var ze = (e, t, n) => {
 Ve._$litElement$ = !0, Ve.finalized = !0, Be.litElementHydrateSupport?.({ LitElement: Ve });
 var He = Be.litElementPolyfillSupport;
 He?.({ LitElement: Ve }), (Be.litElementVersions ??= []).push("4.2.2");
-//#endregion
-//#region ../node_modules/@lit/reactive-element/decorators/custom-element.js
+// ../node_modules/@lit/reactive-element/decorators/custom-element.js
 var Ue = (e) => (t, n) => {
 	n === void 0 ? customElements.define(e, t) : n.addInitializer(() => {
 		customElements.define(e, t);
@@ -549,8 +547,7 @@ function Ke(e) {
 		return t.constructor.createProperty(n, e), r ? Object.getOwnPropertyDescriptor(t, n) : void 0;
 	})(e, t, n);
 }
-//#endregion
-//#region ../node_modules/@lit/reactive-element/decorators/state.js
+// ../node_modules/@lit/reactive-element/decorators/state.js
 function qe(e) {
 	return Ke({
 		...e,
@@ -558,8 +555,7 @@ function qe(e) {
 		attribute: !1
 	});
 }
-//#endregion
-//#region ../detailed/src/theme.ts
+// ../detailed/src/theme.ts
 var T = {
 	panelTop: "rgba(18, 45, 80, 0.42)",
 	panelBottom: "rgba(5, 14, 28, 0.96)",
@@ -4074,16 +4070,14 @@ var Xn = (e) => lt(e)?.unit, G = (e, t) => {
 		metricTiles: l
 	};
 }, bi = (e) => yi(Xr, "preview", e);
-//#endregion
-//#region \0@oxc-project+runtime@0.153.0/helpers/esm/decorate.js
+// \0@oxc-project+runtime@0.155.0/helpers/esm/decorate.js
 function xi(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
 	else for (var s = e.length - 1; s >= 0; s--) (o = e[s]) && (a = (i < 3 ? o(a) : i > 3 ? o(t, n, a) : o(t, n)) || a);
 	return i > 3 && a && Object.defineProperty(t, n, a), a;
 }
-//#endregion
-//#region src/ugreen-nas-mini-card.ts
+// src/ugreen-nas-mini-card.ts
 var Si = class extends Ve {
 	constructor(...e) {
 		super(...e), this.config = { type: "custom:ugreen-nas-mini-card" }, this.model = bi(), this.history = ut(), this.dataMode = "preview", this.watchEntityIds = [], this.watchPrefixes = [];
@@ -4249,4 +4243,3 @@ var Si = class extends Ve {
 	}
 };
 xi([qe()], Si.prototype, "config", void 0), xi([qe()], Si.prototype, "model", void 0), xi([qe()], Si.prototype, "history", void 0), xi([qe()], Si.prototype, "dataMode", void 0), xi([Ke({ attribute: !1 })], Si.prototype, "hass", null), Si = xi([Ue("ugreen-nas-mini-card")], Si);
-//#endregion

@@ -1,4 +1,4 @@
-# Validated with GoReleaser v2.18.0.
+# GoReleaser v2.19.0 configuration.
 version: 2
 
 project_name: ugos-bridge
