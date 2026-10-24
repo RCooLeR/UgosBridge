@@ -71,7 +71,7 @@ binaries, archives, checksums, and both Docker image names. Release assets also
 include the two committed HA card bundles. Rebuild and verify those bundles
 before preparing a release.
 
-With GoReleaser v2.18.0 and a local multi-platform Docker builder, a snapshot can
+With GoReleaser v2.19.0 and a local multi-platform Docker builder, a snapshot can
 be checked without publishing:
 
 ```bash

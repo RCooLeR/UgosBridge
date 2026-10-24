@@ -10,6 +10,17 @@
 - Move Prometheus and Home Assistant MQTT packages to `internal/metrics` and
   `internal/hamqtt`, matching the other bridges. Simplify their Go API names;
   metric names, MQTT topics, discovery IDs, and publishing behavior are unchanged.
+- Update the Go toolchain to 1.27.3, `procfs` to 0.23.0, `x/net` to 0.61.0,
+  and the remaining runtime and vulnerability-scanner dependencies. Refresh the
+  pinned Go/Alpine and Debian image digests without changing the runtime OS line.
+- Update Vite to 8.3.5 and Simple Icons to 16.35.0, refresh compatible card-build
+  dependencies, and rebuild the Home Assistant bundles.
+- Update GoReleaser to 2.19.0, its action to 7.3.0, and the Docker login action
+  to 4.7.0. Keep CI on the latest Node 24 LTS patch.
+
+### Security
+
+- Include Go 1.27.3's `crypto/x509` security fixes in source and release builds.
 
 ## [1.0.7] - 2026-10-12
 
