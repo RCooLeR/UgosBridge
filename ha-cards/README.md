@@ -23,6 +23,6 @@ npm run verify
 ```
 
 `verify` runs TypeScript checks, tests, both bundle builds and the dependency audit.
-CI uses Node.js 24 and checks that the committed bundles match a fresh build.
+Use Node.js 22.23.4+, 24.22.1+, or 26.12.1+ on their respective supported release lines. CI uses Node.js 24.22.1 and checks that the committed bundles match a fresh build.
 Keep source changes and regenerated bundles together. The per-card READMEs list
 workspace commands for working on one card.
