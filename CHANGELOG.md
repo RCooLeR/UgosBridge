@@ -27,6 +27,12 @@
 - The online availability payload now starts with a prefix derived from the
   MQTT client ID (`online_<client_hash>_<process_hash>`).
 
+### Fixed
+
+- Host collection no longer fails on hosts without software RAID, whose kernel
+  has no `/proc/mdstat` (for example most single-board computers); they report
+  no arrays.
+
 - Organize documentation by component, with a minimal root README, bridge
   references under `bridge/docs/`, and shared card guides under `ha-cards/docs/`.
   Build paths and configuration are unchanged.
