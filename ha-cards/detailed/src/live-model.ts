@@ -29,7 +29,13 @@ const hostCpuRegex = /^sensor\.ugos_bridge_host_(.+?)_cpu_usage_percent$/;
 const projectCpuRegex = /^sensor\.ugos_bridge_project_(.+?)_cpu_usage_percent$/;
 const legacyHostCpuRegex = /^sensor\.([a-z0-9_]+)_\1_cpu(?:_|$)/;
 const bridgeHostChildRegex =
-  /^(?:sensor|binary_sensor)\.ugos_bridge_host_(.+?)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_/;
+  /^(?:sensor|binary_sensor)\.ugos_bridge_host_(.+?)_(?:array|bond|container|cooling|disk|filesystem|gpu|health|network|process|project|software|ups|vm)_/;
+// Children whose own CPU entity would otherwise look like a host CPU entity.
+const hostChildWithCpuRegex = /^(?:container|process|project|vm)(?:_|$)/;
+// Docker and VM entities of a host-scoped bridge, below its host device.
+const hostWorkloadRegex = /^(?:container|project|vm)_/;
+// Entity ID starts Home Assistant derives from global-scope workload device names.
+const haNamedWorkloadPrefixes = ['compose_project_', 'docker_container_', 'project_', 'virtual_machine_', 'virtual_machines_'];
 const haNamedHostChildRegex =
   /^(?:sensor|binary_sensor)\.([a-z0-9_]+)_(?:array|bond|cooling|disk|filesystem|gpu|health|network|software|ups)_[a-z0-9][a-z0-9_]*_[a-z0-9_]+(?:_\d+)?$/;
 const containerEntityRegex =
@@ -323,7 +329,8 @@ export const buildLiveDashboardModel = (
   const hostName = resolveHostDisplayName(states, hostSlug, config?.host);
   const cpuCores = buildCpuCoreDetails(states, hostCpuEntityId);
   const ramBreakdown = buildRamBreakdown(states, hostMemoryEntityId, memoryTotalBytes, memoryUsedBytes);
-  const topProcesses = buildTopProcesses(states, states[hostCpuEntityId ?? '']);
+  const workloadStates = selectWorkloadStates(states, hostSlug);
+  const topProcesses = buildTopProcesses(workloadStates, states[hostCpuEntityId ?? '']);
 
   const temperatures = collectTemperatureSnapshots(states, hostSlug);
   const cpuTemperature = pickTemperature(temperatures, ['cpu', 'package', 'soc', 'core', 'tctl']);
@@ -382,9 +389,9 @@ export const buildLiveDashboardModel = (
   const arrays = collectArrays(states, hostSlug);
   const storagePools = buildStoragePools(arrays, storageFilesystems, drives);
 
-  const projectSlugs = collectProjectSlugs(states);
+  const projectSlugs = collectProjectSlugs(workloadStates);
   const dockerProjects = Array.from(new Set(projectSlugs))
-    .map((projectSlug) => buildProject(states, projectSlug))
+    .map((projectSlug) => buildProject(workloadStates, projectSlug))
     .filter((project): project is DockerProject => project !== null)
     .sort((left, right) => right.cpuPercent - left.cpuPercent || left.title.localeCompare(right.title));
 
@@ -1476,7 +1483,8 @@ const resolveHostSlug = (states: Record<string, HassEntityLike>, configuredHost:
     }
 
     if (!configuredHost) {
-      return firstHostSlug;
+      // A host-scoped bridge joining later must not take over unconfigured cards.
+      return hostSlugs.find((slug) => !isHostScopedHost(states, slug)) ?? firstHostSlug;
     }
 
     const preferredSlug = normalizeConfiguredHostSlug(configuredHost);
@@ -2756,9 +2764,85 @@ const collectHostSlugCandidates = (states: Record<string, HassEntityLike>): stri
       addCandidate(haNamedHostChildRegex.exec(entityId)?.[1], 1);
     }
 
+    const slugs = Array.from(scores.keys());
+    const isHostChild = (slug: string): boolean =>
+      slugs.some(
+        (hostSlug) => hostSlug !== slug && slug.startsWith(`${hostSlug}_`) && hostChildWithCpuRegex.test(slug.slice(hostSlug.length + 1))
+      );
+
     return Array.from(scores.entries())
+      .filter(([slug]) => !isHostChild(slug))
       .sort(([leftSlug, leftScore], [rightSlug, rightScore]) => rightScore - leftScore || leftSlug.localeCompare(rightSlug))
       .map(([slug]) => slug);
+  });
+
+// A host-scoped bridge marks its host attributes and nests Docker and VM
+// entities below its host device; the global bridge does neither.
+const isHostScopedHost = (states: Record<string, HassEntityLike>, hostSlug: string): boolean =>
+  getComputedResult(states, `hostScoped:${hostSlug}`, () => {
+    const hostCpuEntityId = resolveHostMetricEntityId(states, hostSlug, 'cpu');
+    return (
+      getStringAttribute(states[hostCpuEntityId ?? ''], 'identity_scope') === 'host' ||
+      getStateKeys(states).some((entityId) => toGlobalWorkloadEntityId(entityId, hostSlug) !== undefined)
+    );
+  });
+
+// Maps a host-scoped Docker or VM entity ID to the global bridge's form so the
+// workload mappers serve both identity scopes.
+const toGlobalWorkloadEntityId = (entityId: string, hostSlug: string): string | undefined => {
+  for (const domain of ['sensor', 'binary_sensor']) {
+    const prefix = `${domain}.ugos_bridge_host_${hostSlug}_`;
+    if (entityId.startsWith(prefix)) {
+      const remainder = entityId.slice(prefix.length);
+      return hostWorkloadRegex.test(remainder) ? `${domain}.ugos_bridge_${remainder}` : undefined;
+    }
+  }
+  return undefined;
+};
+
+const getEntityHostSlug = (entity: HassEntityLike): string | undefined => {
+  const host = getStringAttribute(entity, 'host');
+  return host ? slugify(host) : undefined;
+};
+
+// Docker projects, containers and VMs of the selected host. Without
+// host-scoped bridges this is the full state map, so single-bridge cards keep
+// their behaviour.
+const selectWorkloadStates = (states: Record<string, HassEntityLike>, hostSlug: string): Record<string, HassEntityLike> =>
+  getComputedResult(states, `workloadStates:${hostSlug}`, () => {
+    const selected: Record<string, HassEntityLike> = {};
+    if (isHostScopedHost(states, hostSlug)) {
+      for (const [entityId, entity] of getStateEntries(states)) {
+        const globalEntityId = toGlobalWorkloadEntityId(entityId, hostSlug);
+        if (globalEntityId !== undefined) {
+          selected[globalEntityId] = entity;
+        } else if (getEntityHostSlug(entity) === hostSlug) {
+          selected[entityId] = entity;
+        }
+      }
+      return selected;
+    }
+
+    const scopedHostSlugs = collectHostSlugCandidates(states).filter((slug) => isHostScopedHost(states, slug));
+    if (scopedHostSlugs.length === 0) {
+      return states;
+    }
+    // Home Assistant names entities after the device when it ignores
+    // default_entity_id; host-scoped device names start with the host.
+    const scopedPrefixes = scopedHostSlugs.flatMap((slug) =>
+      ['sensor', 'binary_sensor'].flatMap((domain) => [
+        `${domain}.ugos_bridge_host_${slug}_`,
+        ...(haNamedWorkloadPrefixes.some((prefix) => prefix.startsWith(`${slug}_`)) ? [] : [`${domain}.${slug}_`])
+      ])
+    );
+    for (const [entityId, entity] of getStateEntries(states)) {
+      const entityHostSlug = getEntityHostSlug(entity);
+      if ((entityHostSlug !== undefined && entityHostSlug !== hostSlug) || scopedPrefixes.some((prefix) => entityId.startsWith(prefix))) {
+        continue;
+      }
+      selected[entityId] = entity;
+    }
+    return selected;
   });
 
 const buildWatchPrefixes = (hostSlug: string): string[] => [

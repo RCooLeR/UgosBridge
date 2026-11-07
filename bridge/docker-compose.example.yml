@@ -70,6 +70,10 @@ services:
       # Keep the MQTT client ID and topic prefix fixed across container rebuilds.
       UGOS_BRIDGE_MQTT_CLIENT_ID: "ugos_bridge"
       UGOS_BRIDGE_MQTT_TOPIC_PREFIX: "ugos_bridge"
+      # Every additional bridge on the same broker: a unique UGOS_BRIDGE_HOST_NAME
+      # plus host scope, which namespaces IDs, topics and the client ID by host.
+      # Keep an existing installation in the default global scope.
+      # UGOS_BRIDGE_MQTT_IDENTITY_SCOPE: "host"
       UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX: "homeassistant"
       UGOS_BRIDGE_MQTT_INTERVAL: "60"
       UGOS_BRIDGE_MQTT_RETAIN: "true"

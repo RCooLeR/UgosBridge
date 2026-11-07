@@ -157,7 +157,7 @@ Configure host paths with:
 | --- | --- | --- |
 | `UGOS_BRIDGE_HOST_PROCFS` | `/host/proc` | Mounted host procfs. |
 | `UGOS_BRIDGE_HOST_SYSFS` | `/host/sys` | Mounted host sysfs. |
-| `UGOS_BRIDGE_HOST_NAME` | | Stable host name used in Prometheus labels and Home Assistant IDs. |
+| `UGOS_BRIDGE_HOST_NAME` | | Stable host name used in Prometheus labels and Home Assistant IDs. Required with `UGOS_BRIDGE_MQTT_IDENTITY_SCOPE=host`. |
 | `UGOS_BRIDGE_HOST_HOSTNAME_PATH` | `/rootfs/etc/hostname` | Host hostname file. The bridge also tries any configured host-root mapping and mounted procfs. |
 | `UGOS_BRIDGE_HOST_FILESYSTEMS` | `/:/rootfs,/volume1:/volume1,/volume2:/volume2` | Host mountpoint to container path mapping. Override it for UGOS Pro 1.19+ as shown below. |
 | `UGOS_BRIDGE_HOST_NETWORK_INCLUDE` | `eth.*,bond.*` | Interface include regex list. |
@@ -216,6 +216,36 @@ the bridge intentionally omits it because overlay capacity is not a useful
 host-disk value. Deployments managed outside the UGOS Docker Projects UI may retain
 `/:/rootfs:ro` and the `/:/rootfs` mapping when the host root is not
 overlay-backed and that telemetry is useful.
+
+### Other Linux Hosts And Single-Board Computers
+
+The published images are multi-arch (amd64 and arm64), and host collection reads
+generic procfs and sysfs data: CPU frequency per core, `thermal_zone*` sensors
+(published as health sensors named after the zone type, for example
+`cpub_thermal_zone`), hwmon, block devices and network interfaces. A second
+bridge on the same MQTT broker must use host identity scope
+([Several bridges](home-assistant.md#several-bridges)). For example, on an arm64
+board with an `end0` Ethernet port, Wi-Fi, a root filesystem and storage on
+`/data`, without libvirt or an Intel GPU:
+
+```yaml
+environment:
+  UGOS_BRIDGE_HOST_METRICS_ENABLED: "true"
+  UGOS_BRIDGE_HOST_NAME: "cubie-a7a"
+  UGOS_BRIDGE_MQTT_IDENTITY_SCOPE: "host"
+  UGOS_BRIDGE_HOST_FILESYSTEMS: "/:/rootfs,/data:/data"
+  UGOS_BRIDGE_HOST_NETWORK_INCLUDE: "end.*,eth.*,wlan.*"
+  UGOS_BRIDGE_HOST_VMS_ENABLED: "false"
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock:ro
+  - /proc:/host/proc:ro
+  - /sys:/host/sys:ro
+  - /:/rootfs:ro
+  - /data:/data:ro
+```
+
+Without `/dev/dri` mounted, no GPU entities are created; array, fan and UPS
+entities appear only when the board exposes them.
 
 ## CPU And Memory
 

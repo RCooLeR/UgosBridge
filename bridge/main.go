@@ -135,6 +135,7 @@ type config struct {
 	MQTTUsername                 string
 	MQTTPassword                 string
 	MQTTTopicPrefix              string
+	MQTTIdentityScope            hamqtt.IdentityScope
 	DiscoveryPrefix              string
 	MQTTQoS                      byte
 	MQTTRetain                   bool
@@ -202,6 +203,7 @@ func buildFlags() []cli.Flag {
 		&cli.StringFlag{Name: "mqtt-username", Sources: envVars("MQTT_USERNAME", "UGOS_BRIDGE_MQTT_USER")},
 		&cli.StringFlag{Name: "mqtt-password", Sources: envVars("MQTT_PASSWORD", "UGOS_BRIDGE_MQTT_PASS")},
 		&cli.StringFlag{Name: "mqtt-topic-prefix", Value: "ugos_bridge", Sources: envVars("MQTT_TOPIC_PREFIX", "UGOS_BRIDGE_MQTT_TOPIC_PREFIX")},
+		&cli.StringFlag{Name: "mqtt-identity-scope", Value: string(hamqtt.IdentityScopeGlobal), Sources: envVars("UGOS_BRIDGE_MQTT_IDENTITY_SCOPE")},
 		&cli.StringFlag{Name: "homeassistant-discovery-prefix", Value: "homeassistant", Sources: envVars("HOMEASSISTANT_DISCOVERY_PREFIX", "UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX")},
 		&cli.UintFlag{Name: "mqtt-qos", Value: 1, Sources: envVars("MQTT_QOS", "UGOS_BRIDGE_MQTT_QOS")},
 		&cli.BoolFlag{Name: "mqtt-retain", Value: true, Sources: envVars("MQTT_RETAIN", "UGOS_BRIDGE_MQTT_RETAIN")},
@@ -274,6 +276,13 @@ func configFromCLI(c *cli.Command) (config, error) {
 	if err != nil {
 		return config{}, fmt.Errorf("host-vm-name-overrides: %w", err)
 	}
+	identityScope, err := hamqtt.ParseIdentityScope(c.String("mqtt-identity-scope"))
+	if err != nil {
+		return config{}, fmt.Errorf("mqtt-identity-scope: %w", err)
+	}
+	if identityScope == hamqtt.IdentityScopeHost && strings.TrimSpace(c.String("host-name")) == "" {
+		return config{}, fmt.Errorf("mqtt-identity-scope host requires host-name (UGOS_BRIDGE_HOST_NAME)")
+	}
 
 	return config{
 		ListenAddress:                c.String("listen-address"),
@@ -291,6 +300,7 @@ func configFromCLI(c *cli.Command) (config, error) {
 		MQTTUsername:                 c.String("mqtt-username"),
 		MQTTPassword:                 c.String("mqtt-password"),
 		MQTTTopicPrefix:              c.String("mqtt-topic-prefix"),
+		MQTTIdentityScope:            identityScope,
 		DiscoveryPrefix:              c.String("homeassistant-discovery-prefix"),
 		MQTTQoS:                      byte(qos),
 		MQTTRetain:                   c.Bool("mqtt-retain"),
@@ -393,6 +403,8 @@ func run(ctx context.Context, cfg config) error {
 			ProcessAllowlist: cfg.MQTTProcessAllowlist,
 			UnavailableAfter: unavailableAfter,
 			RemoveAfter:      unavailableAfter * 10,
+			IdentityScope:    cfg.MQTTIdentityScope,
+			HostName:         cfg.HostNameOverride,
 			Log:              logger,
 		})
 		if err != nil {
@@ -464,9 +476,12 @@ func run(ctx context.Context, cfg config) error {
 
 		if publisher != nil && (lastMQTTPublish.IsZero() || time.Since(lastMQTTPublish) >= cfg.MQTTInterval) {
 			if err := publisher.PublishSnapshot(snapshot); err != nil {
-				if errors.Is(err, hamqtt.ErrNotConnected) {
+				switch {
+				case errors.Is(err, hamqtt.ErrAvailabilityConflict):
+					logger.Error().Err(err).Msg("another ugos-bridge instance is online on this MQTT topic prefix; not publishing. Stop it, or give each bridge its own UGOS_BRIDGE_HOST_NAME and UGOS_BRIDGE_MQTT_IDENTITY_SCOPE=host")
+				case errors.Is(err, hamqtt.ErrNotConnected):
 					logger.Warn().Err(err).Msg("MQTT broker is not connected; skipping snapshot publish")
-				} else {
+				default:
 					logger.Error().Err(err).Msg("failed to publish snapshot to MQTT")
 				}
 			} else {

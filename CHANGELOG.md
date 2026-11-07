@@ -2,7 +2,30 @@
 
 ## [Unreleased]
 
+### Added
+
+- Run several bridges against one MQTT broker and Home Assistant with
+  `UGOS_BRIDGE_MQTT_IDENTITY_SCOPE=host` on every additional bridge. Host scope
+  requires `UGOS_BRIDGE_HOST_NAME` and appends its slug to the MQTT client ID
+  and topic prefix, nests Docker project, container and VM devices under the
+  host device, derives discovery topics from unique IDs, and sends
+  `default_entity_id` (Home Assistant 2025.10+). The default `global` scope
+  keeps every existing topic, discovery payload, device ID and unique ID; a
+  golden test pins them.
+- Duplicate-bridge guard: a bridge that finds another bridge process online on
+  its availability topic publishes nothing until that bridge goes offline, a
+  running bridge restores its availability when another client marks it
+  offline, and repeated short sessions log a duplicate client ID hint.
+- The cards' `host` option selects a node: Docker projects, containers and VMs
+  are limited to the selected host when host-scoped bridges are present, and a
+  card without `host` keeps showing the global-scope bridge.
+- Documentation for running a second bridge and an example for arm64
+  single-board computers.
+
 ### Changed
+
+- The online availability payload now starts with a prefix derived from the
+  MQTT client ID (`online_<client_hash>_<process_hash>`).
 
 - Organize documentation by component, with a minimal root README, bridge
   references under `bridge/docs/`, and shared card guides under `ha-cards/docs/`.
