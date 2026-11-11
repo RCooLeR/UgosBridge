@@ -1,6 +1,6 @@
 module github.com/RCooLeR/UgosBridge/bridge
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.5.1
