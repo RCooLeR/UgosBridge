@@ -24,6 +24,7 @@ MQTT and discovery are controlled by these settings:
 | `UGOS_BRIDGE_MQTT_ENABLED` | `false` | Enables MQTT publishing and Home Assistant discovery. |
 | `UGOS_BRIDGE_MQTT_BROKER` | none | MQTT broker URL, for example `tcp://homeassistant.local:1883`. |
 | `UGOS_BRIDGE_MQTT_TOPIC_PREFIX` | `ugos_bridge` | Prefix for bridge state and availability topics. |
+| `UGOS_BRIDGE_MQTT_IDENTITY_SCOPE` | `global` | `global` keeps the single-bridge IDs and topics. `host` namespaces IDs, topics and the client ID by `UGOS_BRIDGE_HOST_NAME` so several bridges can share one broker; see [Several bridges](#several-bridges). |
 | `UGOS_BRIDGE_MQTT_DISCOVERY_PREFIX` | `homeassistant` | Home Assistant MQTT discovery prefix. |
 | `UGOS_BRIDGE_MQTT_RETAIN` | `true` | Retain flag used for state, attributes, and discovery publishes. |
 | `UGOS_BRIDGE_MQTT_PROCESS_ALLOWLIST` | empty | Comma-separated process group names/slugs to publish to MQTT. Process metrics remain available in Prometheus when empty. |
@@ -42,13 +43,26 @@ ugos_bridge/status
 ```
 
 The retained Last Will payload is `offline`. When connected, the bridge publishes
-a process-lifetime payload such as `online_a1b2c3d4e5f6`. A new payload is used
-after every bridge restart so retained discovery from an older process cannot
-incorrectly become available again. A connection first publishes an `offline`
+a process-lifetime payload such as `online_9f86d081_a1b2c3d4e5f6`: the first part
+is derived from the MQTT client ID, the second changes after every bridge restart
+so retained discovery from an older process cannot incorrectly become available
+again. A connection first publishes an `offline`
 barrier, replays every current discovery, attributes, entity-availability, and
 state payload, and publishes the process-lifetime online payload last. Home
 Assistant therefore never sees a partially replayed bridge generation as
 available.
+
+Before that barrier, the bridge reads the retained availability payload. If
+another bridge process is online on the same topic (an online payload from a
+different client ID, or from an older release whose owner cannot be told
+apart), it publishes nothing, logs an error every MQTT interval, and starts
+publishing once that payload turns `offline`. An online payload left by an
+earlier process of the same client ID does not block: the broker allows one
+session per client ID. If no other bridge exists and the error persists, a stale
+retained payload is left on the topic; clear it with an empty retained message.
+A running bridge that sees its availability topic set to `offline` or cleared by
+another client restores its own payload. Repeated disconnects right after
+connecting log a hint about a duplicate MQTT client ID.
 
 Each entity also has its own availability topic. Discovery requires both the
 bridge session and the entity to be available:
@@ -196,7 +210,7 @@ is diagnostic metadata only and may change on every rebuild.
 | Device type | Device ID | Parent |
 | --- | --- | --- |
 | Host | `ugos_bridge_host_<host_slug>` | none |
-| Docker project | `ugos_bridge_project_<project_slug>` | none |
+| Docker project | `ugos_bridge_project_<project_slug>` | none (host scope: host device) |
 | Virtual machines project | `ugos_bridge_project_virtual_machines` | none |
 | Docker container | `ugos_bridge_container_<container_slug>` | Docker project device |
 | Virtual machine | `ugos_bridge_vm_<ugos_vm_id_slug>` | Virtual machines project device |
@@ -212,6 +226,9 @@ is diagnostic metadata only and may change on every rebuild.
 | Disk health sensor | `<host_device_id>_disk_<disk_identity>` | Host device |
 | Cooling device | `<host_device_id>_cooling_<cooling_slug>` | Host device |
 | UPS | `<host_device_id>_ups_<ups_slug>` | Host device |
+
+The table shows the default global scope. Host scope nests Docker project,
+container and VM devices under the host device; see [Several bridges](#several-bridges).
 
 Physical disk identity is `serial_<serial_slug>` when a serial is available,
 otherwise `path_<sysfs_path_hash>`, and only falls back to
@@ -840,3 +857,53 @@ If `/volume1` is associated with array `md0`, its filesystem device has:
 ```text
 via_device: ugos_bridge_host_dxp6800_pro_array_md0
 ```
+
+## Several Bridges
+
+Global scope IDs contain no host for Docker projects, containers and VMs, and
+host child discovery topics (filesystems, disks, networks, health sensors and so
+on) contain no host either. Two global-scope bridges on one broker therefore
+share retained discovery topics whenever they have, for example, a `/`
+filesystem or a container with the same name: the last writer repoints the other
+bridge's entity, and a bridge that drops the entity removes it from Home
+Assistant. A different topic prefix or client ID does not prevent this.
+
+Run every additional bridge with:
+
+```yaml
+UGOS_BRIDGE_HOST_NAME: "cubie-a7a"        # unique per bridge, kept fixed
+UGOS_BRIDGE_MQTT_IDENTITY_SCOPE: "host"
+```
+
+Host scope requires `UGOS_BRIDGE_HOST_NAME` (also in Docker-only mode) and
+rejects host names whose slug is `status`, `host`, `projects`, `containers` or
+`virtual_machines`. With host slug `<h>`:
+
+| Part | Global scope (default) | Host scope |
+| --- | --- | --- |
+| MQTT client ID | `UGOS_BRIDGE_MQTT_CLIENT_ID` | `<client_id>-<h>`, for example `ugos-bridge-cubie_a7a` |
+| Topic prefix | `UGOS_BRIDGE_MQTT_TOPIC_PREFIX` | `<topic_prefix>/<h>`, for example `ugos_bridge/cubie_a7a/status` |
+| Docker project device | `ugos_bridge_project_<project_slug>` | `ugos_bridge_host_<h>_project_<project_slug>`, parent host device |
+| Docker container device | `ugos_bridge_container_<container_slug>` | `ugos_bridge_host_<h>_container_<container_slug>` |
+| Virtual machine device | `ugos_bridge_vm_<vm_slug>` | `ugos_bridge_host_<h>_vm_<vm_slug>` |
+| Host and host child devices | as in [Device Hierarchy](#device-hierarchy) | unchanged |
+| Discovery node ID | `ugos_bridge_<component>_<slug>` (host: `ugos_bridge_host_<h>`) | the entity ID base, so the topic follows `unique_id` |
+| `default_entity_id` | not sent | `<component>.<unique_id>` |
+
+The client ID and topic prefix suffixes are added to explicit values too, so a
+copied configuration plus these two lines cannot reuse another bridge's names.
+Docker and VM device names start with the host name, and their attributes carry
+`host`; the host CPU attributes carry `identity_scope: host`. The cards use
+these to separate nodes. A host-scoped bridge never clears global-scope topics,
+including the legacy disk topics that global scope migrates.
+
+Home Assistant uses `default_entity_id` (2025.10 and later) only when it first
+creates an entity, so new host-scoped entity IDs look like
+`sensor.ugos_bridge_host_cubie_a7a_cpu_usage_percent`. Global scope does not send
+it, so existing installations on Home Assistant releases before 2025.10, which
+may reject unknown discovery keys, keep working.
+
+Keep an existing installation in global scope. Switching a bridge between scopes
+creates new devices and entities and leaves the old ones without updates; the old
+retained discovery topics would have to be cleared by hand. Host names must be
+unique across all bridges on one broker.

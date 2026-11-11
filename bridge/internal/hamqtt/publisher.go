@@ -44,7 +44,11 @@ type Config struct {
 	ProcessAllowlist []string
 	UnavailableAfter int
 	RemoveAfter      int
-	Log              zerolog.Logger
+	// IdentityScope namespaces IDs, topics and the client ID; empty means global.
+	IdentityScope IdentityScope
+	// HostName is the configured host name; host scope requires it.
+	HostName string
+	Log      zerolog.Logger
 }
 
 // Publisher publishes snapshots as Home Assistant discovery, state, and
@@ -62,6 +66,7 @@ type Publisher struct {
 	discoveredEntities    map[string]publishedEntity
 	lastPayloads          map[string]string
 	preparedPayloads      map[string]preparedPayload
+	availabilityGuard
 }
 
 type publishedEntity struct {
@@ -270,7 +275,7 @@ var upsBinarySensors = map[string]binarySensorDefinition{
 // A connection timeout leaves the client retrying in the background.
 func NewPublisher(cfg Config) (*Publisher, error) {
 	if cfg.TopicPrefix == "" {
-		cfg.TopicPrefix = "ugos_bridge"
+		cfg.TopicPrefix = defaultTopicPrefix
 	}
 	if cfg.DiscoveryPrefix == "" {
 		cfg.DiscoveryPrefix = "homeassistant"
@@ -281,6 +286,11 @@ func NewPublisher(cfg Config) (*Publisher, error) {
 	if cfg.ConnectTimeout <= 0 {
 		cfg.ConnectTimeout = 10 * time.Second
 	}
+	cfg, err := applyIdentityScope(cfg)
+	if err != nil {
+		return nil, err
+	}
+	logIdentityScope(cfg)
 
 	p := &Publisher{
 		cfg:                cfg,
@@ -290,6 +300,7 @@ func NewPublisher(cfg Config) (*Publisher, error) {
 		discoveredEntities: map[string]publishedEntity{},
 		lastPayloads:       map[string]string{},
 		preparedPayloads:   map[string]preparedPayload{},
+		availabilityGuard:  newAvailabilityGuard(min(availabilityProbeWait, cfg.ConnectTimeout)),
 	}
 
 	opts := mqtt.NewClientOptions()
@@ -309,6 +320,7 @@ func NewPublisher(cfg Config) (*Publisher, error) {
 	}
 	opts.SetConnectionLostHandler(func(_ mqtt.Client, err error) {
 		p.log.Error().Err(err).Msg("MQTT connection lost")
+		p.noteConnectionLost(time.Now())
 	})
 
 	p.client = mqtt.NewClient(opts)
@@ -328,19 +340,36 @@ func NewPublisher(cfg Config) (*Publisher, error) {
 }
 
 // A connection stays globally offline until its complete retained entity set is replayed.
+// A connection that finds another bridge online on its availability topic publishes
+// nothing, not even the barrier, until that bridge goes offline.
 func (p *Publisher) beginAvailabilityReplay(client mqtt.Client) {
 	generation := p.connectionGeneration.Add(1)
 	p.replayReadyGeneration.Store(0)
+	p.connectedAt.Store(time.Now().UnixNano())
 
+	if owner := p.probeAvailability(client); owner != "" {
+		p.blockedGeneration.Store(generation)
+		p.log.Error().
+			Str("topic", p.availabilityTopic).
+			Str("payload", owner).
+			Msg("another ugos-bridge instance is online on this MQTT availability topic; not publishing until it goes offline")
+		return
+	}
+	if err := p.publishAvailabilityBarrier(client, generation); err != nil {
+		p.log.Error().Err(err).Msg("failed to publish MQTT availability barrier")
+	}
+}
+
+func (p *Publisher) publishAvailabilityBarrier(client mqtt.Client, generation uint64) error {
 	token := client.Publish(p.availabilityTopic, p.cfg.QoS, true, "offline")
 	token.Wait()
 	if err := token.Error(); err != nil {
-		p.log.Error().Err(err).Msg("failed to publish MQTT availability barrier")
-		return
+		return err
 	}
 	if p.connectionGeneration.Load() == generation {
 		p.replayReadyGeneration.Store(generation)
 	}
+	return nil
 }
 
 func (p *Publisher) commitAvailabilityReplay(generation uint64) error {
@@ -362,12 +391,16 @@ func (p *Publisher) commitAvailabilityReplay(generation uint64) error {
 }
 
 // Close publishes offline availability and disconnects an active broker client.
+// A connection that never took over the availability topic leaves it untouched.
 func (p *Publisher) Close() {
 	if p.client == nil || !p.client.IsConnected() {
 		return
 	}
-	token := p.client.Publish(p.availabilityTopic, p.cfg.QoS, true, "offline")
-	token.Wait()
+	p.closing.Store(true)
+	if generation := p.connectionGeneration.Load(); generation != 0 && p.replayReadyGeneration.Load() == generation {
+		token := p.client.Publish(p.availabilityTopic, p.cfg.QoS, true, "offline")
+		token.Wait()
+	}
 	p.client.Disconnect(250)
 }
 
@@ -382,8 +415,25 @@ func (p *Publisher) PublishSnapshot(snapshot model.Snapshot) error {
 		return fmt.Errorf("%w: %q", ErrNotConnected, p.cfg.Broker)
 	}
 	generation := p.connectionGeneration.Load()
-	if generation == 0 || p.replayReadyGeneration.Load() != generation {
+	if generation == 0 {
 		return fmt.Errorf("%w: availability replay is not ready", ErrNotConnected)
+	}
+	if p.replayReadyGeneration.Load() != generation {
+		if p.blockedGeneration.Load() != generation {
+			return fmt.Errorf("%w: availability replay is not ready", ErrNotConnected)
+		}
+		// Re-probe instead of trusting the last message: a stale queued
+		// payload could make a foreign bridge look offline.
+		if owner := p.probeAvailability(p.client); owner != "" {
+			return fmt.Errorf("%w: %s holds %q", ErrAvailabilityConflict, owner, p.availabilityTopic)
+		}
+		if err := p.publishAvailabilityBarrier(p.client, generation); err != nil {
+			return err
+		}
+		if p.replayReadyGeneration.Load() != generation {
+			return fmt.Errorf("%w: MQTT connection changed during availability replay", ErrNotConnected)
+		}
+		p.log.Info().Str("topic", p.availabilityTopic).Msg("MQTT availability topic is free again; publishing")
 	}
 	replaying := p.committedGeneration.Load() != generation
 	if replaying {
@@ -451,21 +501,26 @@ func (p *Publisher) PublishSnapshot(snapshot model.Snapshot) error {
 }
 
 func (p *Publisher) publishProjects(snapshot model.Snapshot, currentEntities map[string]publishedEntity) error {
+	// Host scope hangs projects off the host device once that device exists.
+	viaDeviceID := ""
+	if p.hostScoped() && snapshot.Host != nil {
+		viaDeviceID = p.scopedHostDeviceID()
+	}
 	for _, project := range snapshot.Projects {
-		if err := p.publishProjectState(currentEntities, project.Name, project.CPUPercent, project.MemoryUsageBytes, project.TotalContainers, project.RunningContainers, "Project", "Project"); err != nil {
+		if err := p.publishProjectState(currentEntities, project.Name, project.CPUPercent, project.MemoryUsageBytes, project.TotalContainers, project.RunningContainers, "Project", "Project", viaDeviceID); err != nil {
 			return err
 		}
 	}
 	if snapshot.Host != nil && len(snapshot.Host.VMs) > 0 {
 		total, running, cpu, memory := virtualMachineProjectTotals(snapshot.Host.VMs)
-		if err := p.publishProjectState(currentEntities, "Virtual machines", cpu, memory, total, running, "Virtual Machine Project", "Virtual Machines"); err != nil {
+		if err := p.publishProjectState(currentEntities, "Virtual machines", cpu, memory, total, running, "Virtual Machine Project", "Virtual Machines", viaDeviceID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *Publisher) publishProjectState(currentEntities map[string]publishedEntity, name string, cpuPercent float64, memoryBytes uint64, total int, running int, modelName string, entityPrefix string) error {
+func (p *Publisher) publishProjectState(currentEntities map[string]publishedEntity, name string, cpuPercent float64, memoryBytes uint64, total int, running int, modelName string, entityPrefix string, viaDeviceID string) error {
 	slug := slugify(name)
 	stateTopic := fmt.Sprintf("%s/projects/%s/state", trimSlashes(p.cfg.TopicPrefix), slug)
 	values := map[string]any{
@@ -474,17 +529,17 @@ func (p *Publisher) publishProjectState(currentEntities map[string]publishedEnti
 		"total_containers":   total,
 		"running_containers": running,
 	}
-	p.preparePayload(stateTopic, values, map[string]any{
+	p.preparePayload(stateTopic, values, p.addScopedAttributes(map[string]any{
 		"project":      name,
 		"project_slug": slug,
-	})
+	}))
 
 	for key, def := range projectSensors {
 		entityKey := fmt.Sprintf("project:%s:%s", slug, key)
-		discoveryTopic := p.discoveryTopic("sensor", "project_"+slug, def.ObjectID)
-		if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, name, def, deviceDescriptor{
-			ID:           fmt.Sprintf("ugos_bridge_project_%s", slug),
-			Name:         fmt.Sprintf("%s %s", entityPrefix, name),
+		if err := p.ensureSensor("project_"+slug, stateTopic, currentEntities, entityKey, name, def, deviceDescriptor{
+			ID:           p.workloadDeviceID("project", slug),
+			Name:         p.workloadDeviceName(fmt.Sprintf("%s %s", entityPrefix, name)),
+			ViaDeviceID:  viaDeviceID,
 			Manufacturer: "RCooLeR",
 			Model:        modelName,
 		}); err != nil {
@@ -503,7 +558,7 @@ func (p *Publisher) publishContainers(snapshot model.Snapshot, currentEntities m
 			"memory_usage_bytes": container.MemoryUsageBytes,
 			"running":            boolToInt(container.Running),
 		}
-		p.preparePayload(stateTopic, values, map[string]any{
+		p.preparePayload(stateTopic, values, p.addScopedAttributes(map[string]any{
 			"container":          container.Name,
 			"container_slug":     slug,
 			"container_id":       shortID(container.ID),
@@ -513,31 +568,24 @@ func (p *Publisher) publishContainers(snapshot model.Snapshot, currentEntities m
 			"memory_limit_bytes": container.MemoryLimitBytes,
 			"state":              container.State,
 			"status":             container.Status,
-		})
+		}))
+		device := deviceDescriptor{
+			ID:           p.workloadDeviceID("container", slug),
+			Name:         p.workloadDeviceName(fmt.Sprintf("Docker container %s", container.Name)),
+			ViaDeviceID:  p.workloadDeviceID("project", slugify(container.Project)),
+			Manufacturer: "RCooLeR",
+			Model:        "Docker Container",
+		}
 
 		for key, def := range containerSensors {
 			entityKey := fmt.Sprintf("container:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "container_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, container.Name, def, deviceDescriptor{
-				ID:           fmt.Sprintf("ugos_bridge_container_%s", slug),
-				Name:         fmt.Sprintf("Docker container %s", container.Name),
-				ViaDeviceID:  fmt.Sprintf("ugos_bridge_project_%s", slugify(container.Project)),
-				Manufacturer: "RCooLeR",
-				Model:        "Docker Container",
-			}); err != nil {
+			if err := p.ensureSensor("container_"+slug, stateTopic, currentEntities, entityKey, container.Name, def, device); err != nil {
 				return err
 			}
 		}
 		for key, def := range containerBinarySensors {
 			entityKey := fmt.Sprintf("container_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "container_"+slug, def.ObjectID)
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, container.Name, def, deviceDescriptor{
-				ID:           fmt.Sprintf("ugos_bridge_container_%s", slug),
-				Name:         fmt.Sprintf("Docker container %s", container.Name),
-				ViaDeviceID:  fmt.Sprintf("ugos_bridge_project_%s", slugify(container.Project)),
-				Manufacturer: "RCooLeR",
-				Model:        "Docker Container",
-			}); err != nil {
+			if err := p.ensureBinarySensor("container_"+slug, stateTopic, currentEntities, entityKey, container.Name, def, device); err != nil {
 				return err
 			}
 		}
@@ -563,7 +611,7 @@ func (p *Publisher) publishVirtualMachines(snapshot model.Snapshot, currentEntit
 			"disk_read_bytes":      vm.DiskReadBytes,
 			"disk_write_bytes":     vm.DiskWriteBytes,
 		}
-		p.preparePayload(stateTopic, values, payloadWithout(virtualMachineContainerAttribute(vm),
+		p.preparePayload(stateTopic, values, payloadWithout(p.addScopedAttributes(virtualMachineContainerAttribute(vm)),
 			"cpu_usage_percent",
 			"memory_usage_bytes",
 			"memory_current_bytes",
@@ -574,23 +622,21 @@ func (p *Publisher) publishVirtualMachines(snapshot model.Snapshot, currentEntit
 		))
 
 		device := deviceDescriptor{
-			ID:           fmt.Sprintf("ugos_bridge_vm_%s", slug),
-			Name:         fmt.Sprintf("Virtual machine %s", vm.Name),
-			ViaDeviceID:  fmt.Sprintf("ugos_bridge_project_%s", projectSlug),
+			ID:           p.workloadDeviceID("vm", slug),
+			Name:         p.workloadDeviceName(fmt.Sprintf("Virtual machine %s", vm.Name)),
+			ViaDeviceID:  p.workloadDeviceID("project", projectSlug),
 			Manufacturer: "RCooLeR",
 			Model:        "UGOS Virtual Machine",
 		}
 		for key, def := range vmSensors {
 			entityKey := fmt.Sprintf("vm:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "vm_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, vm.Name, def, device); err != nil {
+			if err := p.ensureSensor("vm_"+slug, stateTopic, currentEntities, entityKey, vm.Name, def, device); err != nil {
 				return err
 			}
 		}
 		for key, def := range vmBinarySensors {
 			entityKey := fmt.Sprintf("vm_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "vm_"+slug, def.ObjectID)
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, vm.Name, def, device); err != nil {
+			if err := p.ensureBinarySensor("vm_"+slug, stateTopic, currentEntities, entityKey, vm.Name, def, device); err != nil {
 				return err
 			}
 		}
@@ -613,7 +659,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		"swap_used_percent":   percentage(hostSnapshot.Memory.SwapUsedBytes, hostSnapshot.Memory.SwapTotalBytes),
 		"uptime_seconds":      hostSnapshot.CPU.UptimeSeconds,
 	}
-	p.preparePayload(hostStateTopic, hostValues, map[string]any{
+	hostAttributes := map[string]any{
 		"host":                   hostSnapshot.Name,
 		"cpu_cores":              cpuCoreAttributes(hostSnapshot.CPU.CoreUsage),
 		"top_processes":          topProcessAttributes(hostSnapshot.Processes, defaultTopProcessLimit),
@@ -626,12 +672,16 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		"swap_used_bytes":        hostSnapshot.Memory.SwapUsedBytes,
 		"swap_total_bytes":       hostSnapshot.Memory.SwapTotalBytes,
 		"swap_free_bytes":        hostSnapshot.Memory.SwapFreeBytes,
-	})
+	}
+	if p.hostScoped() {
+		// Lets the cards tell host-scoped bridges from the global one.
+		hostAttributes["identity_scope"] = string(IdentityScopeHost)
+	}
+	p.preparePayload(hostStateTopic, hostValues, hostAttributes)
 
 	for key, def := range hostSensors {
 		entityKey := fmt.Sprintf("host:%s:%s", hostSlug, key)
-		discoveryTopic := p.discoveryTopic("sensor", "host_"+hostSlug, def.ObjectID)
-		if err := p.ensureSensor(discoveryTopic, hostStateTopic, currentEntities, entityKey, hostSnapshot.Name, def, deviceDescriptor{
+		if err := p.ensureSensor("host_"+hostSlug, hostStateTopic, currentEntities, entityKey, hostSnapshot.Name, def, deviceDescriptor{
 			ID:           hostDeviceID,
 			Name:         hostSnapshot.Name,
 			Manufacturer: "RCooLeR",
@@ -654,8 +704,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 
 		for key, def := range processSensors {
 			entityKey := fmt.Sprintf("process:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "process_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, process.Name, def, deviceDescriptor{
+			if err := p.ensureSensor("process_"+slug, stateTopic, currentEntities, entityKey, process.Name, def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_process_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Software %s", hostSnapshot.Name, process.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -688,8 +737,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 
 		for key, def := range arraySensors {
 			entityKey := fmt.Sprintf("array:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "array_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, array.Name), def, deviceDescriptor{
+			if err := p.ensureSensor("array_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, array.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_array_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Array %s", hostSnapshot.Name, array.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -701,8 +749,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		}
 		for key, def := range arrayBinarySensors {
 			entityKey := fmt.Sprintf("array_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "array_"+slug, def.ObjectID)
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, array.Name), def, deviceDescriptor{
+			if err := p.ensureBinarySensor("array_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, array.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_array_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Array %s", hostSnapshot.Name, array.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -738,12 +785,11 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 
 		for key, def := range filesystemSensors {
 			entityKey := fmt.Sprintf("filesystem:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "filesystem_"+slug, def.ObjectID)
 			viaDeviceID := hostDeviceID
 			if fs.Array != "" {
 				viaDeviceID = fmt.Sprintf("%s_array_%s", hostDeviceID, slugify(fs.Array))
 			}
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, fs.Name), def, deviceDescriptor{
+			if err := p.ensureSensor("filesystem_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, fs.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_filesystem_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Filesystem %s", hostSnapshot.Name, fs.Name),
 				ViaDeviceID:  viaDeviceID,
@@ -755,12 +801,11 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		}
 		for key, def := range filesystemBinarySensors {
 			entityKey := fmt.Sprintf("filesystem_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "filesystem_"+slug, def.ObjectID)
 			viaDeviceID := hostDeviceID
 			if fs.Array != "" {
 				viaDeviceID = fmt.Sprintf("%s_array_%s", hostDeviceID, slugify(fs.Array))
 			}
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, fs.Name), def, deviceDescriptor{
+			if err := p.ensureBinarySensor("filesystem_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, fs.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_filesystem_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Filesystem %s", hostSnapshot.Name, fs.Name),
 				ViaDeviceID:  viaDeviceID,
@@ -777,7 +822,8 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		slug := diskIdentitySlug(disk)
 		diskIDs[disk.Name] = slug
 		legacySlug := slugify(disk.Name)
-		if slug != legacySlug {
+		// Host scope has no legacy topics; the old ones belong to a global bridge.
+		if slug != legacySlug && !p.hostScoped() {
 			for _, def := range diskSensors {
 				if err := p.publishRetainedRawIfChanged(p.discoveryTopic("sensor", "disk_"+legacySlug, def.ObjectID), ""); err != nil {
 					return err
@@ -811,8 +857,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 
 		for key, def := range diskSensors {
 			entityKey := fmt.Sprintf("disk:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "disk_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, disk.Name), def, deviceDescriptor{
+			if err := p.ensureSensor("disk_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, disk.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_disk_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Disk %s", hostSnapshot.Name, disk.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -845,8 +890,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 
 		for key, def := range bondSensors {
 			entityKey := fmt.Sprintf("bond:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "bond_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, bond.Name), def, deviceDescriptor{
+			if err := p.ensureSensor("bond_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, bond.Name), def, deviceDescriptor{
 				ID:           deviceID,
 				Name:         fmt.Sprintf("%s Bond %s", hostSnapshot.Name, bond.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -858,8 +902,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		}
 		for key, def := range bondBinarySensors {
 			entityKey := fmt.Sprintf("bond_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "bond_"+slug, def.ObjectID)
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, bond.Name), def, deviceDescriptor{
+			if err := p.ensureBinarySensor("bond_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, bond.Name), def, deviceDescriptor{
 				ID:           deviceID,
 				Name:         fmt.Sprintf("%s Bond %s", hostSnapshot.Name, bond.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -887,8 +930,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 
 			for key, def := range bondSlaveSensors {
 				entityKey := fmt.Sprintf("bond_slave:%s:%s:%s", slug, slaveSlug, key)
-				discoveryTopic := p.discoveryTopic("sensor", "bond_"+slug+"_slave_"+slaveSlug, def.ObjectID)
-				if err := p.ensureSensor(discoveryTopic, slaveStateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, slave.Name), def, deviceDescriptor{
+				if err := p.ensureSensor("bond_"+slug+"_slave_"+slaveSlug, slaveStateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, slave.Name), def, deviceDescriptor{
 					ID:           fmt.Sprintf("%s_bond_%s_slave_%s", hostDeviceID, slug, slaveSlug),
 					Name:         fmt.Sprintf("%s Bond %s Slave %s", hostSnapshot.Name, bond.Name, slave.Name),
 					ViaDeviceID:  deviceID,
@@ -900,8 +942,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 			}
 			for key, def := range bondSlaveBinarySensors {
 				entityKey := fmt.Sprintf("bond_slave_binary:%s:%s:%s", slug, slaveSlug, key)
-				discoveryTopic := p.discoveryTopic("binary_sensor", "bond_"+slug+"_slave_"+slaveSlug, def.ObjectID)
-				if err := p.ensureBinarySensor(discoveryTopic, slaveStateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, slave.Name), def, deviceDescriptor{
+				if err := p.ensureBinarySensor("bond_"+slug+"_slave_"+slaveSlug, slaveStateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, slave.Name), def, deviceDescriptor{
 					ID:           fmt.Sprintf("%s_bond_%s_slave_%s", hostDeviceID, slug, slaveSlug),
 					Name:         fmt.Sprintf("%s Bond %s Slave %s", hostSnapshot.Name, bond.Name, slave.Name),
 					ViaDeviceID:  deviceID,
@@ -941,8 +982,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 				continue
 			}
 			entityKey := fmt.Sprintf("network:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "network_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, network.Name), def, deviceDescriptor{
+			if err := p.ensureSensor("network_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, network.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_network_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Network %s", hostSnapshot.Name, network.Name),
 				ViaDeviceID:  viaDeviceID,
@@ -954,8 +994,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		}
 		for key, def := range networkBinarySensors {
 			entityKey := fmt.Sprintf("network_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "network_"+slug, def.ObjectID)
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, network.Name), def, deviceDescriptor{
+			if err := p.ensureBinarySensor("network_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, network.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_network_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Network %s", hostSnapshot.Name, network.Name),
 				ViaDeviceID:  viaDeviceID,
@@ -996,8 +1035,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 				continue
 			}
 			entityKey := fmt.Sprintf("gpu:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "gpu_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, gpu.Name), def, deviceDescriptor{
+			if err := p.ensureSensor("gpu_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, gpu.Name), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_gpu_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s GPU %s", hostSnapshot.Name, gpu.Name),
 				ViaDeviceID:  hostDeviceID,
@@ -1032,7 +1070,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 			sensorIdentity = sensor.Source + "_" + diskSlug + "_" + sensor.Chip + "_" + sensor.Name
 		}
 		sensorSlug := slugify(sensorIdentity)
-		if diskSlug != "" {
+		if diskSlug != "" && !p.hostScoped() {
 			legacySensorSlug := slugify(sensor.Source + "_" + sensor.Chip + "_" + sensor.Name)
 			if _, usedByGenericSensor := genericSensorSlugs[legacySensorSlug]; legacySensorSlug != sensorSlug && !usedByGenericSensor {
 				if err := p.publishRetainedRawIfChanged(p.discoveryTopic("sensor", legacySensorSlug, def.ObjectID), ""); err != nil {
@@ -1063,7 +1101,6 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 		p.preparePayload(stateTopic, values, attributes)
 
 		entityKey := fmt.Sprintf("sensor:%s:%s", sensorSlug, sensor.Kind)
-		discoveryTopic := p.discoveryTopic("sensor", sensorSlug, def.ObjectID)
 		device := deviceDescriptor{
 			ID:           fmt.Sprintf("%s_health_%s", hostDeviceID, chipSlug),
 			EntityID:     fmt.Sprintf("%s_sensor_%s", hostDeviceID, sensorSlug),
@@ -1084,7 +1121,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 			}
 			entityName = fmt.Sprintf("%s %s", sensor.DeviceName, sensor.Label)
 		}
-		if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
+		if err := p.ensureSensor(sensorSlug, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
 			return err
 		}
 	}
@@ -1109,8 +1146,7 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 				continue
 			}
 			entityKey := fmt.Sprintf("cooling:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "cooling_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, cooling.Type), def, deviceDescriptor{
+			if err := p.ensureSensor("cooling_"+slug, stateTopic, currentEntities, entityKey, fmt.Sprintf("%s %s", hostSnapshot.Name, cooling.Type), def, deviceDescriptor{
 				ID:           fmt.Sprintf("%s_cooling_%s", hostDeviceID, slug),
 				Name:         fmt.Sprintf("%s Cooling %s", hostSnapshot.Name, cooling.Type),
 				ViaDeviceID:  hostDeviceID,
@@ -1182,15 +1218,13 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 				continue
 			}
 			entityKey := fmt.Sprintf("ups:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("sensor", "ups_"+slug, def.ObjectID)
-			if err := p.ensureSensor(discoveryTopic, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
+			if err := p.ensureSensor("ups_"+slug, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
 				return err
 			}
 		}
 		for key, def := range upsBinarySensors {
 			entityKey := fmt.Sprintf("ups_binary:%s:%s", slug, key)
-			discoveryTopic := p.discoveryTopic("binary_sensor", "ups_"+slug, def.ObjectID)
-			if err := p.ensureBinarySensor(discoveryTopic, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
+			if err := p.ensureBinarySensor("ups_"+slug, stateTopic, currentEntities, entityKey, entityName, def, device); err != nil {
 				return err
 			}
 		}
@@ -1199,7 +1233,9 @@ func (p *Publisher) publishHost(snapshot model.Snapshot, currentEntities map[str
 	return nil
 }
 
-func (p *Publisher) ensureSensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def sensorDefinition, device deviceDescriptor) error {
+// ensureSensor publishes one entity. globalNodeSlug is the discovery node ID suffix
+// used in global scope; host scope derives the node ID from the entity ID.
+func (p *Publisher) ensureSensor(globalNodeSlug string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def sensorDefinition, device deviceDescriptor) error {
 	prepared, ok := p.preparedPayloads[stateTopic]
 	if !ok {
 		return fmt.Errorf("MQTT payload for %q was not prepared", stateTopic)
@@ -1209,6 +1245,8 @@ func (p *Publisher) ensureSensor(discoveryTopic string, stateTopic string, curre
 		return fmt.Errorf("MQTT payload for %q has no %q value", stateTopic, def.ValueKey)
 	}
 
+	entityID := firstNonEmpty(device.EntityID, device.ID)
+	discoveryTopic := p.entityDiscoveryTopic("sensor", globalNodeSlug, entityID, def.ObjectID)
 	entityStateTopic := individualStateTopic(stateTopic, def.ObjectID)
 	entityAvailabilityTopic := individualAvailabilityTopic(entityStateTopic)
 	current[key] = publishedEntity{
@@ -1216,8 +1254,6 @@ func (p *Publisher) ensureSensor(discoveryTopic string, stateTopic string, curre
 		stateTopic:        entityStateTopic,
 		availabilityTopic: entityAvailabilityTopic,
 	}
-
-	entityID := firstNonEmpty(device.EntityID, device.ID)
 
 	devicePayload := map[string]any{
 		"identifiers": []string{device.ID},
@@ -1265,6 +1301,7 @@ func (p *Publisher) ensureSensor(discoveryTopic string, stateTopic string, curre
 		payload["entity_category"] = def.EntityCategory
 	}
 
+	p.addScopedDiscoveryFields(payload, "sensor", entityID, def.ObjectID)
 	if err := p.publishJSONIfChanged(discoveryTopic, payload); err != nil {
 		return err
 	}
@@ -1279,7 +1316,9 @@ func (p *Publisher) ensureSensor(discoveryTopic string, stateTopic string, curre
 	return p.publishStateValueIfChanged(entityStateTopic, value)
 }
 
-func (p *Publisher) ensureBinarySensor(discoveryTopic string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def binarySensorDefinition, device deviceDescriptor) error {
+// ensureBinarySensor publishes one entity. globalNodeSlug is the discovery node ID suffix
+// used in global scope; host scope derives the node ID from the entity ID.
+func (p *Publisher) ensureBinarySensor(globalNodeSlug string, stateTopic string, current map[string]publishedEntity, key string, entityName string, def binarySensorDefinition, device deviceDescriptor) error {
 	prepared, ok := p.preparedPayloads[stateTopic]
 	if !ok {
 		return fmt.Errorf("MQTT payload for %q was not prepared", stateTopic)
@@ -1289,6 +1328,8 @@ func (p *Publisher) ensureBinarySensor(discoveryTopic string, stateTopic string,
 		return fmt.Errorf("MQTT payload for %q has no %q value", stateTopic, def.ValueKey)
 	}
 
+	entityID := firstNonEmpty(device.EntityID, device.ID)
+	discoveryTopic := p.entityDiscoveryTopic("binary_sensor", globalNodeSlug, entityID, def.ObjectID)
 	entityStateTopic := individualStateTopic(stateTopic, def.ObjectID)
 	entityAvailabilityTopic := individualAvailabilityTopic(entityStateTopic)
 	current[key] = publishedEntity{
@@ -1296,8 +1337,6 @@ func (p *Publisher) ensureBinarySensor(discoveryTopic string, stateTopic string,
 		stateTopic:        entityStateTopic,
 		availabilityTopic: entityAvailabilityTopic,
 	}
-
-	entityID := firstNonEmpty(device.EntityID, device.ID)
 
 	devicePayload := map[string]any{
 		"identifiers": []string{device.ID},
@@ -1334,6 +1373,7 @@ func (p *Publisher) ensureBinarySensor(discoveryTopic string, stateTopic string,
 		payload["entity_category"] = def.EntityCategory
 	}
 
+	p.addScopedDiscoveryFields(payload, "binary_sensor", entityID, def.ObjectID)
 	if err := p.publishJSONIfChanged(discoveryTopic, payload); err != nil {
 		return err
 	}
@@ -1548,11 +1588,6 @@ func truthy(value any) bool {
 	default:
 		return value != nil
 	}
-}
-
-func newAvailabilityPayload(clientID string) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", clientID, time.Now().UnixNano())))
-	return fmt.Sprintf("online_%x", sum[:6])
 }
 
 func slugify(value string) string {

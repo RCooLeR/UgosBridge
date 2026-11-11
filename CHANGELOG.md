@@ -2,7 +2,36 @@
 
 ## [Unreleased]
 
+### Added
+
+- Run several bridges against one MQTT broker and Home Assistant with
+  `UGOS_BRIDGE_MQTT_IDENTITY_SCOPE=host` on every additional bridge. Host scope
+  requires `UGOS_BRIDGE_HOST_NAME` and appends its slug to the MQTT client ID
+  and topic prefix, nests Docker project, container and VM devices under the
+  host device, derives discovery topics from unique IDs, and sends
+  `default_entity_id` (Home Assistant 2025.10+). The default `global` scope
+  keeps every existing topic, discovery payload, device ID and unique ID; a
+  golden test pins them.
+- Duplicate-bridge guard: a bridge that finds another bridge process online on
+  its availability topic publishes nothing until that bridge goes offline, a
+  running bridge restores its availability when another client marks it
+  offline, and repeated short sessions log a duplicate client ID hint.
+- The cards' `host` option selects a node: Docker projects, containers and VMs
+  are limited to the selected host when host-scoped bridges are present, and a
+  card without `host` keeps showing the global-scope bridge.
+- Documentation for running a second bridge and an example for arm64
+  single-board computers.
+
 ### Changed
+
+- The online availability payload now starts with a prefix derived from the
+  MQTT client ID (`online_<client_hash>_<process_hash>`).
+
+### Fixed
+
+- Host collection no longer fails on hosts without software RAID, whose kernel
+  has no `/proc/mdstat` (for example most single-board computers); they report
+  no arrays.
 
 - Organize documentation by component, with a minimal root README, bridge
   references under `bridge/docs/`, and shared card guides under `ha-cards/docs/`.
@@ -10,7 +39,7 @@
 - Move Prometheus and Home Assistant MQTT packages to `internal/metrics` and
   `internal/hamqtt`, matching the other bridges. Simplify their Go API names;
   metric names, MQTT topics, discovery IDs, and publishing behavior are unchanged.
-- Update the Go toolchain to 1.27.3, `procfs` to 0.23.0, `x/net` to 0.61.0,
+- Update the Go toolchain to 1.27.4, `procfs` to 0.23.0, `x/net` to 0.61.0,
   and the remaining runtime and vulnerability-scanner dependencies. Refresh the
   pinned Go/Alpine and Debian image digests without changing the runtime OS line.
 - Update Vite to 8.3.5 and Simple Icons to 16.35.0, refresh compatible card-build
@@ -21,6 +50,8 @@
 ### Security
 
 - Include Go 1.27.3's `crypto/x509` security fixes in source and release builds.
+- Require Go 1.27.4 for source and container builds to include the `net/http`
+  fix for GO-2026-6859.
 
 ## [1.0.7] - 2026-10-12
 

@@ -25,6 +25,11 @@ type recordingClient struct {
 	connectionOpen bool
 	publishes      []publishedMessage
 	failTopic      string
+	// retained holds the broker-retained payloads delivered on Subscribe;
+	// queued holds older session payloads whose handlers run after them, as
+	// paho's unordered handler goroutines allow.
+	queued   map[string][]string
+	retained map[string]string
 }
 
 func (c *recordingClient) IsConnected() bool { return true }
@@ -49,8 +54,31 @@ func (c *recordingClient) Publish(topic string, qos byte, retained bool, payload
 }
 
 func (c *recordingClient) Subscribe(topic string, qos byte, callback mqtt.MessageHandler) mqtt.Token {
+	if callback == nil {
+		return stubToken{}
+	}
+	if payload, ok := c.retained[topic]; ok {
+		callback(c, fakeMessage{topic: topic, payload: payload, retained: true})
+	}
+	for _, payload := range c.queued[topic] {
+		callback(c, fakeMessage{topic: topic, payload: payload})
+	}
 	return stubToken{}
 }
+
+type fakeMessage struct {
+	topic    string
+	payload  string
+	retained bool
+}
+
+func (fakeMessage) Duplicate() bool   { return false }
+func (fakeMessage) Qos() byte         { return 1 }
+func (m fakeMessage) Retained() bool  { return m.retained }
+func (m fakeMessage) Topic() string   { return m.topic }
+func (fakeMessage) MessageID() uint16 { return 0 }
+func (m fakeMessage) Payload() []byte { return []byte(m.payload) }
+func (fakeMessage) Ack()              {}
 
 func (c *recordingClient) SubscribeMultiple(filters map[string]byte, callback mqtt.MessageHandler) mqtt.Token {
 	return stubToken{}

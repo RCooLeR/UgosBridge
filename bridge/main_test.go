@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RCooLeR/UgosBridge/bridge/internal/hamqtt"
 	"github.com/RCooLeR/UgosBridge/bridge/internal/model"
 	cli "github.com/urfave/cli/v3"
 )
@@ -113,6 +114,25 @@ func TestConfigFromCLI_MQTTProcessAllowlist(t *testing.T) {
 	}
 }
 
+func TestConfigFromCLI_MQTTIdentityScope(t *testing.T) {
+	if cfg := mustConfigFromArgs(t); cfg.MQTTIdentityScope != hamqtt.IdentityScopeGlobal {
+		t.Fatalf("default MQTTIdentityScope = %q, want global", cfg.MQTTIdentityScope)
+	}
+
+	t.Setenv("UGOS_BRIDGE_MQTT_IDENTITY_SCOPE", "host")
+	t.Setenv("UGOS_BRIDGE_HOST_NAME", "cubie-a7a")
+	if cfg := mustConfigFromArgs(t); cfg.MQTTIdentityScope != hamqtt.IdentityScopeHost || cfg.HostNameOverride != "cubie-a7a" {
+		t.Fatalf("MQTTIdentityScope = %q, host = %q", cfg.MQTTIdentityScope, cfg.HostNameOverride)
+	}
+
+	if err := configErrorFromArgs(t, "--host-name", ""); err == nil {
+		t.Fatal("host scope without a host name was accepted")
+	}
+	if err := configErrorFromArgs(t, "--mqtt-identity-scope", "node"); err == nil {
+		t.Fatal("unknown identity scope was accepted")
+	}
+}
+
 func TestConfigFromCLIUsesOrderedEnvironmentSources(t *testing.T) {
 	t.Setenv("LISTEN_ADDRESS", ":1111")
 	t.Setenv("UGOS_BRIDGE_LISTEN_ADDRESS", ":2222")
@@ -171,6 +191,21 @@ func TestCheckHealthValidatesTimeout(t *testing.T) {
 func mustConfigFromArgs(t *testing.T, args ...string) config {
 	t.Helper()
 
+	cfg, err := configFromArgs(args...)
+	if err != nil {
+		t.Fatalf("run command: %v", err)
+	}
+	return cfg
+}
+
+func configErrorFromArgs(t *testing.T, args ...string) error {
+	t.Helper()
+
+	_, err := configFromArgs(args...)
+	return err
+}
+
+func configFromArgs(args ...string) (config, error) {
 	var cfg config
 	cmd := &cli.Command{
 		Name:  "test",
@@ -181,8 +216,6 @@ func mustConfigFromArgs(t *testing.T, args ...string) config {
 			return err
 		},
 	}
-	if err := cmd.Run(context.Background(), append([]string{"test"}, args...)); err != nil {
-		t.Fatalf("run command: %v", err)
-	}
-	return cfg
+	err := cmd.Run(context.Background(), append([]string{"test"}, args...))
+	return cfg, err
 }

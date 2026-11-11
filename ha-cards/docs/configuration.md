@@ -9,7 +9,7 @@ Both cards accept the shared configuration below. Only `type` is required; use
 | Key | Type | Behavior |
 | --- | --- | --- |
 | `title` | string | Detailed-card heading; defaults to `UGREEN DXP6800 Pro`. The mini card uses `deviceModel` for its heading instead. |
-| `host` | string | Preferred bridge host name or slug, such as `DXP6800 Pro` or `dxp6800_pro`. Otherwise the mapper chooses a discovered host. |
+| `host` | string | Bridge host (node) to show, by host name or slug, such as `DXP6800 Pro` or `cubie_a7a`. Otherwise the mapper chooses a discovered host, preferring a bridge in the default global identity scope. |
 | `deviceModel` | string | Model label, including the mini-card heading. Defaults to `UGREEN NAS` in live mode. |
 | `memoryTotalBytes` | number | Positive RAM-total override in bytes. Otherwise total RAM is inferred from used bytes and percentage, falling back to used bytes. |
 | `storageFilesystems` | string[] | Preferred filesystem names or slugs for storage pools and totals, for example `[/volume1, /volume2]`. By default, non-root filesystems are preferred. |
@@ -23,6 +23,24 @@ Selections are preferences, not strict filters: if a configured host, filesystem
 list or interface list has no match, the mapper falls back to discovered data.
 Check the displayed host and selections when several NAS devices are present.
 These options affect the card only; they do not change what the bridge collects.
+
+## Several bridges
+
+With several bridges on one Home Assistant, set `host` on every card. Bridges
+added with `UGOS_BRIDGE_MQTT_IDENTITY_SCOPE=host`
+([Several bridges](../../bridge/docs/home-assistant.md#several-bridges)) are
+separated completely: the card shows only the selected host's Docker projects,
+containers and virtual machines. The global-scope bridge's card shows its own
+workloads and skips those of host-scoped bridges, and a card without `host` keeps
+showing the global-scope bridge when a host-scoped one appears. Two bridges that
+both use global scope cannot be told apart in the Docker section.
+
+```yaml
+type: custom:ugreen-nas-card
+title: Cubie A7A
+host: cubie-a7a
+deviceModel: Radxa Cubie A7A
+```
 
 ## Live, preview and missing data
 

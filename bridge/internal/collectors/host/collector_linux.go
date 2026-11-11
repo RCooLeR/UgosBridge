@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -208,7 +209,7 @@ func (c *Collector) Collect(ctx context.Context) (model.HostSnapshot, error) {
 	if err != nil {
 		return model.HostSnapshot{}, fmt.Errorf("read /proc/net/dev: %w", err)
 	}
-	mdstat, err := c.proc.MDStat()
+	mdstat, err := readMDStat(c.proc)
 	if err != nil {
 		return model.HostSnapshot{}, fmt.Errorf("read /proc/mdstat: %w", err)
 	}
@@ -570,6 +571,17 @@ func (c *Collector) collectArrays(mdstats []procfs.MDStat, mounts map[string]mou
 
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result
+}
+
+// readMDStat returns no arrays when the kernel has no md driver loaded: hosts
+// without software RAID, such as most single-board computers, have no
+// /proc/mdstat at all.
+func readMDStat(proc procfs.FS) ([]procfs.MDStat, error) {
+	mdstat, err := proc.MDStat()
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	return mdstat, err
 }
 
 func mdStatDeviceNames(components []procfs.MDStatComponent) []string {
