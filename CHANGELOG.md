@@ -29,6 +29,8 @@
 
 ### Fixed
 
+- Keep nested filesystem paths intact in the cards: `/mnt/userdata` no longer
+  produces an extra `/mnt` storage pool with the same readings.
 - Host collection no longer fails on hosts without software RAID, whose kernel
   has no `/proc/mdstat` (for example most single-board computers); they report
   no arrays.

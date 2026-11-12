@@ -1314,14 +1314,16 @@ var w = {
 		...c
 	])).sort();
 }), Zt = (e, t) => M(e, `filesystemSlugs:${t}`, () => {
-	let n = qn(e, t, `ugos_bridge_host_${t}`, "filesystem", (e) => !!e), r = [
+	let n = [
 		...L(e, RegExp(`^sensor\\.ugos_bridge_host_${Y(t)}_filesystem_(.+?)_used_bytes$`)),
 		...L(e, /^sensor\.ugos_bridge_filesystem_(.+?)_used_bytes$/),
 		...L(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${Y(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only)(?:_\\d+)?$`))
-	], i = T(e).map((e) => e.match(RegExp(`^sensor\\.${Y(t)}_filesystem_([^_]+)_`))?.[1]).filter((e) => !!e), a = D(e).map((e) => ar(e, t)).filter((e) => !!e), o = D(e).filter((e) => B(e, "used_bytes") !== void 0 || B(e, "free_bytes") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => !!e);
+	], r = RegExp(`^(?:sensor|binary_sensor)\\.${Y(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only|used|free)(?:_\\d+)?$`), i = E(e).map(([e, n]) => {
+		let i = r.exec(e)?.[1];
+		return i ? ar(n, t) ?? J(z(n, "name") ?? i) : void 0;
+	}).filter((e) => !!e), a = D(e).map((e) => ar(e, t)).filter((e) => !!e), o = D(e).filter((e) => B(e, "used_bytes") !== void 0 || B(e, "free_bytes") !== void 0).map((e) => J(z(e, "name") ?? "")).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...n,
-		...r,
 		...i,
 		...a,
 		...o

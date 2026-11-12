@@ -1640,8 +1640,6 @@ const collectDiskSlugs = (states: Record<string, HassEntityLike>, hostSlug: stri
 
 const collectFilesystemSlugs = (states: Record<string, HassEntityLike>, hostSlug: string): string[] => {
   return getComputedResult(states, `filesystemSlugs:${hostSlug}`, () => {
-    const hostPrefix = `ugos_bridge_host_${hostSlug}`;
-    const componentSlugs = collectComponentEntitySlugs(states, hostSlug, hostPrefix, 'filesystem', (slug) => Boolean(slug));
     const exactSlugs = [
       ...collectEntitySlugs(states, new RegExp(`^sensor\\.ugos_bridge_host_${escapeRegExp(hostSlug)}_filesystem_(.+?)_used_bytes$`)),
       ...collectEntitySlugs(states, /^sensor\.ugos_bridge_filesystem_(.+?)_used_bytes$/),
@@ -1652,8 +1650,18 @@ const collectFilesystemSlugs = (states: Record<string, HassEntityLike>, hostSlug
         )
       )
     ];
-    const legacySlugs = getStateKeys(states)
-      .map((entityId) => entityId.match(new RegExp(`^sensor\\.${escapeRegExp(hostSlug)}_filesystem_([^_]+)_`))?.[1])
+    // Filesystem paths can contain several slug segments; stop at the metric
+    // suffix instead of treating the first underscore as the end of the path.
+    const legacyPattern = new RegExp(
+      `^(?:sensor|binary_sensor)\\.${escapeRegExp(hostSlug)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only|used|free)(?:_\\d+)?$`
+    );
+    const legacySlugs = getStateEntries(states)
+      .map(([entityId, entity]) => {
+        const legacySlug = legacyPattern.exec(entityId)?.[1];
+        return legacySlug
+          ? getFriendlyFilesystemSlug(entity, hostSlug) ?? slugify(getStringAttribute(entity, 'name') ?? legacySlug)
+          : undefined;
+      })
       .filter((slug): slug is string => Boolean(slug));
     const friendlySlugs = getStateValues(states)
       .map((entity) => getFriendlyFilesystemSlug(entity, hostSlug))
@@ -1663,7 +1671,7 @@ const collectFilesystemSlugs = (states: Record<string, HassEntityLike>, hostSlug
       .map((entity) => slugify(getStringAttribute(entity, 'name') ?? ''))
       .filter((slug): slug is string => Boolean(slug));
 
-    return Array.from(new Set([...componentSlugs, ...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
+    return Array.from(new Set([...exactSlugs, ...legacySlugs, ...friendlySlugs, ...payloadSlugs])).sort();
   });
 };
 
