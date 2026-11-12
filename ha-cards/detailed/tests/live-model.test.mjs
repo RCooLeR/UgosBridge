@@ -76,6 +76,8 @@ test('builds Docker projects from compact scalar states with preserved HA entity
   const db = result.model.dockerProjects.find((project) => project.key === 'db');
   assert.deepEqual(apps?.containers.map((container) => container.key), ['go_back_db']);
   assert.deepEqual(db?.containers.map((container) => container.key), ['redis']);
+  assert.equal(apps?.containers[0]?.name, 'go-back-db');
+  assert.equal(db?.containers[0]?.name, 'redis');
   assert.equal(apps?.containers[0]?.cpuPercent, 0.5);
   assert.equal(apps?.containers[0]?.memoryBytes, 1200);
   assert.equal(apps?.containers[0]?.running, true);

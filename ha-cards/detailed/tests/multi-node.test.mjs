@@ -45,6 +45,35 @@ test('host-scoped workload CPU entities are not host candidates', async (context
   assert.equal(build(live, states, undefined).model.deviceInfo.hostname, 'DXP6800 Pro');
 });
 
+test('host-scoped container names stay concise regardless of metric order or metadata', async (context) => {
+  const live = await loadLiveModel(context);
+
+  for (const canonicalName of [true, false]) {
+    for (const memoryFirst of [true, false]) {
+      const entities = cubieStates();
+      const cpu = entities.find((entity) => entity.entity_id.endsWith('_container_ugos_bridge_cpu_usage_percent'));
+      const memory = entities.find((entity) => entity.entity_id.endsWith('_container_ugos_bridge_memory_usage_bytes'));
+      if (canonicalName) {
+        // A metric's display label must never override the name from Docker metadata.
+        memory.attributes.friendly_name = 'cubie-a7a Docker container UGOS-BRIDGE UGOS-BRIDGE Memory';
+      } else {
+        delete cpu.attributes.container;
+        delete cpu.attributes.container_slug;
+      }
+      const states = toStates(memoryFirst ? [memory, ...entities.filter((entity) => entity !== memory)] : entities);
+      const result = build(live, states, 'cubie-a7a');
+      const containers = result.model.dockerProjects.find((project) => project.key === 'ugos_bridge').containers;
+      assert.equal(containers.length, 2);
+      const container = containers.find((item) => item.key === 'ugos_bridge');
+      assert.equal(container.name, 'ugos-bridge');
+      assert.equal(container.cpuPercent, 0.5);
+      assert.equal(container.memoryBytes, 1024);
+      assert.equal(container.running, true);
+      assert.equal(container.image, 'rcooler/ugos-bridge:1.1.0');
+    }
+  }
+});
+
 async function loadLiveModel(context) {
   const server = await createServer({
     root,

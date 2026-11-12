@@ -25,6 +25,7 @@ import {
   formatBitsPerSecond,
   formatBytes,
   formatBytesPerSecond,
+  formatContainerImage,
   formatPercent,
   formatProjectPercent,
   formatStorage,
@@ -579,7 +580,9 @@ export class UgreenNasCard extends LitElement {
                   </span>
                   <div>
                     <div class="detail-name">${container.name}</div>
-                    <div class="detail-subtitle">${isVM ? `Source: ${container.image}` : container.image}</div>
+                    <div class="detail-subtitle" title=${container.image}>
+                      ${isVM ? `Source: ${container.image}` : formatContainerImage(container.image)}
+                    </div>
                   </div>
                 </div>
                 <span class=${container.running ? 'health' : 'health degraded'}>

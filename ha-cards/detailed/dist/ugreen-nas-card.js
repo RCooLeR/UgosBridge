@@ -663,11 +663,11 @@ var ft = ct(dt), S = {
 	let i = w(e).filter(([e]) => e.startsWith(t));
 	return n.prefixEntries.set(t, i), i;
 }, E = (e, t) => Array.from(new Map(t.flatMap((t) => jt(e, t))).entries()), D = (e, t) => t.find((t) => mr(e[t])), O = (e, t, n, r = "sensor.") => {
-	let i = G(n);
+	let i = W(n);
 	return w(e).filter(([e, n]) => {
 		if (!e.startsWith(r)) return !1;
 		let a = e.toLowerCase();
-		return G(I(n, "name") ?? "") === i || a.includes(`_${t}_${i}_`) || a.includes(`ugos_bridge_${t}_${i}_`);
+		return W(I(n, "name") ?? "") === i || a.includes(`_${t}_${i}_`) || a.includes(`ugos_bridge_${t}_${i}_`);
 	});
 }, k = (e, t) => N(e, t) ?? N(e, {
 	...t,
@@ -714,7 +714,7 @@ var ft = ct(dt), S = {
 		de
 	]), _e = Gt(r, ge), ve = Kt(r, ge), ye = pn($t(r, i), t?.storageFilesystems), be = gn(r, i, a).map((e) => It(r, i, te, e)).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), xe = Lt(en(r, i), ye, be), Se = hn(ie), _ = Array.from(new Set(Se)).map((e) => Rt(ie, e)).filter((e) => e !== null).sort((e, t) => t.cpuPercent - e.cpuPercent || e.title.localeCompare(t.title)), Ce = vn(r, i, a), we = yn(r, i, a), v = mn(bn(Array.from(/* @__PURE__ */ new Set([...Ce, ...we])).sort(), t?.networkInterfaces), t?.networkInterfaces), Te = v.map((e) => Ce.includes(e) ? Zt(r, i, e, oe) : Qt(r, i, e, oe)).filter((e) => e !== null).sort((e, t) => e.name.localeCompare(t.name)), Ee = v.filter((e) => Ce.includes(e)), De = Ee.length > 0 ? Ee : Ce, Oe = De.reduce((e, t) => e + (F(r, Ln(r, i, t, "rx")) ?? 0) * 8, 0), ke = De.reduce((e, t) => e + (F(r, Ln(r, i, t, "tx")) ?? 0) * 8, 0), Ae = xn(v), je = Object.fromEntries(Ae.map((e) => [e, Cn(r, i, e)])), Me = (o ? r[o]?.last_updated : void 0) ?? (o ? r[o]?.last_changed : void 0) ?? `${c}:${m}:${fe ?? 0}:${Oe}:${ke}:${JSON.stringify(je)}`, y = qn(n, {
 		key: Me,
-		timestampLabel: ri(Me),
+		timestampLabel: ii(Me),
 		cpuPercent: c,
 		ramPercent: m,
 		gpuPercent: fe ?? 0,
@@ -722,7 +722,7 @@ var ft = ct(dt), S = {
 		networkBpsBySlug: je
 	}), Ne = Jn(y.samples.map((e) => e.cpuPercent), c, 12), Pe = Jn(y.samples.map((e) => e.ramPercent), m, 12), Fe = Jn(y.samples.map((e) => e.gpuPercent), fe ?? 0, 12), Ie = Jn(y.samples.map((e) => e.load1), u, 12), b = Yn(y.samples, Ae, je), Le = Ae.map((e, t) => ({
 		key: e,
-		label: si(e),
+		label: ci(e),
 		color: wn(e, t),
 		currentBps: je[e] ?? 0,
 		series: b.map((t) => t.totalsByInterface[e] ?? 0)
@@ -803,7 +803,7 @@ var ft = ct(dt), S = {
 				hostname: te,
 				ipAddress: dn(r, t),
 				uptimeSeconds: f,
-				lastUpdated: ii(Me)
+				lastUpdated: ai(Me)
 			},
 			hardwareSummary: Re,
 			hardwareDetails: x,
@@ -853,7 +853,7 @@ var ft = ct(dt), S = {
 			})),
 			{
 				label: "Uptime",
-				value: ai(te)
+				value: oi(te)
 			}
 		]
 	}, {
@@ -866,11 +866,11 @@ var ft = ct(dt), S = {
 		detailRows: [
 			{
 				label: "Used",
-				value: oi(p)
+				value: si(p)
 			},
 			{
 				label: "Total",
-				value: oi(f)
+				value: si(f)
 			},
 			{
 				label: "Usage",
@@ -911,7 +911,7 @@ var ft = ct(dt), S = {
 }, It = (e, t, n, r) => {
 	let i = jn(e, t, r, "size"), a = F(e, i), o = F(e, jn(e, t, r, "temperature")), s = F(e, jn(e, t, r, "read")), c = F(e, jn(e, t, r, "write")), l = F(e, jn(e, t, r, "busy")), u = hr(e, Mn(e, t, r, "model")), d = Mr(hr(e, Mn(e, t, r, "type")));
 	if (a === void 0 && o === void 0 && s === void 0 && c === void 0 && l === void 0 && u === void 0 && d === void 0) return null;
-	let f = jr(u), p = I(e[i ?? ""], "name"), m = U(e[i ?? ""], "Size", n) ?? p ?? ti(r);
+	let f = jr(u), p = I(e[i ?? ""], "name"), m = Br(e[i ?? ""], "Size", n) ?? p ?? ni(r);
 	return {
 		name: d === "hdd" ? `${f ?? m} ${(p ?? r).toUpperCase()}` : f ?? m,
 		model: d ? d.toUpperCase() : o === void 0 ? "Disk" : "Physical Disk",
@@ -929,7 +929,7 @@ var ft = ct(dt), S = {
 }, Lt = (e, t, n) => {
 	if (e.length === 0) return t.map((e, t) => ({
 		key: e.slug,
-		name: Pr(ei(e.slug)),
+		name: Pr(ti(e.slug)),
 		layout: e.readOnly ? "Filesystem | Read-only" : "Filesystem",
 		status: e.readOnly ? "warning" : "healthy",
 		usedBytes: e.usedBytes,
@@ -938,7 +938,7 @@ var ft = ct(dt), S = {
 	}));
 	let r = [...t];
 	return e.map((t, i) => {
-		let a = r.findIndex((e) => Math.abs(e.totalBytes - t.sizeBytes) / Math.max(t.sizeBytes, 1) < .05), o = a >= 0 ? r.splice(a, 1)[0] : void 0, s = Fr(t, n), c = o ? Pr(ei(o.slug)) : void 0, l = Nr(t.level), u = Xt(t.members, n), d = u.length === 0 && e.length === 1 ? n.map((e) => e.diskSlug).filter((e) => !!e) : u;
+		let a = r.findIndex((e) => Math.abs(e.totalBytes - t.sizeBytes) / Math.max(t.sizeBytes, 1) < .05), o = a >= 0 ? r.splice(a, 1)[0] : void 0, s = Fr(t, n), c = o ? Pr(ti(o.slug)) : void 0, l = Nr(t.level), u = Xt(t.members, n), d = u.length === 0 && e.length === 1 ? n.map((e) => e.diskSlug).filter((e) => !!e) : u;
 		return {
 			key: t.slug,
 			name: s ?? c ?? t.name,
@@ -957,7 +957,7 @@ var ft = ct(dt), S = {
 	let l = zt(t, Vt(e, t, n ?? r)), u = Bt(t, o, l);
 	return {
 		key: t,
-		title: Rr(I(i, "project") ?? U(i, "CPU", "") ?? U(e[r ?? ""], "CPU", "") ?? t.split("_").filter(Boolean).map(ni).join(" ")),
+		title: Rr(I(i, "project") ?? Br(i, "CPU", "") ?? Br(e[r ?? ""], "CPU", "") ?? t.split("_").filter(Boolean).map(ri).join(" ")),
 		cpuPercent: a,
 		memoryBytes: u,
 		runningContainers: Math.round(c),
@@ -974,14 +974,14 @@ var ft = ct(dt), S = {
 	let i = /* @__PURE__ */ new Map();
 	for (let [n, r] of w(e)) {
 		if (!mr(r)) continue;
-		let e = wt.exec(n) ?? Tt.exec(n), a = Kr(r), o = e?.[2] ?? a?.metric, s = I(r, "container"), c = Gr(I(r, "project_slug") ?? I(r, "project")), l = I(r, "image"), u = I(r, "status"), d = I(r, "state"), f = gr(r, "running");
+		let e = wt.exec(n) ?? Tt.exec(n), a = qr(r), o = e?.[2] ?? a?.metric, s = I(r, "container"), c = Kr(I(r, "project_slug") ?? I(r, "project")), l = I(r, "image"), u = I(r, "status"), d = I(r, "state"), f = gr(r, "running");
 		if (!(s || l !== void 0 || u !== void 0 || d !== void 0 || f !== void 0 || L(r, "memory_current_bytes") !== void 0 || L(r, "memory_limit_bytes") !== void 0 || o !== void 0)) continue;
-		let p = a?.key ?? G(s ?? I(r, "container_slug") ?? I(r, "container_id") ?? e?.[1] ?? n), m = i.get(p) ?? { key: p };
-		m.projectSlug = c ?? m.projectSlug ?? Xr(p, r, t), m.name = m.name ?? s ?? a?.name ?? U(r, "", "") ?? ti(p), m.image = m.image ?? l, m.status = m.status ?? u, m.state = m.state ?? d ?? (o === "running" ? Jr(r) : void 0), m.memoryCurrentBytes = m.memoryCurrentBytes ?? L(r, "memory_current_bytes"), m.memoryLimitBytes = m.memoryLimitBytes ?? L(r, "memory_limit_bytes"), m.cpuPercent = L(r, "cpu_usage_percent") ?? (o === "cpu_usage_percent" ? V(r.state) : void 0) ?? m.cpuPercent ?? 0, m.memoryBytes = L(r, "memory_usage_bytes") ?? (o === "memory_usage_bytes" ? V(r.state) : void 0) ?? m.memoryBytes ?? 0, m.running = f ?? (o === "running" ? Yr(r, m.state) : void 0) ?? m.running, i.set(p, m);
+		let p = a?.key ?? W(s ?? I(r, "container_slug") ?? I(r, "container_id") ?? e?.[1] ?? n), m = i.get(p) ?? { key: p };
+		m.projectSlug = c ?? m.projectSlug ?? Zr(p, r, t), m.name = s ?? m.name ?? a?.name, m.image = m.image ?? l, m.status = m.status ?? u, m.state = m.state ?? d ?? (o === "running" ? Yr(r) : void 0), m.memoryCurrentBytes = m.memoryCurrentBytes ?? L(r, "memory_current_bytes"), m.memoryLimitBytes = m.memoryLimitBytes ?? L(r, "memory_limit_bytes"), m.cpuPercent = L(r, "cpu_usage_percent") ?? (o === "cpu_usage_percent" ? V(r.state) : void 0) ?? m.cpuPercent ?? 0, m.memoryBytes = L(r, "memory_usage_bytes") ?? (o === "memory_usage_bytes" ? V(r.state) : void 0) ?? m.memoryBytes ?? 0, m.running = f ?? (o === "running" ? Xr(r, m.state) : void 0) ?? m.running, i.set(p, m);
 	}
-	return Array.from(i.values()).filter((e) => e.projectSlug === void 0 ? Zr(e, t) : e.projectSlug === t).map((e) => ({
+	return Array.from(i.values()).filter((e) => e.projectSlug === void 0 ? Qr(e, t) : e.projectSlug === t).map((e) => ({
 		key: e.key,
-		name: e.name ?? ti(e.key),
+		name: e.name ?? ni(e.key),
 		image: e.image ?? "Unknown",
 		status: e.status ?? "Unavailable",
 		state: e.state ?? "unknown",
@@ -992,7 +992,7 @@ var ft = ct(dt), S = {
 		memoryLimitBytes: e.memoryLimitBytes
 	})).sort((e, t) => Number(t.running) - Number(e.running) || t.cpuPercent - e.cpuPercent || t.memoryBytes - e.memoryBytes || e.name.localeCompare(t.name));
 }, Ht = (e, t, n) => {
-	let r = Gr(z(e, [
+	let r = Kr(z(e, [
 		"project_slug",
 		"project",
 		"ProjectSlug",
@@ -1009,10 +1009,10 @@ var ft = ct(dt), S = {
 		"key",
 		"ContainerSlug",
 		"Key"
-	]) ?? G(i ?? z(e, ["container_id", "ContainerID"]) ?? `container_${n}`);
+	]) ?? W(i ?? z(e, ["container_id", "ContainerID"]) ?? `container_${n}`);
 	return {
 		key: a,
-		name: i ?? ti(a),
+		name: i ?? ni(a),
 		image: z(e, ["image", "Image"]) ?? "Unknown",
 		status: z(e, ["status", "Status"]) ?? "Unavailable",
 		state: z(e, ["state", "State"]) ?? "unknown",
@@ -1045,15 +1045,15 @@ var ft = ct(dt), S = {
 	return R(e[t ?? ""], "cpu_cores").forEach((e, t) => {
 		let r = z(e, ["name"]) ?? `cpu${t}`, i = B(e, ["usage_percent", "UsagePercent"]);
 		i !== void 0 && n.push({
-			key: G(r) || `cpu_${t}`,
-			name: Vr(r),
+			key: W(r) || `cpu_${t}`,
+			name: Hr(r),
 			usagePercent: i,
 			currentMHz: B(e, ["current_mhz", "CurrentMHz"]),
 			minMHz: B(e, ["min_mhz", "MinMHz"]),
 			maxMHz: B(e, ["max_mhz", "MaxMHz"]),
 			governor: z(e, ["governor", "Governor"])
 		});
-	}), n.sort(Hr);
+	}), n.sort(Ur);
 }, Wt = (e, t, n, r) => {
 	let i = e[t ?? ""], a = L(i, "memory_total_bytes") ?? n, o = L(i, "memory_used_bytes") ?? r, s = L(i, "memory_buffers_bytes"), c = L(i, "memory_cached_bytes"), l = L(i, "swap_used_bytes"), u = L(i, "swap_total_bytes");
 	return [
@@ -1097,9 +1097,9 @@ var ft = ct(dt), S = {
 	for (let r of t) R(e[r], "engines").forEach((e, t) => {
 		let r = z(e, ["name", "Name"]), i = B(e, ["busy_percent", "BusyPercent"]);
 		if (!r || i === void 0) return;
-		let a = G(r) || `engine_${t}`, o = {
+		let a = W(r) || `engine_${t}`, o = {
 			key: a,
-			label: Ur(r),
+			label: Wr(r),
 			busyPercent: i,
 			semaPercent: B(e, ["sema_percent", "SemaPercent"]),
 			waitPercent: B(e, ["wait_percent", "WaitPercent"])
@@ -1115,7 +1115,7 @@ var ft = ct(dt), S = {
 		let i = z(e, ["key", "Key"]) ?? `stat_${t}`;
 		n.set(i, {
 			key: i,
-			label: z(e, ["label", "Label"]) ?? Wr(i),
+			label: z(e, ["label", "Label"]) ?? Gr(i),
 			value: r,
 			unit: z(e, ["unit", "Unit"])
 		});
@@ -1127,10 +1127,10 @@ var ft = ct(dt), S = {
 	let r = /* @__PURE__ */ new Map();
 	for (let [t, n] of w(e)) {
 		let e = Et.exec(t), i = e?.[2], a = V(n.state), o = I(n, "name"), s = L(n, "process_count"), c = L(n, "cpu_time_seconds"), l = L(n, "cpu_usage_percent"), u = L(n, "memory_usage_bytes");
-		if (!(s !== void 0 || c !== void 0 || o !== void 0 && Br(n).includes("process") && l !== void 0 && u !== void 0 || e !== null)) continue;
-		let d = G(o ?? e?.[1] ?? t), f = r.get(d) ?? {
+		if (!(s !== void 0 || c !== void 0 || o !== void 0 && Vr(n).includes("process") && l !== void 0 && u !== void 0 || e !== null)) continue;
+		let d = W(o ?? e?.[1] ?? t), f = r.get(d) ?? {
 			key: d,
-			name: o ?? U(n, "", "") ?? ti(e?.[1] ?? d),
+			name: o ?? Br(n, "", "") ?? ni(e?.[1] ?? d),
 			processCount: 0,
 			cpuPercent: 0,
 			memoryBytes: 0
@@ -1149,10 +1149,10 @@ var ft = ct(dt), S = {
 		"MemoryBytes"
 	]);
 	if (!n && r === void 0 && i === void 0) return null;
-	let a = G(n ?? `process_${t}`);
+	let a = W(n ?? `process_${t}`);
 	return {
 		key: a,
-		name: n ?? ti(a),
+		name: n ?? ni(a),
 		processCount: Math.round(B(e, ["process_count", "ProcessCount"]) ?? 0),
 		cpuPercent: r ?? 0,
 		memoryBytes: i ?? 0,
@@ -1163,12 +1163,12 @@ var ft = ct(dt), S = {
 	let n = /* @__PURE__ */ new Map();
 	return t.filter((e) => !!e.diskSlug).forEach((e) => {
 		let t = e.diskSlug;
-		for (let r of [t, e.deviceName ?? ""].flatMap($r)) n.set(r, t);
-	}), Array.from(new Set(e.flatMap((e) => $r(e)).map((e) => n.get(e)).filter((e) => !!e)));
+		for (let r of [t, e.deviceName ?? ""].flatMap(ei)) n.set(r, t);
+	}), Array.from(new Set(e.flatMap((e) => ei(e)).map((e) => n.get(e)).filter((e) => !!e)));
 }, Zt = (e, t, n, r) => {
 	let i = Ln(e, t, n, "rx"), a = Ln(e, t, n, "tx"), o = F(e, i), s = F(e, a), c = F(e, Ln(e, t, n, "speed")), l = Rn(e, t, n);
 	return o === void 0 && s === void 0 && c === void 0 && !l ? null : {
-		name: si(n),
+		name: ci(n),
 		status: xr(e[l ?? ""]) ? "up" : "down",
 		linkSpeedMbps: c ?? void 0,
 		temperatureCelsius: Zn(r, n),
@@ -1178,7 +1178,7 @@ var ft = ct(dt), S = {
 }, Qt = (e, t, n, r) => {
 	let i = F(e, zn(e, t, n, "speed")), a = Bn(e, t, n), o = Cn(e, t, n);
 	return i === void 0 && !a ? null : {
-		name: si(n),
+		name: ci(n),
 		status: xr(e[a ?? ""]) ? "up" : "down",
 		linkSpeedMbps: i ?? void 0,
 		temperatureCelsius: Zn(r, n),
@@ -1189,7 +1189,7 @@ var ft = ct(dt), S = {
 	let r = Nn(e, t, n, "used"), i = Nn(e, t, n, "free"), a = F(e, r), o = F(e, i);
 	return a === void 0 || o === void 0 ? null : {
 		slug: n,
-		name: U(e[r ?? ""], "Used", "") ?? ei(n),
+		name: Br(e[r ?? ""], "Used", "") ?? ti(n),
 		usedBytes: a,
 		freeBytes: o,
 		totalBytes: a + o,
@@ -1209,7 +1209,7 @@ var ft = ct(dt), S = {
 		], "members");
 		r.push({
 			slug: i,
-			name: U(e[n ?? ""], "Size", "") ?? U(e[u ?? ""], "Level", "") ?? i.toUpperCase(),
+			name: Br(e[n ?? ""], "Size", "") ?? Br(e[u ?? ""], "Level", "") ?? i.toUpperCase(),
 			sizeBytes: a ?? 0,
 			degradedDisks: Math.round(o),
 			activeDisks: s === void 0 ? void 0 : Math.round(s),
@@ -1231,31 +1231,31 @@ var ft = ct(dt), S = {
 		let n = V(t.state);
 		return n === void 0 ? null : {
 			entityId: e,
-			label: `${W(t)} ${e}`.trim().toLowerCase(),
+			label: `${U(t)} ${e}`.trim().toLowerCase(),
 			value: n
 		};
 	}).filter((e) => e !== null);
 }), rn = (e, t) => {
 	if (!t || !e.startsWith("sensor.")) return !1;
 	let n = Cr(t)?.toLowerCase();
-	return n !== void 0 && n !== "rpm" ? !1 : n === "rpm" || /_fan_speed(?:_rpm)?(?:_\d+)?$/.test(e) || /\bfan speed\b/i.test(W(t)) || Object.hasOwn(t.attributes, "fan_speed_rpm");
+	return n !== void 0 && n !== "rpm" ? !1 : n === "rpm" || /_fan_speed(?:_rpm)?(?:_\d+)?$/.test(e) || /\bfan speed\b/i.test(U(t)) || Object.hasOwn(t.attributes, "fan_speed_rpm");
 }, an = (e, t, n) => {
 	let r = I(t, "device_type");
 	if (r !== void 0 && r.toLowerCase() !== "host") return !1;
 	let i = I(t, "host");
-	if (i !== void 0) return G(i) === n;
+	if (i !== void 0) return W(i) === n;
 	let a = /^sensor\.ugos_bridge_host_(.+?)_sensor_/.exec(e)?.[1] ?? /^sensor\.(?:ugos_bridge_host_)?(.+?)_health_/.exec(e)?.[1];
 	if (a !== void 0) return a === n;
-	let o = G(W(t)), s = /^(.+?)_health_/.exec(o)?.[1];
+	let o = W(U(t)), s = /^(.+?)_health_/.exec(o)?.[1];
 	if (s !== void 0) return s === n;
 	let c = /^(?:sensor_|cooling_|(?:cpu|sys(?:tem)?|chassis|case)_?fan(?:_|\d|$))/;
 	return [e.replace(/^sensor\.(?:ugos_bridge_host_)?/, ""), o].some((e) => {
 		if (!e.startsWith(`${n}_`)) return !1;
-		let t = e.slice(n.length + 1).replace(RegExp(`^${K(n)}_`), "");
+		let t = e.slice(n.length + 1).replace(RegExp(`^${G(n)}_`), "");
 		return c.test(t);
 	});
 }, on = (e) => {
-	let t = G(e), n = /(?:^|_)cpu_?fan(?:_?(\d+))?(?:_|$)/.exec(t);
+	let t = W(e), n = /(?:^|_)cpu_?fan(?:_?(\d+))?(?:_|$)/.exec(t);
 	if (n) return {
 		group: "cpu",
 		label: `CPU Fan${n[1] ? ` ${n[1]}` : ""}`
@@ -1278,7 +1278,7 @@ var ft = ct(dt), S = {
 			I(i, "label"),
 			I(i, "name"),
 			I(i, "sensor"),
-			W(i),
+			U(i),
 			r
 		].map((e) => e ? on(e) : void 0).find((e) => e !== void 0);
 		a && n[a.group].push({
@@ -1300,7 +1300,7 @@ var ft = ct(dt), S = {
 	let i = ln(t);
 	return n.find((e) => e === i) ?? r;
 }), ln = (e) => {
-	let t = G(e);
+	let t = W(e);
 	for (let e of ["sensor_", "binary_sensor_"]) if (t.startsWith(e)) {
 		t = t.slice(e.length);
 		break;
@@ -1316,7 +1316,7 @@ var ft = ct(dt), S = {
 		"_uptime_seconds"
 	]) if (t.endsWith(e)) return t.slice(0, -e.length);
 	return t;
-}, un = (e, t, n) => qr(U(e[M(e, t, "cpu") ?? ""], "CPU", "") ?? n?.trim() ?? ti(t)), dn = (e, t) => {
+}, un = (e, t, n) => Jr(Br(e[M(e, t, "cpu") ?? ""], "CPU", "") ?? n?.trim() ?? ni(t)), dn = (e, t) => {
 	if (t?.ipEntity) {
 		let n = e[t.ipEntity]?.state;
 		if (n && n !== "unknown" && n !== "unavailable") return n;
@@ -1331,10 +1331,10 @@ var ft = ct(dt), S = {
 	return n.length > 0 ? n : e;
 }, mn = (e, t) => {
 	if (!t || t.length === 0) return e.filter((e) => e !== "lo");
-	let n = t.map((e) => G(e)), r = e.filter((e) => n.includes(G(e)));
+	let n = t.map((e) => W(e)), r = e.filter((e) => n.includes(W(e)));
 	return r.length > 0 ? r : e;
 }, hn = (e) => A(e, "projectSlugs", () => {
-	let t = C(e).map((e) => _t.exec(e)?.[1]).filter((e) => !!e), n = jt(e, "sensor.compose_project_").map(([, e]) => Lr(e)).filter((e) => !!e), r = w(e).filter(([e, t]) => e.startsWith("sensor.") && (I(t, "project_slug") !== void 0 || I(t, "project") !== void 0)).map(([, e]) => Gr(I(e, "project_slug") ?? I(e, "project"))).filter((e) => !!e);
+	let t = C(e).map((e) => _t.exec(e)?.[1]).filter((e) => !!e), n = jt(e, "sensor.compose_project_").map(([, e]) => Lr(e)).filter((e) => !!e), r = w(e).filter(([e, t]) => e.startsWith("sensor.") && (I(t, "project_slug") !== void 0 || I(t, "project") !== void 0)).map(([, e]) => Kr(I(e, "project_slug") ?? I(e, "project"))).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...t,
 		...n,
@@ -1342,17 +1342,17 @@ var ft = ct(dt), S = {
 	])).sort();
 }), gn = (e, t, n) => A(e, `diskSlugs:${t}:${n}`, () => {
 	let r = pr(e, t, n, "disk", Dr), i = [
-		...P(e, RegExp(`^sensor\\.${K(n)}_disk_(.+?)_size_bytes$`)),
+		...P(e, RegExp(`^sensor\\.${G(n)}_disk_(.+?)_size_bytes$`)),
 		...P(e, /^sensor\.ugos_bridge_disk_(.+?)_size_bytes$/),
-		...P(e, RegExp(`^sensor\\.${K(n)}_disk_(.+?)_(?:size_bytes|read_bytes_per_second|write_bytes_per_second|busy_percent|model|vendor|serial|media_type)(?:_\\d+)?$`))
+		...P(e, RegExp(`^sensor\\.${G(n)}_disk_(.+?)_(?:size_bytes|read_bytes_per_second|write_bytes_per_second|busy_percent|model|vendor|serial|media_type)(?:_\\d+)?$`))
 	], a = Array.from(/* @__PURE__ */ new Set([...r, ...i])).sort();
 	if (a.length > 0) return a;
-	let o = C(e).map((e) => e.match(RegExp(`^sensor\\.${K(t)}_disk_([^_]+)_`))?.[1]).filter((e) => !!e), s = T(e).map((e) => wr(e, t, [
+	let o = C(e).map((e) => e.match(RegExp(`^sensor\\.${G(t)}_disk_([^_]+)_`))?.[1]).filter((e) => !!e), s = T(e).map((e) => wr(e, t, [
 		"Size",
 		"Busy",
 		"Read Throughput",
 		"Write Throughput"
-	])).filter((e) => e !== void 0 && Dr(e)), c = T(e).filter((e) => L(e, "size_bytes") !== void 0 || L(e, "read_bytes_per_second") !== void 0 || L(e, "write_bytes_per_second") !== void 0).map((e) => G(I(e, "name") ?? "")).filter((e) => Dr(e));
+	])).filter((e) => e !== void 0 && Dr(e)), c = T(e).filter((e) => L(e, "size_bytes") !== void 0 || L(e, "read_bytes_per_second") !== void 0 || L(e, "write_bytes_per_second") !== void 0).map((e) => W(I(e, "name") ?? "")).filter((e) => Dr(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1362,13 +1362,13 @@ var ft = ct(dt), S = {
 	])).sort();
 }), _n = (e, t) => A(e, `filesystemSlugs:${t}`, () => {
 	let n = [
-		...P(e, RegExp(`^sensor\\.ugos_bridge_host_${K(t)}_filesystem_(.+?)_used_bytes$`)),
+		...P(e, RegExp(`^sensor\\.ugos_bridge_host_${G(t)}_filesystem_(.+?)_used_bytes$`)),
 		...P(e, /^sensor\.ugos_bridge_filesystem_(.+?)_used_bytes$/),
-		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${K(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only)(?:_\\d+)?$`))
-	], r = RegExp(`^(?:sensor|binary_sensor)\\.${K(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only|used|free)(?:_\\d+)?$`), i = w(e).map(([e, n]) => {
+		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${G(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only)(?:_\\d+)?$`))
+	], r = RegExp(`^(?:sensor|binary_sensor)\\.${G(t)}_filesystem_(.+?)_(?:used_bytes|free_bytes|used_percent|read_only|used|free)(?:_\\d+)?$`), i = w(e).map(([e, n]) => {
 		let i = r.exec(e)?.[1];
-		return i ? Tr(n, t) ?? G(I(n, "name") ?? i) : void 0;
-	}).filter((e) => !!e), a = T(e).map((e) => Tr(e, t)).filter((e) => !!e), o = T(e).filter((e) => L(e, "used_bytes") !== void 0 || L(e, "free_bytes") !== void 0).map((e) => G(I(e, "name") ?? "")).filter((e) => !!e);
+		return i ? Tr(n, t) ?? W(I(n, "name") ?? i) : void 0;
+	}).filter((e) => !!e), a = T(e).map((e) => Tr(e, t)).filter((e) => !!e), o = T(e).filter((e) => L(e, "used_bytes") !== void 0 || L(e, "free_bytes") !== void 0).map((e) => W(I(e, "name") ?? "")).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...n,
 		...i,
@@ -1377,15 +1377,15 @@ var ft = ct(dt), S = {
 	])).sort();
 }), vn = (e, t, n) => A(e, `networkSlugs:${t}:${n}`, () => {
 	let r = pr(e, t, n, "network", Ar), i = [
-		...P(e, RegExp(`^sensor\\.${K(n)}_network_(.+?)_rx_bytes_per_second$`)),
+		...P(e, RegExp(`^sensor\\.${G(n)}_network_(.+?)_rx_bytes_per_second$`)),
 		...P(e, /^sensor\.ugos_bridge_network_(.+?)_rx_bytes_per_second$/),
-		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.${K(n)}_network_(.+?)_(?:rx_bytes_per_second|tx_bytes_per_second|speed_mbps|carrier)(?:_\\d+)?$`))
-	], a = C(e).map((e) => e.match(RegExp(`^sensor\\.${K(t)}_network_([^_]+)_`))?.[1]).filter((e) => !!e), o = T(e).map((e) => wr(e, t, [
+		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.${G(n)}_network_(.+?)_(?:rx_bytes_per_second|tx_bytes_per_second|speed_mbps|carrier)(?:_\\d+)?$`))
+	], a = C(e).map((e) => e.match(RegExp(`^sensor\\.${G(t)}_network_([^_]+)_`))?.[1]).filter((e) => !!e), o = T(e).map((e) => wr(e, t, [
 		"RX Throughput",
 		"TX Throughput",
 		"Link Speed",
 		"Carrier"
-	])).filter((e) => e !== void 0 && Ar(e)), s = T(e).filter((e) => L(e, "rx_bytes_per_second") !== void 0 || L(e, "tx_bytes_per_second") !== void 0 || L(e, "speed_mbps") !== void 0).map((e) => G(I(e, "name") ?? "")).filter((e) => Ar(e));
+	])).filter((e) => e !== void 0 && Ar(e)), s = T(e).filter((e) => L(e, "rx_bytes_per_second") !== void 0 || L(e, "tx_bytes_per_second") !== void 0 || L(e, "speed_mbps") !== void 0).map((e) => W(I(e, "name") ?? "")).filter((e) => Ar(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1395,17 +1395,17 @@ var ft = ct(dt), S = {
 	])).sort();
 }), yn = (e, t, n) => A(e, `bondSlugs:${t}:${n}`, () => {
 	let r = pr(e, t, n, "bond", kr), i = [
-		...P(e, RegExp(`^sensor\\.${K(n)}_bond_(.+?)_speed_mbps$`)),
+		...P(e, RegExp(`^sensor\\.${G(n)}_bond_(.+?)_speed_mbps$`)),
 		...P(e, /^sensor\.ugos_bridge_bond_(.+?)_speed_mbps$/),
-		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.${K(n)}_bond_(.+?)_(?:speed_mbps|mode|active_slave|mii_status|slave_count|carrier)(?:_\\d+)?$`))
-	], a = C(e).map((e) => e.match(RegExp(`^sensor\\.${K(t)}_bond_([^_]+)_`))?.[1]).filter((e) => !!e), o = T(e).map((e) => wr(e, t, [
+		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.${G(n)}_bond_(.+?)_(?:speed_mbps|mode|active_slave|mii_status|slave_count|carrier)(?:_\\d+)?$`))
+	], a = C(e).map((e) => e.match(RegExp(`^sensor\\.${G(t)}_bond_([^_]+)_`))?.[1]).filter((e) => !!e), o = T(e).map((e) => wr(e, t, [
 		"Link Speed",
 		"Mode",
 		"Active Slave",
 		"MII Status",
 		"Slave Count",
 		"Carrier"
-	])).filter((e) => e !== void 0 && kr(e)), s = T(e).filter((e) => I(e, "mode") !== void 0 || I(e, "active_slave") !== void 0 || L(e, "speed_mbps") !== void 0).map((e) => G(I(e, "name") ?? "")).filter((e) => kr(e));
+	])).filter((e) => e !== void 0 && kr(e)), s = T(e).filter((e) => I(e, "mode") !== void 0 || I(e, "active_slave") !== void 0 || L(e, "speed_mbps") !== void 0).map((e) => W(I(e, "name") ?? "")).filter((e) => kr(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1435,7 +1435,7 @@ var ft = ct(dt), S = {
 	];
 	return r[t % r.length] ?? S.softBlue;
 }, Tn = (e, t, n) => A(e, `gpuSlugs:${t}:${n}`, () => {
-	let r = pr(e, t, n, "gpu", (e) => !!e), i = [...P(e, RegExp(`^sensor\\.${K(n)}_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\\d+)?$`)), ...P(e, /^sensor\.ugos_bridge_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\d+)?$/)], a = C(e).map((e) => e.match(RegExp(`^sensor\\.${K(t)}_gpu_([^_]+)_`))?.[1]).filter((e) => !!e), o = T(e).filter((e) => R(e, "engines").length > 0 || R(e, "stats").length > 0 || L(e, "busy_percent") !== void 0 || L(e, "current_mhz") !== void 0).map((e) => G(I(e, "name") ?? "")).filter((e) => !!e);
+	let r = pr(e, t, n, "gpu", (e) => !!e), i = [...P(e, RegExp(`^sensor\\.${G(n)}_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\\d+)?$`)), ...P(e, /^sensor\.ugos_bridge_gpu_(.+?)_(?:busy_percent|busy|current_mhz|current_frequency|max_mhz|max_frequency)(?:_\d+)?$/)], a = C(e).map((e) => e.match(RegExp(`^sensor\\.${G(t)}_gpu_([^_]+)_`))?.[1]).filter((e) => !!e), o = T(e).filter((e) => R(e, "engines").length > 0 || R(e, "stats").length > 0 || L(e, "busy_percent") !== void 0 || L(e, "current_mhz") !== void 0).map((e) => W(I(e, "name") ?? "")).filter((e) => !!e);
 	return Array.from(/* @__PURE__ */ new Set([
 		...r,
 		...i,
@@ -1444,14 +1444,14 @@ var ft = ct(dt), S = {
 	])).sort();
 }), En = (e, t) => A(e, `arraySlugs:${t}`, () => {
 	let n = pr(e, t, `ugos_bridge_host_${t}`, "array", Or), r = [
-		...P(e, RegExp(`^sensor\\.ugos_bridge_host_${K(t)}_array_(.+?)_size_bytes$`)),
+		...P(e, RegExp(`^sensor\\.ugos_bridge_host_${G(t)}_array_(.+?)_size_bytes$`)),
 		...P(e, /^sensor\.ugos_bridge_array_(.+?)_size_bytes$/),
-		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${K(t)}_array_(.+?)_(?:size_bytes|degraded_disks|active_disks|total_disks|sync_completed_percent|level|degraded)(?:_\\d+)?$`))
-	], i = C(e).map((e) => e.match(RegExp(`^sensor\\.${K(t)}_array_([^_]+)_`))?.[1]).filter((e) => !!e), a = T(e).map((e) => wr(e, t, [
+		...P(e, RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_host_${G(t)}_array_(.+?)_(?:size_bytes|degraded_disks|active_disks|total_disks|sync_completed_percent|level|degraded)(?:_\\d+)?$`))
+	], i = C(e).map((e) => e.match(RegExp(`^sensor\\.${G(t)}_array_([^_]+)_`))?.[1]).filter((e) => !!e), a = T(e).map((e) => wr(e, t, [
 		"Size",
 		"Degraded Disks",
 		"Sync Progress"
-	])).filter((e) => e !== void 0 && Or(e)), o = T(e).filter((e) => L(e, "size_bytes") !== void 0 || I(e, "level") !== void 0 || L(e, "degraded_disks") !== void 0).map((e) => G(I(e, "name") ?? "")).filter((e) => Or(e));
+	])).filter((e) => e !== void 0 && Or(e)), o = T(e).filter((e) => L(e, "size_bytes") !== void 0 || I(e, "level") !== void 0 || L(e, "degraded_disks") !== void 0).map((e) => W(I(e, "name") ?? "")).filter((e) => Or(e));
 	return Array.from(/* @__PURE__ */ new Set([
 		...n,
 		...r,
@@ -1534,7 +1534,7 @@ var ft = ct(dt), S = {
 		statusText: a ? er(o) : $n(i)
 	};
 }, kn = (e, t) => {
-	let n = e?.toLowerCase() ?? "", r = Br(t);
+	let n = e?.toLowerCase() ?? "", r = Vr(t);
 	return n.endsWith("_load_1") || n.includes("_load_1m") || r.includes("load 1m") || r.includes("load (1m)");
 }, An = (e, t, n, r) => {
 	if (r === void 0 || !Number.isFinite(r) || r < 0) return !1;
@@ -1832,7 +1832,7 @@ var ft = ct(dt), S = {
 		`sensor.${n}_gpu_${r}_`,
 		`sensor.${t}_gpu_${r}_`,
 		`sensor.ugos_bridge_gpu_${r}_`
-	]), a = O(e, "gpu", r), o = w(e).filter(([e, t]) => e.startsWith("sensor.") && G(I(t, "name") ?? "") === r && (R(t, "engines").length > 0 || R(t, "stats").length > 0 || L(t, "busy_percent") !== void 0 || L(t, "current_mhz") !== void 0 || L(t, "max_mhz") !== void 0));
+	]), a = O(e, "gpu", r), o = w(e).filter(([e, t]) => e.startsWith("sensor.") && W(I(t, "name") ?? "") === r && (R(t, "engines").length > 0 || R(t, "stats").length > 0 || L(t, "busy_percent") !== void 0 || L(t, "current_mhz") !== void 0 || L(t, "max_mhz") !== void 0));
 	return Array.from(new Map([
 		...i,
 		...a,
@@ -1870,15 +1870,15 @@ var ft = ct(dt), S = {
 }), Gn = (e, t) => j(e, `projectPayload:${t}`, () => {
 	let n, r = -1;
 	for (let [i, a] of w(e)) {
-		if (!i.startsWith("sensor.") || Gr(I(a, "project_slug") ?? I(a, "project")) !== t) continue;
+		if (!i.startsWith("sensor.") || Kr(I(a, "project_slug") ?? I(a, "project")) !== t) continue;
 		let e = 0;
 		R(a, "containers").length > 0 && (e += 8), L(a, "total_containers") !== void 0 && (e += 4), L(a, "running_containers") !== void 0 && (e += 3), L(a, "memory_usage_bytes") !== void 0 && (e += 2), L(a, "cpu_usage_percent") !== void 0 && (e += 2), i.startsWith("sensor.compose_project_") && (e += 3), i.startsWith("sensor.ugos_bridge_project_") && (e += 3), (e > r || e === r && n !== void 0 && i.localeCompare(n) < 0 || n === void 0) && (n = i, r = e);
 	}
 	return n;
 }), Kn = (e, t, n) => {
-	let r = G(e), i = G(t);
+	let r = W(e), i = W(t);
 	return n.some((e) => {
-		let t = G(e);
+		let t = W(e);
 		return t === r || t === i;
 	});
 }, qn = (e, t) => e.samples.at(-1)?.key === t.key ? e : { samples: [...e.samples, t].slice(-21) }, Jn = (e, t, n) => {
@@ -1925,7 +1925,7 @@ var ft = ct(dt), S = {
 	}
 }, cr = (e) => {
 	let t = I(e, "host");
-	return t ? G(t) : void 0;
+	return t ? W(t) : void 0;
 }, lr = (e, t) => A(e, `workloadStates:${t}`, () => {
 	let n = {};
 	if (or(e, t)) {
@@ -1983,7 +1983,7 @@ var ft = ct(dt), S = {
 ].some((t) => e.includes(t)), N = (e, t) => {
 	let n, r = -1;
 	entryLoop: for (let [i, a] of e) {
-		let e = i.toLowerCase(), o = Br(a), s = Cr(a), c = mr(a);
+		let e = i.toLowerCase(), o = Vr(a), s = Cr(a), c = mr(a);
 		if (t.unit && s !== t.unit) continue;
 		let l = c ? 100 : -100;
 		for (let n of t.entityIncludes) {
@@ -1999,11 +1999,11 @@ var ft = ct(dt), S = {
 	return n;
 }, P = (e, t) => A(e, `entitySlugs:${t.source}`, () => Array.from(new Set(C(e).map((e) => t.exec(e)?.[1]).filter((e) => !!e))).sort()), pr = (e, t, n, r, i) => A(e, `componentSlugs:${t}:${n}:${r}`, () => {
 	let a = [
-		RegExp(`^(?:sensor|binary_sensor)\\.${K(n)}_${r}_([^_]+)_`),
-		RegExp(`^(?:sensor|binary_sensor)\\.${K(t)}_${r}_([^_]+)_`),
+		RegExp(`^(?:sensor|binary_sensor)\\.${G(n)}_${r}_([^_]+)_`),
+		RegExp(`^(?:sensor|binary_sensor)\\.${G(t)}_${r}_([^_]+)_`),
 		RegExp(`^(?:sensor|binary_sensor)\\.ugos_bridge_${r}_([^_]+)_`)
 	];
-	return Array.from(new Set(C(e).flatMap((e) => a.map((t) => t.exec(e)?.[1]).filter((e) => !!e)).map((e) => G(e)).filter((e) => !!e && i(e)))).sort();
+	return Array.from(new Set(C(e).flatMap((e) => a.map((t) => t.exec(e)?.[1]).filter((e) => !!e)).map((e) => W(e)).filter((e) => !!e && i(e)))).sort();
 }), mr = (e) => e !== void 0 && e.state !== "unknown" && e.state !== "unavailable", F = (e, t) => t ? br(e[t]) : void 0, hr = (e, t) => {
 	if (!t) return;
 	let n = e[t];
@@ -2080,10 +2080,10 @@ function Sr(e) {
 	return t === "°C" || t === "ºC" || t === "Â°C" || t === "В°C" ? "°C" : t || void 0;
 }
 var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
-	let n = Br(e);
+	let n = Vr(e);
 	return t.every((e) => n.includes(e));
 }, wr = (e, t, n) => {
-	let r = W(e);
+	let r = U(e);
 	if (!r) return;
 	let i = Er(r, t);
 	if (!i) return;
@@ -2092,15 +2092,15 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		let t = e.toLowerCase();
 		if (!a.endsWith(` ${t}`)) continue;
 		let n = i.slice(0, i.length - e.length).trim();
-		return n ? G(n) : void 0;
+		return n ? W(n) : void 0;
 	}
 }, Tr = (e, t) => {
-	let n = W(e);
+	let n = U(e);
 	if (!n) return;
 	let r = n.toLowerCase(), i = t.replace(/_/g, " ");
 	if (!r.includes(i) || !r.includes("/")) return;
 	let a = n.match(/(\/[^\s]*)/)?.[1];
-	return a ? G(a) : void 0;
+	return a ? W(a) : void 0;
 }, Er = (e, t) => {
 	let n = t.replace(/_/g, " ");
 	if (e.toLowerCase().startsWith(`${n.toLowerCase()} `)) return e.slice(n.length + 1).trim();
@@ -2124,12 +2124,12 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 }, Ir = (e, t) => {
 	if (e !== void 0 || t !== void 0) return `Drives ${e ?? t ?? 0}/${t ?? e ?? 0}`;
 }, Lr = (e) => {
-	let t = W(e);
+	let t = U(e);
 	if (!t) return;
 	let n = t.replace(/^(?:(?:compose|docker)\s+)?project\s+/i, "").replace(/\s+(CPU|Memory|Total Containers|Running Containers)$/i, "").trim();
 	if (!n) return;
 	let r = n.split(/\s+/).filter((e, t, n) => t === 0 || e.toLowerCase() !== n[t - 1]?.toLowerCase()).join(" ");
-	return r ? G(r) : void 0;
+	return r ? W(r) : void 0;
 }, Rr = (e) => {
 	let t = e.trim();
 	if (!t) return t;
@@ -2142,61 +2142,61 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 }, zr = (e, t, n, r) => {
 	let i = Object.entries(e).filter(([e, n]) => {
 		if (!e.startsWith("sensor.") || Cr(n) !== "%") return !1;
-		let i = `${e} ${W(n)}`.toLowerCase(), a = i.includes(t) || i.includes(t.replace(/_/g, " ")), o = i.includes(r), s = i.includes("busy"), c = i.includes("render/3d") || i.includes("render_3d") || i.includes("blitter") || i.includes("videoenhance") || i.includes("video_enhance") || i.includes("video/") || i.includes("video_");
+		let i = `${e} ${U(n)}`.toLowerCase(), a = i.includes(t) || i.includes(t.replace(/_/g, " ")), o = i.includes(r), s = i.includes("busy"), c = i.includes("render/3d") || i.includes("render_3d") || i.includes("blitter") || i.includes("videoenhance") || i.includes("video_enhance") || i.includes("video/") || i.includes("video_");
 		return a && o && s && c;
 	}).map(([, e]) => V(e.state)).filter((e) => e !== void 0);
 	return i.length > 0 ? Math.max(...i) : F(e, Vn(e, t, n, r, "busy")) ?? 0;
-}, U = (e, t, n) => {
-	let r = W(e);
+}, Br = (e, t, n) => {
+	let r = U(e);
 	if (!r) return null;
 	let i = r.trim();
 	return t && i.endsWith(` ${t}`) && (i = i.slice(0, -` ${t}`.length)), n && i.startsWith(`${n} `) && (i = i.slice(n.length + 1)), i.startsWith("Compose project ") && (i = i.slice(16)), i.trim() || null;
-}, W = (e) => Mt(e)?.friendlyName ?? "", Br = (e) => Mt(e)?.friendlyNameLower ?? "", Vr = (e) => {
+}, U = (e) => Mt(e)?.friendlyName ?? "", Vr = (e) => Mt(e)?.friendlyNameLower ?? "", Hr = (e) => {
 	let t = e.match(/^cpu\s*(\d+)$/i);
 	return t ? `Core ${t[1]}` : e.replace(/\s+/g, " ").trim();
-}, Hr = (e, t) => (V(e.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) - (V(t.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) || e.name.localeCompare(t.name), Ur = (e) => {
+}, Ur = (e, t) => (V(e.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) - (V(t.key.replace(/[^\d]/g, "")) ?? 2 ** 53 - 1) || e.name.localeCompare(t.name), Wr = (e) => {
 	let t = e.replace(/\/\d+$/g, "").replace(/\/3d/gi, "").replace(/\s+/g, "");
 	return /^render/i.test(t) ? "Render" : /^blitter/i.test(t) ? "Blitter" : /^videoenhance/i.test(t) ? "VideoEnhance" : /^video/i.test(t) ? "Video" : e.replace(/\/\d+$/g, "").trim();
-}, Wr = (e) => e.split("_").filter(Boolean).map((e) => e === "imc" ? "IMC" : e === "rc6" ? "RC6" : e === "mhz" ? "MHz" : e === "mib" ? "MiB" : ni(e)).join(" "), Gr = (e) => {
+}, Gr = (e) => e.split("_").filter(Boolean).map((e) => e === "imc" ? "IMC" : e === "rc6" ? "RC6" : e === "mhz" ? "MHz" : e === "mib" ? "MiB" : ri(e)).join(" "), Kr = (e) => {
 	if (!e) return;
-	let t = G(e);
+	let t = W(e);
 	return t === "unknown" ? void 0 : t;
-}, Kr = (e) => {
-	let t = W(e), n = /^(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(t);
+}, qr = (e) => {
+	let t = U(e), n = /(?:^|\s)(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(t);
 	if (!n) return;
 	let r = n[1], i = n[2];
 	if (!r || !i) return;
-	let a = qr(r), o = i.toLowerCase(), s = o === "cpu" ? "cpu_usage_percent" : o.startsWith("memory") ? "memory_usage_bytes" : "running";
+	let a = Jr(r), o = i.toLowerCase(), s = o === "cpu" ? "cpu_usage_percent" : o.startsWith("memory") ? "memory_usage_bytes" : "running";
 	return {
-		key: G(a),
+		key: W(a),
 		name: a,
 		metric: s
 	};
-}, qr = (e) => {
+}, Jr = (e) => {
 	let t = e.trim().split(/\s+/).filter(Boolean);
 	if (t.length > 1 && t.length % 2 == 0) {
 		let e = t.length / 2, n = t.slice(0, e), r = t.slice(e);
 		if (n.every((e, t) => e.toLowerCase() === r[t]?.toLowerCase())) return n.join(" ");
 	}
 	return t.filter((e, n) => n === 0 || e.toLowerCase() !== t[n - 1]?.toLowerCase()).join(" ");
-}, Jr = (e) => {
+}, Yr = (e) => {
 	let t = String(e?.state ?? "").trim().toLowerCase();
 	return t ? t === "1" || t === "on" ? "running" : t === "0" || t === "off" ? "stopped" : t : "unknown";
-}, Yr = (e, t) => {
+}, Xr = (e, t) => {
 	let n = gr(e, "running");
 	if (n !== void 0) return n;
 	let r = String(e?.state ?? t ?? "").trim().toLowerCase();
 	if (r === "1" || r === "on" || r === "running") return !0;
 	if (r === "0" || r === "off" || r === "stopped" || r === "exited") return !1;
-}, Xr = (e, t, n) => Gr(I(t, "project_slug") ?? I(t, "project")) || ([
+}, Zr = (e, t, n) => Kr(I(t, "project_slug") ?? I(t, "project")) || ([
 	e,
 	I(t, "container") ?? "",
 	I(t, "image") ?? ""
-].some((e) => Qr(e, n)) ? n : void 0), Zr = (e, t) => [
+].some((e) => $r(e, n)) ? n : void 0), Qr = (e, t) => [
 	e.key,
 	e.name ?? "",
 	e.image ?? ""
-].some((e) => Qr(e, t)), Qr = (e, t) => {
+].some((e) => $r(e, t)), $r = (e, t) => {
 	let n = e.trim().toLowerCase();
 	if (!n) return !1;
 	let r = t.trim().toLowerCase(), i = r.replace(/[^a-z0-9]+/g, ""), a = n.replace(/[^a-z0-9]+/g, "");
@@ -2209,11 +2209,11 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		let t = e.replace(/[^a-z0-9]+/g, "");
 		return t ? n.startsWith(`${e}_`) || n.startsWith(`${e}-`) || n.endsWith(`_${e}`) || n.endsWith(`-${e}`) || n.includes(`_${e}_`) || n.includes(`-${e}-`) || a.includes(t) : !1;
 	});
-}, $r = (e) => {
+}, ei = (e) => {
 	let t = e.trim().toLowerCase();
 	if (!t) return [];
 	let n = /* @__PURE__ */ new Set(), r = (e) => {
-		let t = G(e);
+		let t = W(e);
 		t && t !== "unknown" && n.add(t);
 	}, i = t.replace(/\[[^\]]+\]/g, "").replace(/^.*\//g, "").trim();
 	if (!i) return [];
@@ -2229,22 +2229,22 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		]) {
 			let i = e.match(t);
 			if (!i?.[1]) continue;
-			let o = G(i[1]);
+			let o = W(i[1]);
 			n.has(o) || (r(i[1]), a.push(i[1]));
 		}
 	}
 	return Array.from(n);
-}, ei = (e) => e === "root" ? "/" : `/${e.replace(/_/g, "/")}`, ti = (e) => e.split("_").filter(Boolean).map(ni).join(" "), ni = (e) => e.charAt(0).toUpperCase() + e.slice(1), G = (e) => {
+}, ti = (e) => e === "root" ? "/" : `/${e.replace(/_/g, "/")}`, ni = (e) => e.split("_").filter(Boolean).map(ri).join(" "), ri = (e) => e.charAt(0).toUpperCase() + e.slice(1), W = (e) => {
 	let t = e.trim().toLowerCase();
 	return t ? t === "/" ? "root" : t.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "unknown" : "unknown";
-}, K = (e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), ri = (e) => {
+}, G = (e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), ii = (e) => {
 	let t = new Date(e);
 	return Number.isNaN(t.getTime()) ? "" : new Intl.DateTimeFormat("en-US", {
 		hour: "2-digit",
 		minute: "2-digit",
 		hour12: !1
 	}).format(t);
-}, ii = (e) => {
+}, ai = (e) => {
 	let t = new Date(e);
 	return Number.isNaN(t.getTime()) ? "Unavailable" : new Intl.DateTimeFormat("en-US", {
 		year: "numeric",
@@ -2255,7 +2255,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		second: "2-digit",
 		hour12: !1
 	}).format(t);
-}, ai = (e) => `${Math.floor(e / 86400)}d ${Math.floor(e % 86400 / 3600)}h ${Math.floor(e % 3600 / 60)}m`, oi = (e) => {
+}, oi = (e) => `${Math.floor(e / 86400)}d ${Math.floor(e % 86400 / 3600)}h ${Math.floor(e % 3600 / 60)}m`, si = (e) => {
 	let t = [
 		"B",
 		"KB",
@@ -2270,7 +2270,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		minimumFractionDigits: i,
 		maximumFractionDigits: i
 	})} ${t[n]}`;
-}, si = (e) => e.trim().toLowerCase(), q = (e) => e * 1024 ** 3, J = (e) => e * 1024 ** 4, Y = (e) => e * 1e6, X = (e) => e * 1e9, ci = (e, t) => t.map((t) => Math.max(0, Number((e + t).toFixed(3)))), li = [
+}, ci = (e) => e.trim().toLowerCase(), K = (e) => e * 1024 ** 3, q = (e) => e * 1024 ** 4, J = (e) => e * 1e6, Y = (e) => e * 1e9, li = (e, t) => t.map((t) => Math.max(0, Number((e + t).toFixed(3)))), ui = [
 	{
 		key: "gitea",
 		title: "Gitea",
@@ -2288,7 +2288,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			running: !0,
 			cpuPercent: .21,
 			memoryBytes: 218 * 1024 ** 2,
-			memoryLimitBytes: q(2)
+			memoryLimitBytes: K(2)
 		}, {
 			key: "cloudflared_gitea",
 			name: "cloudflared_gitea",
@@ -2298,7 +2298,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			running: !0,
 			cpuPercent: .18,
 			memoryBytes: 106 * 1024 ** 2,
-			memoryLimitBytes: q(1)
+			memoryLimitBytes: K(1)
 		}]
 	},
 	{
@@ -2319,7 +2319,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 0,
 				memoryBytes: 256 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			},
 			{
 				key: "go_back_db_front",
@@ -2330,7 +2330,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 0,
 				memoryBytes: 188 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "go_back_db_postgres",
@@ -2341,7 +2341,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 0,
 				memoryBytes: 324 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			}
 		]
 	},
@@ -2363,7 +2363,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 0,
 				memoryBytes: 178 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			},
 			{
 				key: "gorent-frontend",
@@ -2374,7 +2374,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 0,
 				memoryBytes: 94 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "gorent-postgres",
@@ -2385,7 +2385,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 0,
 				memoryBytes: 140 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			}
 		]
 	},
@@ -2407,7 +2407,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .08,
 				memoryBytes: 356 * 1024 ** 2,
-				memoryLimitBytes: q(3)
+				memoryLimitBytes: K(3)
 			},
 			{
 				key: "go2rtc",
@@ -2418,7 +2418,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .01,
 				memoryBytes: 88 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "mosquitto",
@@ -2429,7 +2429,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .01,
 				memoryBytes: 52 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "ugos-bridge",
@@ -2440,7 +2440,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .01,
 				memoryBytes: 116 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			}
 		]
 	},
@@ -2448,7 +2448,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		key: "virtual_machines",
 		title: "Virtual machines",
 		cpuPercent: 3.4,
-		memoryBytes: q(5.8),
+		memoryBytes: K(5.8),
 		runningContainers: 2,
 		totalContainers: 3,
 		status: "partial",
@@ -2461,8 +2461,8 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				state: "running",
 				running: !0,
 				cpuPercent: 2.7,
-				memoryBytes: q(4.1),
-				memoryLimitBytes: q(8)
+				memoryBytes: K(4.1),
+				memoryLimitBytes: K(8)
 			},
 			{
 				key: "ugos-vm-ubuntu",
@@ -2472,8 +2472,8 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				state: "running",
 				running: !0,
 				cpuPercent: .7,
-				memoryBytes: q(1.7),
-				memoryLimitBytes: q(4)
+				memoryBytes: K(1.7),
+				memoryLimitBytes: K(4)
 			},
 			{
 				key: "ugos-vm-test",
@@ -2484,7 +2484,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !1,
 				cpuPercent: 0,
 				memoryBytes: 0,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			}
 		]
 	},
@@ -2505,7 +2505,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			running: !0,
 			cpuPercent: .01,
 			memoryBytes: 256 * 1024 ** 2,
-			memoryLimitBytes: q(4)
+			memoryLimitBytes: K(4)
 		}]
 	},
 	{
@@ -2526,7 +2526,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: 2.64,
 				memoryBytes: 284 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			},
 			{
 				key: "cloudflared_kuma",
@@ -2537,7 +2537,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .14,
 				memoryBytes: 76 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "kuma_vpn",
@@ -2548,7 +2548,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .19,
 				memoryBytes: 70 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			}
 		]
 	},
@@ -2556,7 +2556,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		key: "monitoring",
 		title: "Monitoring",
 		cpuPercent: 1.8076912575738409,
-		memoryBytes: q(1.2),
+		memoryBytes: K(1.2),
 		runningContainers: 9,
 		totalContainers: 9,
 		status: "up",
@@ -2570,7 +2570,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .52,
 				memoryBytes: 298 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			},
 			{
 				key: "prometheus",
@@ -2581,7 +2581,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .41,
 				memoryBytes: 356 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			},
 			{
 				key: "loki",
@@ -2592,7 +2592,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .18,
 				memoryBytes: 184 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			}
 		]
 	},
@@ -2614,7 +2614,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .31,
 				memoryBytes: 188 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "cloudflared_nas",
@@ -2625,7 +2625,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .21,
 				memoryBytes: 94 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "jinko_exporter",
@@ -2636,7 +2636,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .31,
 				memoryBytes: 226 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			}
 		]
 	},
@@ -2657,7 +2657,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			running: !0,
 			cpuPercent: .05,
 			memoryBytes: 128 * 1024 ** 2,
-			memoryLimitBytes: q(2)
+			memoryLimitBytes: K(2)
 		}, {
 			key: "qbittorrent_gluetun",
 			name: "qbittorrent_gluetun",
@@ -2667,7 +2667,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			running: !0,
 			cpuPercent: .02,
 			memoryBytes: 56 * 1024 ** 2,
-			memoryLimitBytes: q(1)
+			memoryLimitBytes: K(1)
 		}]
 	},
 	{
@@ -2688,7 +2688,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .31,
 				memoryBytes: 146 * 1024 ** 2,
-				memoryLimitBytes: q(1)
+				memoryLimitBytes: K(1)
 			},
 			{
 				key: "nginx-proxy-manager",
@@ -2699,7 +2699,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .49,
 				memoryBytes: 308 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			},
 			{
 				key: "php84",
@@ -2710,21 +2710,21 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				running: !0,
 				cpuPercent: .32,
 				memoryBytes: 282 * 1024 ** 2,
-				memoryLimitBytes: q(2)
+				memoryLimitBytes: K(2)
 			}
 		]
 	}
-], ui = (e) => ({
+], di = (e) => ({
 	totalContainers: e.reduce((e, t) => e + t.totalContainers, 0),
 	runningContainers: e.reduce((e, t) => e + t.runningContainers, 0),
 	totalProjects: e.length,
 	onlineProjects: e.filter((e) => e.status === "up").length
-}), di = [{
+}), fi = [{
 	name: "Pool 1",
 	layout: "RAID 6 | 6 Drives",
 	status: "healthy",
-	usedBytes: J(10.2),
-	totalBytes: J(40.5),
+	usedBytes: q(10.2),
+	totalBytes: q(40.5),
 	accent: S.green,
 	key: "pool_1",
 	driveSlugs: [
@@ -2739,12 +2739,12 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	name: "Pool 2",
 	layout: "RAID 1 | 2 Drives (M.2)",
 	status: "healthy",
-	usedBytes: J(6.1),
-	totalBytes: J(8.2),
+	usedBytes: q(6.1),
+	totalBytes: q(8.2),
 	accent: S.purple,
 	key: "pool_2",
 	driveSlugs: ["nvme0n1", "nvme1n1"]
-}], fi = di.reduce((e, t) => e + t.totalBytes, 0), pi = di.reduce((e, t) => e + t.usedBytes, 0), mi = [
+}], pi = fi.reduce((e, t) => e + t.totalBytes, 0), mi = fi.reduce((e, t) => e + t.usedBytes, 0), hi = [
 	{
 		kind: "cpu",
 		title: "CPU",
@@ -2756,7 +2756,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			label: "CPU Fan",
 			rpm: 3139
 		}],
-		series: ci(18, [
+		series: li(18, [
 			-2.2,
 			-1.8,
 			.3,
@@ -2774,9 +2774,9 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		title: "RAM",
 		accent: S.purple,
 		valuePercent: 46,
-		usedBytes: q(14.6),
-		totalBytes: q(32),
-		series: ci(46, [
+		usedBytes: K(14.6),
+		totalBytes: K(32),
+		series: li(46, [
 			-2.1,
 			-.5,
 			1.1,
@@ -2795,7 +2795,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		accent: S.green,
 		valuePercent: 32,
 		temperatureCelsius: 48,
-		series: ci(32, [
+		series: li(32, [
 			-1.5,
 			-1.1,
 			.2,
@@ -2826,7 +2826,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			label: "System Fan 2",
 			rpm: 2295
 		}],
-		series: ci(.78, [
+		series: li(.78, [
 			-.12,
 			-.08,
 			.04,
@@ -2843,17 +2843,17 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		kind: "total-storage",
 		title: "Total Storage",
 		accent: S.cyan,
-		totalBytes: fi,
-		usedBytes: pi
+		totalBytes: pi,
+		usedBytes: mi
 	},
 	{
 		kind: "network",
 		title: "Network",
 		accent: S.green,
-		downloadBps: X(1.2),
-		uploadBps: Y(123)
+		downloadBps: Y(1.2),
+		uploadBps: J(123)
 	}
-], hi = [
+], gi = [
 	{
 		key: "cpu",
 		title: "CPU",
@@ -2882,7 +2882,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				value: "18 W"
 			}
 		],
-		series: ci(18, [
+		series: li(18, [
 			-2.5,
 			-1.8,
 			.1,
@@ -2930,7 +2930,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				value: "4800 MT/s"
 			}
 		],
-		series: ci(46, [
+		series: li(46, [
 			-2.1,
 			-1.1,
 			.9,
@@ -2978,7 +2978,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 				value: "15 W"
 			}
 		],
-		series: ci(32, [
+		series: li(32, [
 			-3.8,
 			-2,
 			-1,
@@ -3002,11 +3002,11 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 			-2
 		])
 	}
-], gi = [
+], _i = [
 	{
 		name: "M.2 1",
 		model: "Lexar NM790 1TB SSD",
-		capacityBytes: q(931),
+		capacityBytes: K(931),
 		temperatureCelsius: 40,
 		status: "healthy",
 		diskSlug: "nvme0n1"
@@ -3014,7 +3014,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "M.2 2",
 		model: "Lexar NM790 1TB SSD",
-		capacityBytes: q(931),
+		capacityBytes: K(931),
 		temperatureCelsius: 41,
 		status: "healthy",
 		diskSlug: "nvme1n1"
@@ -3022,7 +3022,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "HDD 1",
 		model: "Seagate IronWolf 12TB",
-		capacityBytes: J(10.9),
+		capacityBytes: q(10.9),
 		temperatureCelsius: 36,
 		status: "healthy",
 		diskSlug: "sda"
@@ -3030,7 +3030,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "HDD 2",
 		model: "Seagate IronWolf 12TB",
-		capacityBytes: J(10.9),
+		capacityBytes: q(10.9),
 		temperatureCelsius: 37,
 		status: "healthy",
 		diskSlug: "sdb"
@@ -3038,7 +3038,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "HDD 3",
 		model: "Seagate IronWolf 12TB",
-		capacityBytes: J(10.9),
+		capacityBytes: q(10.9),
 		temperatureCelsius: 36,
 		status: "healthy",
 		diskSlug: "sdc"
@@ -3046,7 +3046,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "HDD 4",
 		model: "Seagate IronWolf 12TB",
-		capacityBytes: J(10.9),
+		capacityBytes: q(10.9),
 		temperatureCelsius: 37,
 		status: "healthy",
 		diskSlug: "sdd"
@@ -3054,7 +3054,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "HDD 5",
 		model: "Seagate IronWolf 12TB",
-		capacityBytes: J(10.9),
+		capacityBytes: q(10.9),
 		temperatureCelsius: 36,
 		status: "healthy",
 		diskSlug: "sde"
@@ -3062,12 +3062,12 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	{
 		name: "HDD 6",
 		model: "Seagate IronWolf 12TB",
-		capacityBytes: J(10.9),
+		capacityBytes: q(10.9),
 		temperatureCelsius: 37,
 		status: "healthy",
 		diskSlug: "sdf"
 	}
-], _i = [
+], vi = [
 	{
 		key: "cpu0",
 		name: "CPU 0",
@@ -3176,7 +3176,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		maxMHz: 4400,
 		governor: "powersave"
 	}
-], vi = [
+], yi = [
 	{
 		key: "total",
 		label: "Total",
@@ -3211,7 +3211,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		label: "Swap Total",
 		valueBytes: 37.3 * 1024 ** 3
 	}
-], yi = [
+], bi = [
 	{
 		key: "blitter",
 		label: "Blitter",
@@ -3240,7 +3240,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		semaPercent: .1,
 		waitPercent: .4
 	}
-], bi = [
+], xi = [
 	{
 		key: "frequency_actual_mhz",
 		label: "Actual Frequency",
@@ -3295,7 +3295,7 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		value: 100,
 		unit: "%"
 	}
-], xi = [
+], Si = [
 	{
 		key: "taskmgr_serv",
 		name: "Taskmgr Serv",
@@ -3376,128 +3376,128 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		memoryBytes: 354 * 1024 ** 2,
 		cpuTimeSeconds: 1550.7
 	}
-], Si = [
+], Ci = [
 	{
 		timestampLabel: "14:25",
 		totalsByInterface: {
-			bond0: X(1.2),
-			eth0: Y(430),
-			eth1: Y(780)
-		}
-	},
-	{
-		timestampLabel: "14:25",
-		totalsByInterface: {
-			bond0: X(1.24),
-			eth0: Y(440),
-			eth1: Y(800)
+			bond0: Y(1.2),
+			eth0: J(430),
+			eth1: J(780)
 		}
 	},
 	{
 		timestampLabel: "14:25",
 		totalsByInterface: {
-			bond0: X(1.18),
-			eth0: Y(410),
-			eth1: Y(770)
+			bond0: Y(1.24),
+			eth0: J(440),
+			eth1: J(800)
+		}
+	},
+	{
+		timestampLabel: "14:25",
+		totalsByInterface: {
+			bond0: Y(1.18),
+			eth0: J(410),
+			eth1: J(770)
 		}
 	},
 	{
 		timestampLabel: "14:26",
 		totalsByInterface: {
-			bond0: X(1.28),
-			eth0: Y(455),
-			eth1: Y(825)
+			bond0: Y(1.28),
+			eth0: J(455),
+			eth1: J(825)
 		}
 	},
 	{
 		timestampLabel: "14:26",
 		totalsByInterface: {
-			bond0: X(1.31),
-			eth0: Y(468),
-			eth1: Y(840)
+			bond0: Y(1.31),
+			eth0: J(468),
+			eth1: J(840)
 		}
 	},
 	{
 		timestampLabel: "14:26",
 		totalsByInterface: {
-			bond0: X(1.27),
-			eth0: Y(452),
-			eth1: Y(818)
+			bond0: Y(1.27),
+			eth0: J(452),
+			eth1: J(818)
 		}
 	},
 	{
 		timestampLabel: "14:27",
 		totalsByInterface: {
-			bond0: X(1.35),
-			eth0: Y(489),
-			eth1: Y(861)
+			bond0: Y(1.35),
+			eth0: J(489),
+			eth1: J(861)
 		}
 	},
 	{
 		timestampLabel: "14:27",
 		totalsByInterface: {
-			bond0: X(1.33),
-			eth0: Y(474),
-			eth1: Y(852)
+			bond0: Y(1.33),
+			eth0: J(474),
+			eth1: J(852)
 		}
 	},
 	{
 		timestampLabel: "14:27",
 		totalsByInterface: {
-			bond0: X(1.39),
-			eth0: Y(495),
-			eth1: Y(890)
+			bond0: Y(1.39),
+			eth0: J(495),
+			eth1: J(890)
 		}
 	},
 	{
 		timestampLabel: "14:28",
 		totalsByInterface: {
-			bond0: X(1.3),
-			eth0: Y(462),
-			eth1: Y(834)
+			bond0: Y(1.3),
+			eth0: J(462),
+			eth1: J(834)
 		}
 	},
 	{
 		timestampLabel: "14:28",
 		totalsByInterface: {
-			bond0: X(1.26),
-			eth0: Y(448),
-			eth1: Y(805)
+			bond0: Y(1.26),
+			eth0: J(448),
+			eth1: J(805)
 		}
 	},
 	{
 		timestampLabel: "14:29",
 		totalsByInterface: {
-			bond0: X(1.41),
-			eth0: Y(508),
-			eth1: Y(902)
+			bond0: Y(1.41),
+			eth0: J(508),
+			eth1: J(902)
 		}
 	},
 	{
 		timestampLabel: "14:29",
 		totalsByInterface: {
-			bond0: X(1.44),
-			eth0: Y(516),
-			eth1: Y(925)
+			bond0: Y(1.44),
+			eth0: J(516),
+			eth1: J(925)
 		}
 	},
 	{
 		timestampLabel: "14:30",
 		totalsByInterface: {
-			bond0: X(1.37),
-			eth0: Y(492),
-			eth1: Y(876)
+			bond0: Y(1.37),
+			eth0: J(492),
+			eth1: J(876)
 		}
 	},
 	{
 		timestampLabel: "14:30",
 		totalsByInterface: {
-			bond0: X(1.46),
-			eth0: Y(521),
-			eth1: Y(938)
+			bond0: Y(1.46),
+			eth0: J(521),
+			eth1: J(938)
 		}
 	}
-], Ci = {
+], wi = {
 	deviceInfo: {
 		model: "DXP6800 Pro",
 		ugosVersion: "1.2.0",
@@ -3506,68 +3506,68 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 		uptimeSeconds: 1104120,
 		lastUpdated: "2026-04-23 20:30"
 	},
-	hardwareSummary: mi,
-	hardwareDetails: hi,
-	drives: gi,
-	storagePools: di,
-	dockerProjects: li,
-	dockerTotals: ui(li),
+	hardwareSummary: hi,
+	hardwareDetails: gi,
+	drives: _i,
+	storagePools: fi,
+	dockerProjects: ui,
+	dockerTotals: di(ui),
 	networkInterfaces: [
 		{
 			name: "bond0",
 			status: "up",
 			linkSpeedMbps: 5e3,
 			temperatureCelsius: 38,
-			downloadBps: Y(620),
-			uploadBps: Y(580)
+			downloadBps: J(620),
+			uploadBps: J(580)
 		},
 		{
 			name: "eth0",
 			status: "up",
 			linkSpeedMbps: 2500,
 			temperatureCelsius: 37,
-			downloadBps: Y(240),
-			uploadBps: Y(190)
+			downloadBps: J(240),
+			uploadBps: J(190)
 		},
 		{
 			name: "eth1",
 			status: "up",
 			linkSpeedMbps: 2500,
 			temperatureCelsius: 39,
-			downloadBps: Y(380),
-			uploadBps: Y(400)
+			downloadBps: J(380),
+			uploadBps: J(400)
 		}
 	],
-	networkTrafficHistory: Si,
+	networkTrafficHistory: Ci,
 	networkTrafficLines: [
 		{
 			key: "bond0",
 			label: "bond0",
 			color: S.cyan,
-			currentBps: X(1.46),
-			series: Si.map((e) => e.totalsByInterface.bond0 ?? 0)
+			currentBps: Y(1.46),
+			series: Ci.map((e) => e.totalsByInterface.bond0 ?? 0)
 		},
 		{
 			key: "eth0",
 			label: "eth0",
 			color: S.good,
-			currentBps: Y(521),
-			series: Si.map((e) => e.totalsByInterface.eth0 ?? 0)
+			currentBps: J(521),
+			series: Ci.map((e) => e.totalsByInterface.eth0 ?? 0)
 		},
 		{
 			key: "eth1",
 			label: "eth1",
 			color: S.purple,
-			currentBps: Y(938),
-			series: Si.map((e) => e.totalsByInterface.eth1 ?? 0)
+			currentBps: J(938),
+			series: Ci.map((e) => e.totalsByInterface.eth1 ?? 0)
 		}
 	],
-	cpuCores: _i,
-	ramBreakdown: vi,
-	gpuEngines: yi,
-	gpuStats: bi,
-	topProcesses: xi
-}, wi = () => ({
+	cpuCores: vi,
+	ramBreakdown: yi,
+	gpuEngines: bi,
+	gpuStats: xi,
+	topProcesses: Si
+}, Ti = () => ({
 	deviceInfo: {
 		model: "UGREEN NAS",
 		ugosVersion: "Unavailable",
@@ -3744,147 +3744,147 @@ var Cr = (e) => Mt(e)?.unit, H = (e, t) => {
 	gpuEngines: [],
 	gpuStats: [],
 	topProcesses: []
-}), Ti = [
+}), Ei = [
 	"B",
 	"KB",
 	"MB",
 	"GB",
 	"TB",
 	"PB"
-], Ei = [
+], Di = [
 	"bps",
 	"Kbps",
 	"Mbps",
 	"Gbps",
 	"Tbps"
-], Di = (e, t) => new Intl.NumberFormat("en-US", {
+], Oi = (e, t) => new Intl.NumberFormat("en-US", {
 	minimumFractionDigits: t,
 	maximumFractionDigits: t
-}).format(e), Oi = (e, t, n) => Math.min(n, Math.max(t, e)), Z = (e, t = 0) => `${Di(e, t)}%`, ki = (e) => `${Di(e, e >= 10 ? 1 : e >= 1 ? 2 : 3)}%`, Ai = (e, t = 1) => {
+}).format(e), ki = (e, t, n) => Math.min(n, Math.max(t, e)), X = (e, t = 0) => `${Oi(e, t)}%`, Ai = (e) => `${Oi(e, e >= 10 ? 1 : e >= 1 ? 2 : 3)}%`, ji = (e) => e.replace(/(^|@)(sha256:[a-f0-9]{12})[a-f0-9]{52}$/i, "$1$2…"), Z = (e, t = 1) => {
 	if (!Number.isFinite(e) || e <= 0) return "0 B";
-	let n = Math.min(Math.floor(Math.log(e) / Math.log(1024)), Ti.length - 1);
-	return `${Di(e / 1024 ** n, n === 0 ? 0 : t)} ${Ti[n]}`;
-}, ji = (e) => Ai(e, +(e >= 1024 ** 4)), Mi = (e, t = 1) => {
+	let n = Math.min(Math.floor(Math.log(e) / Math.log(1024)), Ei.length - 1);
+	return `${Oi(e / 1024 ** n, n === 0 ? 0 : t)} ${Ei[n]}`;
+}, Mi = (e) => Z(e, +(e >= 1024 ** 4)), Ni = (e, t = 1) => {
 	if (!Number.isFinite(e) || e <= 0) return "0 bps";
-	let n = Math.min(Math.floor(Math.log(e) / Math.log(1e3)), Ei.length - 1);
-	return `${Di(e / 1e3 ** n, n === 0 ? 0 : t)} ${Ei[n]}`;
-}, Ni = (e, t = 1) => `${Ai(e, t)}/s`, Pi = (e) => `${Math.floor(e / 86400)}d ${Math.floor(e % 86400 / 3600)}h ${Math.floor(e % 3600 / 60)}m`, Fi = (e) => `${Di(e, 0)}°C`, Ii = (e, t) => `${ji(e)} / ${ji(t)}`, Li = (e, t) => t > 0 ? e / t * 100 : 0, Ri = "<svg role=\"img\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><title>", zi = "</title><path d=\"", Bi = "\"/></svg>", Vi = {
+	let n = Math.min(Math.floor(Math.log(e) / Math.log(1e3)), Di.length - 1);
+	return `${Oi(e / 1e3 ** n, n === 0 ? 0 : t)} ${Di[n]}`;
+}, Pi = (e, t = 1) => `${Z(e, t)}/s`, Fi = (e) => `${Math.floor(e / 86400)}d ${Math.floor(e % 86400 / 3600)}h ${Math.floor(e % 3600 / 60)}m`, Ii = (e) => `${Oi(e, 0)}°C`, Li = (e, t) => `${Mi(e)} / ${Mi(t)}`, Ri = (e, t) => t > 0 ? e / t * 100 : 0, zi = "<svg role=\"img\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><title>", Bi = "</title><path d=\"", Vi = "\"/></svg>", Hi = {
 	title: "Gitea",
 	slug: "gitea",
 	get svg() {
-		return Ri + "Gitea" + zi + this.path + Bi;
+		return zi + "Gitea" + Bi + this.path + Vi;
 	},
 	path: "M4.209 4.603c-.247 0-.525.02-.84.088-.333.07-1.28.283-2.054 1.027C-.403 7.25.035 9.685.089 10.052c.065.446.263 1.687 1.21 2.768 1.749 2.141 5.513 2.092 5.513 2.092s.462 1.103 1.168 2.119c.955 1.263 1.936 2.248 2.89 2.367 2.406 0 7.212-.004 7.212-.004s.458.004 1.08-.394c.535-.324 1.013-.893 1.013-.893s.492-.527 1.18-1.73c.21-.37.385-.729.538-1.068 0 0 2.107-4.471 2.107-8.823-.042-1.318-.367-1.55-.443-1.627-.156-.156-.366-.153-.366-.153s-4.475.252-6.792.306c-.508.011-1.012.023-1.512.027v4.474l-.634-.301c0-1.39-.004-4.17-.004-4.17-1.107.016-3.405-.084-3.405-.084s-5.399-.27-5.987-.324c-.187-.011-.401-.032-.648-.032zm.354 1.832h.111s.271 2.269.6 3.597C5.549 11.147 6.22 13 6.22 13s-.996-.119-1.641-.348c-.99-.324-1.409-.714-1.409-.714s-.73-.511-1.096-1.52C1.444 8.73 2.021 7.7 2.021 7.7s.32-.859 1.47-1.145c.395-.106.863-.12 1.072-.12zm8.33 2.554c.26.003.509.127.509.127l.868.422-.529 1.075a.686.686 0 0 0-.614.359.685.685 0 0 0 .072.756l-.939 1.924a.69.69 0 0 0-.66.527.687.687 0 0 0 .347.763.686.686 0 0 0 .867-.206.688.688 0 0 0-.069-.882l.916-1.874a.667.667 0 0 0 .237-.02.657.657 0 0 0 .271-.137 8.826 8.826 0 0 1 1.016.512.761.761 0 0 1 .286.282c.073.21-.073.569-.073.569-.087.29-.702 1.55-.702 1.55a.692.692 0 0 0-.676.477.681.681 0 1 0 1.157-.252c.073-.141.141-.282.214-.431.19-.397.515-1.16.515-1.16.035-.066.218-.394.103-.814-.095-.435-.48-.638-.48-.638-.467-.301-1.116-.58-1.116-.58s0-.156-.042-.27a.688.688 0 0 0-.148-.241l.516-1.062 2.89 1.401s.48.218.583.619c.073.282-.019.534-.069.657-.24.587-2.1 4.317-2.1 4.317s-.232.554-.748.588a1.065 1.065 0 0 1-.393-.045l-.202-.08-4.31-2.1s-.417-.218-.49-.596c-.083-.31.104-.691.104-.691l2.073-4.272s.183-.37.466-.497a.855.855 0 0 1 .35-.077z",
 	source: "https://github.com/go-gitea/gitea/blob/e0c753e770a64cda5e3900aa1da3d7e1f3263c9a/assets/logo.svg",
 	hex: "609926"
-}, Hi = {
+}, Ui = {
 	title: "Grafana",
 	slug: "grafana",
 	get svg() {
-		return Ri + "Grafana" + zi + this.path + Bi;
+		return zi + "Grafana" + Bi + this.path + Vi;
 	},
 	path: "M23.02 10.59a8.578 8.578 0 0 0-.862-3.034 8.911 8.911 0 0 0-1.789-2.445c.337-1.342-.413-2.505-.413-2.505-1.292-.08-2.113.4-2.416.62-.052-.02-.102-.044-.154-.064-.22-.089-.446-.172-.677-.247-.231-.073-.47-.14-.711-.197a9.867 9.867 0 0 0-.875-.161C14.557.753 12.94 0 12.94 0c-1.804 1.145-2.147 2.744-2.147 2.744l-.018.093c-.098.029-.2.057-.298.088-.138.042-.275.094-.413.143-.138.055-.275.107-.41.166a8.869 8.869 0 0 0-1.557.87l-.063-.029c-2.497-.955-4.716.195-4.716.195-.203 2.658.996 4.33 1.235 4.636a11.608 11.608 0 0 0-.607 2.635C1.636 12.677.953 15.014.953 15.014c1.926 2.214 4.171 2.351 4.171 2.351.003-.002.006-.002.006-.005.285.509.615.994.986 1.446.156.19.32.371.488.548-.704 2.009.099 3.68.099 3.68 2.144.08 3.553-.937 3.849-1.173a9.784 9.784 0 0 0 3.164.501h.08l.055-.003.107-.002.103-.005.003.002c1.01 1.44 2.788 1.646 2.788 1.646 1.264-1.332 1.337-2.653 1.337-2.94v-.058c0-.02-.003-.039-.003-.06.265-.187.52-.387.758-.6a7.875 7.875 0 0 0 1.415-1.7c1.43.083 2.437-.885 2.437-.885-.236-1.49-1.085-2.216-1.264-2.354l-.018-.013-.016-.013a.217.217 0 0 1-.031-.02c.008-.092.016-.18.02-.27.011-.162.016-.323.016-.48v-.253l-.005-.098-.008-.135a1.891 1.891 0 0 0-.01-.13c-.003-.042-.008-.083-.013-.125l-.016-.124-.018-.122a6.215 6.215 0 0 0-2.032-3.73 6.015 6.015 0 0 0-3.222-1.46 6.292 6.292 0 0 0-.85-.048l-.107.002h-.063l-.044.003-.104.008a4.777 4.777 0 0 0-3.335 1.695c-.332.4-.592.84-.768 1.297a4.594 4.594 0 0 0-.312 1.817l.003.091c.005.055.007.11.013.164a3.615 3.615 0 0 0 .698 1.82 3.53 3.53 0 0 0 1.827 1.282c.33.098.66.14.971.137.039 0 .078 0 .114-.002l.063-.003c.02 0 .041-.003.062-.003.034-.002.065-.007.099-.01.007 0 .018-.003.028-.003l.031-.005.06-.008a1.18 1.18 0 0 0 .112-.02c.036-.008.072-.013.109-.024a2.634 2.634 0 0 0 .914-.415c.028-.02.056-.041.085-.065a.248.248 0 0 0 .039-.35.244.244 0 0 0-.309-.06l-.078.042c-.09.044-.184.083-.283.116a2.476 2.476 0 0 1-.475.096c-.028.003-.054.006-.083.006l-.083.002c-.026 0-.054 0-.08-.002l-.102-.006h-.012l-.024.006c-.016-.003-.031-.003-.044-.006-.031-.002-.06-.007-.091-.01a2.59 2.59 0 0 1-.724-.213 2.557 2.557 0 0 1-.667-.438 2.52 2.52 0 0 1-.805-1.475 2.306 2.306 0 0 1-.029-.444l.006-.122v-.023l.002-.031c.003-.021.003-.04.005-.06a3.163 3.163 0 0 1 1.352-2.29 3.12 3.12 0 0 1 .937-.43 2.946 2.946 0 0 1 .776-.101h.06l.07.002.045.003h.026l.07.005a4.041 4.041 0 0 1 1.635.49 3.94 3.94 0 0 1 1.602 1.662 3.77 3.77 0 0 1 .397 1.414l.005.076.003.075c.002.026.002.05.002.075 0 .024.003.052 0 .07v.065l-.002.073-.008.174a6.195 6.195 0 0 1-.08.639 5.1 5.1 0 0 1-.267.927 5.31 5.31 0 0 1-.624 1.13 5.052 5.052 0 0 1-3.237 2.014 4.82 4.82 0 0 1-.649.066l-.039.003h-.287a6.607 6.607 0 0 1-1.716-.265 6.776 6.776 0 0 1-3.4-2.274 6.75 6.75 0 0 1-.746-1.15 6.616 6.616 0 0 1-.714-2.596l-.005-.083-.002-.02v-.056l-.003-.073v-.096l-.003-.104v-.07l.003-.163c.008-.22.026-.45.054-.678a8.707 8.707 0 0 1 .28-1.355c.128-.444.286-.872.473-1.277a7.04 7.04 0 0 1 1.456-2.1 5.925 5.925 0 0 1 .953-.763c.169-.111.343-.213.524-.306.089-.05.182-.091.273-.135.047-.02.093-.042.138-.062a7.177 7.177 0 0 1 .714-.267l.145-.045c.049-.015.098-.026.148-.041.098-.029.197-.052.296-.076.049-.013.1-.02.15-.033l.15-.032.151-.028.076-.013.075-.01.153-.024c.057-.01.114-.013.171-.023l.169-.021c.036-.003.073-.008.106-.01l.073-.008.036-.003.042-.002c.057-.003.114-.008.171-.01l.086-.006h.023l.037-.003.145-.007a7.999 7.999 0 0 1 1.708.125 7.917 7.917 0 0 1 2.048.68 8.253 8.253 0 0 1 1.672 1.09l.09.077.089.078c.06.052.114.107.171.159.057.052.112.106.166.16.052.055.107.107.159.164a8.671 8.671 0 0 1 1.41 1.978c.012.026.028.052.04.078l.04.078.075.156c.023.051.05.1.07.153l.065.15a8.848 8.848 0 0 1 .45 1.34.19.19 0 0 0 .201.142.186.186 0 0 0 .172-.184c.01-.246.002-.532-.024-.856z",
 	source: "https://grafana.com",
 	hex: "F46800"
-}, Ui = {
+}, Wi = {
 	title: "Home Assistant",
 	slug: "homeassistant",
 	get svg() {
-		return Ri + "Home Assistant" + zi + this.path + Bi;
+		return zi + "Home Assistant" + Bi + this.path + Vi;
 	},
 	path: "M22.939 10.627 13.061.749a1.505 1.505 0 0 0-2.121 0l-9.879 9.878C.478 11.21 0 12.363 0 13.187v9c0 .826.675 1.5 1.5 1.5h9.227l-4.063-4.062a2.034 2.034 0 0 1-.664.113c-1.13 0-2.05-.92-2.05-2.05s.92-2.05 2.05-2.05 2.05.92 2.05 2.05c0 .233-.041.456-.113.665l3.163 3.163V9.928a2.05 2.05 0 0 1-1.15-1.84c0-1.13.92-2.05 2.05-2.05s2.05.92 2.05 2.05a2.05 2.05 0 0 1-1.15 1.84v8.127l3.146-3.146A2.051 2.051 0 0 1 18 12.239c1.13 0 2.05.92 2.05 2.05s-.92 2.05-2.05 2.05c-.25 0-.488-.047-.709-.13L12.9 20.602v3.088h9.6c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.477-1.977-1.061-2.561z",
 	source: "https://github.com/home-assistant/assets/blob/0f69676da79c3881e7dfca6d6c0a5739f88273d8/logo/home-assistant-logo.zip",
 	hex: "18BCF2",
 	guidelines: "https://design.home-assistant.io/#brand/logo"
-}, Wi = {
+}, Gi = {
 	title: "Jellyfin",
 	slug: "jellyfin",
 	get svg() {
-		return Ri + "Jellyfin" + zi + this.path + Bi;
+		return zi + "Jellyfin" + Bi + this.path + Vi;
 	},
 	path: "M12 .002C8.826.002-1.398 18.537.16 21.666c1.56 3.129 22.14 3.094 23.682 0C25.384 18.573 15.177 0 12 0zm7.76 18.949c-1.008 2.028-14.493 2.05-15.514 0C3.224 16.9 9.92 4.755 12.003 4.755c2.081 0 8.77 12.166 7.759 14.196zM12 9.198c-1.054 0-4.446 6.15-3.93 7.189.518 1.04 7.348 1.027 7.86 0 .511-1.027-2.874-7.19-3.93-7.19z",
 	source: "https://jellyfin.org/docs/general/contributing/branding.html",
 	hex: "00A4DC",
 	guidelines: "https://jellyfin.org/docs/general/contributing/branding.html"
-}, Gi = {
+}, Ki = {
 	title: "MySQL",
 	slug: "mysql",
 	get svg() {
-		return Ri + "MySQL" + zi + this.path + Bi;
+		return zi + "MySQL" + Bi + this.path + Vi;
 	},
 	path: "M16.405 5.501c-.115 0-.193.014-.274.033v.013h.014c.054.104.146.18.214.273.054.107.1.214.154.32l.014-.015c.094-.066.14-.172.14-.333-.04-.047-.046-.094-.08-.14-.04-.067-.126-.1-.18-.153zM5.77 18.695h-.927a50.854 50.854 0 00-.27-4.41h-.008l-1.41 4.41H2.45l-1.4-4.41h-.01a72.892 72.892 0 00-.195 4.41H0c.055-1.966.192-3.81.41-5.53h1.15l1.335 4.064h.008l1.347-4.064h1.095c.242 2.015.384 3.86.428 5.53zm4.017-4.08c-.378 2.045-.876 3.533-1.492 4.46-.482.716-1.01 1.073-1.583 1.073-.153 0-.34-.046-.566-.138v-.494c.11.017.24.026.386.026.268 0 .483-.075.647-.222.197-.18.295-.382.295-.605 0-.155-.077-.47-.23-.944L6.23 14.615h.91l.727 2.36c.164.536.233.91.205 1.123.4-1.064.678-2.227.835-3.483zm12.325 4.08h-2.63v-5.53h.885v4.85h1.745zm-3.32.135l-1.016-.5c.09-.076.177-.158.255-.25.433-.506.648-1.258.648-2.253 0-1.83-.718-2.746-2.155-2.746-.704 0-1.254.232-1.65.697-.43.508-.646 1.256-.646 2.245 0 .972.19 1.686.574 2.14.35.41.877.615 1.583.615.264 0 .506-.033.725-.098l1.325.772.36-.622zM15.5 17.588c-.225-.36-.337-.94-.337-1.736 0-1.393.424-2.09 1.27-2.09.443 0 .77.167.977.5.224.362.336.936.336 1.723 0 1.404-.424 2.108-1.27 2.108-.445 0-.77-.167-.978-.5zm-1.658-.425c0 .47-.172.856-.516 1.156-.344.3-.803.45-1.384.45-.543 0-1.064-.172-1.573-.515l.237-.476c.438.22.833.328 1.19.328.332 0 .593-.073.783-.22a.754.754 0 00.3-.615c0-.33-.23-.61-.648-.845-.388-.213-1.163-.657-1.163-.657-.422-.307-.632-.636-.632-1.177 0-.45.157-.81.47-1.085.315-.278.72-.415 1.22-.415.512 0 .98.136 1.4.41l-.213.476a2.726 2.726 0 00-1.064-.23c-.283 0-.502.068-.654.206a.685.685 0 00-.248.524c0 .328.234.61.666.85.393.215 1.187.67 1.187.67.433.305.648.63.648 1.168zm9.382-5.852c-.535-.014-.95.04-1.297.188-.1.04-.26.04-.274.167.055.053.063.14.11.214.08.134.218.313.346.407.14.11.28.216.427.31.26.16.555.255.81.416.145.094.293.213.44.313.073.05.12.14.214.172v-.02c-.046-.06-.06-.147-.105-.214-.067-.067-.134-.127-.2-.193a3.223 3.223 0 00-.695-.675c-.214-.146-.682-.35-.77-.595l-.013-.014c.146-.013.32-.066.46-.106.227-.06.435-.047.67-.106.106-.027.213-.06.32-.094v-.06c-.12-.12-.21-.283-.334-.395a8.867 8.867 0 00-1.104-.823c-.21-.134-.476-.22-.697-.334-.08-.04-.214-.06-.26-.127-.12-.146-.19-.34-.275-.514a17.69 17.69 0 01-.547-1.163c-.12-.262-.193-.523-.34-.763-.69-1.137-1.437-1.826-2.586-2.5-.247-.14-.543-.2-.856-.274-.167-.008-.334-.02-.5-.027-.11-.047-.216-.174-.31-.235-.38-.24-1.364-.76-1.644-.072-.18.434.267.862.422 1.082.115.153.26.328.34.5.047.116.06.235.107.356.106.294.207.622.347.897.073.14.153.287.247.413.054.073.146.107.167.227-.094.136-.1.334-.154.5-.24.757-.146 1.693.194 2.25.107.166.362.534.703.393.3-.12.234-.5.32-.835.02-.08.007-.133.048-.187v.015c.094.188.188.367.274.555.206.328.566.668.867.895.16.12.287.328.487.402v-.02h-.015c-.043-.058-.1-.086-.154-.133a3.445 3.445 0 01-.35-.4 8.76 8.76 0 01-.747-1.218c-.11-.21-.202-.436-.29-.643-.04-.08-.04-.2-.107-.24-.1.146-.247.273-.32.453-.127.288-.14.642-.188 1.01-.027.007-.014 0-.027.014-.214-.052-.287-.274-.367-.46-.2-.475-.233-1.238-.06-1.785.047-.14.247-.582.167-.716-.042-.127-.174-.2-.247-.303a2.478 2.478 0 01-.24-.427c-.16-.374-.24-.788-.414-1.162-.08-.173-.22-.354-.334-.513-.127-.18-.267-.307-.368-.52-.033-.073-.08-.194-.027-.274.014-.054.042-.075.094-.09.088-.072.335.022.422.062.247.1.455.194.662.334.094.066.195.193.315.226h.14c.214.047.455.014.655.073.355.114.675.28.962.46a5.953 5.953 0 012.085 2.286c.08.154.115.295.188.455.14.33.313.663.455.982.14.315.275.636.476.897.1.14.502.213.682.286.133.06.34.115.46.188.23.14.454.3.67.454.11.076.443.243.463.378z",
 	source: "https://www.mysql.com/about/legal/logos.html",
 	hex: "4479A1",
 	guidelines: "https://www.mysql.com/about/legal/logos.html"
-}, Ki = {
+}, qi = {
 	title: "NGINX",
 	slug: "nginx",
 	get svg() {
-		return Ri + "NGINX" + zi + this.path + Bi;
+		return zi + "NGINX" + Bi + this.path + Vi;
 	},
 	path: "M12 0L1.605 6v12L12 24l10.395-6V6L12 0zm6 16.59c0 .705-.646 1.29-1.529 1.29-.631 0-1.351-.255-1.801-.81l-6-7.141v6.66c0 .721-.57 1.29-1.274 1.29H7.32c-.721 0-1.29-.6-1.29-1.29V7.41c0-.705.63-1.29 1.5-1.29.646 0 1.38.255 1.83.81l5.97 7.141V7.41c0-.721.6-1.29 1.29-1.29h.075c.72 0 1.29.6 1.29 1.29v9.18H18z",
 	source: "https://www.nginx.com/press/",
 	hex: "009639",
 	guidelines: "https://www.nginx.com/press/"
-}, qi = {
+}, Ji = {
 	title: "qbittorrent",
 	slug: "qbittorrent",
 	get svg() {
-		return Ri + "qbittorrent" + zi + this.path + Bi;
+		return zi + "qbittorrent" + Bi + this.path + Vi;
 	},
 	path: "M11.911 23.994c-1.31 0-2.605-.232-3.831-.705-3.4-1.024-6.2-3.865-7.433-7.58-1.23-3.708-.685-7.654 1.459-10.554C4.062 2.038 7.677.094 11.742.008c4.064-.079 7.758 1.703 9.882 4.785a12.066 12.066 0 0 1 2.369 7.145c.138 3.733-1.75 7.368-5.052 9.728-2.147 1.535-4.61 2.328-7.03 2.328zm.11-22.314c-.081 0-.162 0-.244.002-3.5.074-6.599 1.725-8.29 4.415-1.856 2.516-2.31 5.893-1.25 9.086 1.06 3.197 3.448 5.636 6.386 6.523 3.025 1.165 6.496.633 9.345-1.402 2.847-2.035 4.473-5.144 4.351-8.318v-.032c0-2.214-.73-4.41-2.055-6.185-1.78-2.58-4.84-4.09-8.243-4.09zM9.406 20.246v-4.578a2.663 2.663 0 0 1-.952.863 2.573 2.573 0 0 1-1.29.344c-1.016 0-1.893-.444-2.63-1.33-.731-.887-1.097-2.102-1.097-3.646 0-.939.148-1.781.444-2.527.301-.746.734-1.309 1.299-1.69A3.26 3.26 0 0 1 7.052 7.1c1.058 0 1.891.487 2.5 1.46v-1.25h1.306v12.935H9.406zm-4.477-8.285c0 1.203.232 2.108.694 2.711.463.6 1.016.9 1.662.9.619 0 1.15-.286 1.597-.855.446-.576.67-1.447.67-2.615 0-1.245-.237-2.18-.71-2.81-.468-.627-1.02-.941-1.654-.941-.63 0-1.164.293-1.605.88-.435.581-.654 1.491-.654 2.73m9.55 4.702h-1.346V3.755h1.452v4.604c.613-.84 1.395-1.258 2.347-1.258.526 0 1.024.117 1.492.351.464.222.864.558 1.161.978.307.416.546.922.718 1.514.172.593.258 1.227.258 1.902 0 1.603-.363 2.841-1.088 3.716-.727.874-1.598 1.312-2.614 1.312-1.011 0-1.804-.46-2.379-1.382v1.17m-.016-4.746c0 1.122.14 1.932.42 2.432.456.815 1.074 1.223 1.854 1.223.635 0 1.183-.3 1.646-.898.462-.604.693-1.503.693-2.695 0-1.22-.224-2.122-.67-2.703-.44-.58-.975-.872-1.605-.872-.634 0-1.182.303-1.645.907-.463.6-.694 1.468-.694 2.607",
 	source: "https://github.com/qbittorrent/qBittorrent/blob/73028f9930d9ab9d89edb60ed4aedb66d75669d9/src/icons/qbittorrent-tray-light.svg",
 	hex: "2F67BA"
-}, Ji = {
+}, Yi = {
 	title: "Uptime Kuma",
 	slug: "uptimekuma",
 	get svg() {
-		return Ri + "Uptime Kuma" + zi + this.path + Bi;
+		return zi + "Uptime Kuma" + Bi + this.path + Vi;
 	},
 	path: "M11.759.955c-4.071 0-7.93 2.265-10.06 5.774l-.16.263-.116.284c-1.81 4.44-2.188 9.118.621 12.459 2.67 3.174 6.221 3.328 9.477 3.308 3.256-.02 6.323-.482 8.995-2.032C22.75 19.714 24 16.917 24 14.53c0-2.388-.724-4.698-1.882-7.343l-.112-.257-.148-.238C19.683 3.2 15.83.955 11.758.955Zm0 3.868c2.919 0 5.19 1.305 6.816 3.914 2.076 4.747 2.076 7.724 0 8.929-3.116 1.808-11.234 2.359-13.57-.42-1.558-1.853-1.558-4.69 0-8.51 1.584-2.608 3.835-3.913 6.754-3.913z",
 	source: "https://uptime.kuma.pet",
 	hex: "5CDD8B"
-}, Yi = "data:image/svg+xml,%3csvg%20width='512'%20height='512'%20viewBox='0%200%20512%20512'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cdefs%3e%3clinearGradient%20id='bg'%20x1='48'%20y1='56'%20x2='464'%20y2='464'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%230F172A'%20/%3e%3cstop%20offset='0.52'%20stop-color='%231D4ED8'%20/%3e%3cstop%20offset='1'%20stop-color='%2306B6D4'%20/%3e%3c/linearGradient%3e%3clinearGradient%20id='house'%20x1='116'%20y1='140'%20x2='402'%20y2='410'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%23FFFFFF'%20stop-opacity='0.98'%20/%3e%3cstop%20offset='1'%20stop-color='%23DDEBFF'%20stop-opacity='0.94'%20/%3e%3c/linearGradient%3e%3clinearGradient%20id='accent'%20x1='242'%20y1='218'%20x2='364'%20y2='372'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%23F59E0B'%20/%3e%3cstop%20offset='1'%20stop-color='%23F97316'%20/%3e%3c/linearGradient%3e%3cfilter%20id='shadow'%20x='40'%20y='52'%20width='432'%20height='424'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeDropShadow%20dx='0'%20dy='18'%20stdDeviation='18'%20flood-color='%230F172A'%20flood-opacity='0.26'%20/%3e%3c/filter%3e%3c/defs%3e%3crect%20width='512'%20height='512'%20rx='124'%20fill='url(%23bg)'%20/%3e%3ccircle%20cx='412'%20cy='112'%20r='46'%20fill='%23FFFFFF'%20fill-opacity='0.14'%20/%3e%3ccircle%20cx='112'%20cy='418'%20r='58'%20fill='%23FFFFFF'%20fill-opacity='0.08'%20/%3e%3cg%20filter='url(%23shadow)'%3e%3cpath%20d='M98%20224L256%20102L414%20224V376C414%20399.196%20395.196%20418%20372%20418H140C116.804%20418%2098%20399.196%2098%20376V224Z'%20fill='url(%23house)'%20/%3e%3cpath%20d='M74%20230L256%2088L438%20230'%20stroke='%23F8FBFF'%20stroke-width='30'%20stroke-linecap='round'%20stroke-linejoin='round'%20/%3e%3c/g%3e%3cpath%20d='M152%20362C152%20349.297%20162.297%20339%20175%20339H214V412H152V362Z'%20fill='%23C9DDFF'%20/%3e%3cpath%20d='M232%20294C232%20281.297%20242.297%20271%20255%20271H296V412H232V294Z'%20fill='%237DB5FF'%20/%3e%3cpath%20d='M314%20240C314%20227.297%20324.297%20217%20337%20217H368V412H314V240Z'%20fill='url(%23accent)'%20/%3e%3cpath%20d='M154%20422H368'%20stroke='%23D0E2FF'%20stroke-width='14'%20stroke-linecap='round'%20/%3e%3cpath%20d='M188%20198L226%20168L261%20196L332%20148'%20stroke='%23FFFFFF'%20stroke-width='14'%20stroke-linecap='round'%20stroke-linejoin='round'%20/%3e%3cpath%20d='M332%20148V178'%20stroke='%23FFFFFF'%20stroke-width='12'%20stroke-linecap='round'%20/%3e%3cpath%20d='M332%20148H302'%20stroke='%23FFFFFF'%20stroke-width='12'%20stroke-linecap='round'%20/%3e%3c/svg%3e", Xi = "data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='256'%20height='256'%20viewBox='0%200%20256%20256'%20fill='none'%3e%3crect%20width='256'%20height='256'%20rx='48'%20fill='%230A1B2D'/%3e%3crect%20x='24'%20y='24'%20width='208'%20height='208'%20rx='40'%20fill='%230D2238'%20stroke='%23163B5A'%20stroke-width='4'/%3e%3cpath%20d='M56%2092c0-20.987%2017.013-38%2038-38h68v28H98c-8.837%200-16%207.163-16%2016v60c0%208.837%207.163%2016%2016%2016h60c8.837%200%2016-7.163%2016-16v-28h26v32c0%2020.987-17.013%2038-38%2038H94c-20.987%200-38-17.013-38-38V92z'%20fill='%2300D2FF'/%3e%3cpath%20d='M170%2096h26v26h-26z'%20fill='%2300F08A'/%3e%3cpath%20d='M170%20130h26v26h-26z'%20fill='%2300F08A'/%3e%3cpath%20d='M170%20164h26v26h-26z'%20fill='%2300F08A'/%3e%3c/svg%3e", Zi = "linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02))", Q = (e, t) => ({
+}, Xi = "data:image/svg+xml,%3csvg%20width='512'%20height='512'%20viewBox='0%200%20512%20512'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cdefs%3e%3clinearGradient%20id='bg'%20x1='48'%20y1='56'%20x2='464'%20y2='464'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%230F172A'%20/%3e%3cstop%20offset='0.52'%20stop-color='%231D4ED8'%20/%3e%3cstop%20offset='1'%20stop-color='%2306B6D4'%20/%3e%3c/linearGradient%3e%3clinearGradient%20id='house'%20x1='116'%20y1='140'%20x2='402'%20y2='410'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%23FFFFFF'%20stop-opacity='0.98'%20/%3e%3cstop%20offset='1'%20stop-color='%23DDEBFF'%20stop-opacity='0.94'%20/%3e%3c/linearGradient%3e%3clinearGradient%20id='accent'%20x1='242'%20y1='218'%20x2='364'%20y2='372'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%23F59E0B'%20/%3e%3cstop%20offset='1'%20stop-color='%23F97316'%20/%3e%3c/linearGradient%3e%3cfilter%20id='shadow'%20x='40'%20y='52'%20width='432'%20height='424'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeDropShadow%20dx='0'%20dy='18'%20stdDeviation='18'%20flood-color='%230F172A'%20flood-opacity='0.26'%20/%3e%3c/filter%3e%3c/defs%3e%3crect%20width='512'%20height='512'%20rx='124'%20fill='url(%23bg)'%20/%3e%3ccircle%20cx='412'%20cy='112'%20r='46'%20fill='%23FFFFFF'%20fill-opacity='0.14'%20/%3e%3ccircle%20cx='112'%20cy='418'%20r='58'%20fill='%23FFFFFF'%20fill-opacity='0.08'%20/%3e%3cg%20filter='url(%23shadow)'%3e%3cpath%20d='M98%20224L256%20102L414%20224V376C414%20399.196%20395.196%20418%20372%20418H140C116.804%20418%2098%20399.196%2098%20376V224Z'%20fill='url(%23house)'%20/%3e%3cpath%20d='M74%20230L256%2088L438%20230'%20stroke='%23F8FBFF'%20stroke-width='30'%20stroke-linecap='round'%20stroke-linejoin='round'%20/%3e%3c/g%3e%3cpath%20d='M152%20362C152%20349.297%20162.297%20339%20175%20339H214V412H152V362Z'%20fill='%23C9DDFF'%20/%3e%3cpath%20d='M232%20294C232%20281.297%20242.297%20271%20255%20271H296V412H232V294Z'%20fill='%237DB5FF'%20/%3e%3cpath%20d='M314%20240C314%20227.297%20324.297%20217%20337%20217H368V412H314V240Z'%20fill='url(%23accent)'%20/%3e%3cpath%20d='M154%20422H368'%20stroke='%23D0E2FF'%20stroke-width='14'%20stroke-linecap='round'%20/%3e%3cpath%20d='M188%20198L226%20168L261%20196L332%20148'%20stroke='%23FFFFFF'%20stroke-width='14'%20stroke-linecap='round'%20stroke-linejoin='round'%20/%3e%3cpath%20d='M332%20148V178'%20stroke='%23FFFFFF'%20stroke-width='12'%20stroke-linecap='round'%20/%3e%3cpath%20d='M332%20148H302'%20stroke='%23FFFFFF'%20stroke-width='12'%20stroke-linecap='round'%20/%3e%3c/svg%3e", Zi = "data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='256'%20height='256'%20viewBox='0%200%20256%20256'%20fill='none'%3e%3crect%20width='256'%20height='256'%20rx='48'%20fill='%230A1B2D'/%3e%3crect%20x='24'%20y='24'%20width='208'%20height='208'%20rx='40'%20fill='%230D2238'%20stroke='%23163B5A'%20stroke-width='4'/%3e%3cpath%20d='M56%2092c0-20.987%2017.013-38%2038-38h68v28H98c-8.837%200-16%207.163-16%2016v60c0%208.837%207.163%2016%2016%2016h60c8.837%200%2016-7.163%2016-16v-28h26v32c0%2020.987-17.013%2038-38%2038H94c-20.987%200-38-17.013-38-38V92z'%20fill='%2300D2FF'/%3e%3cpath%20d='M170%2096h26v26h-26z'%20fill='%2300F08A'/%3e%3cpath%20d='M170%20130h26v26h-26z'%20fill='%2300F08A'/%3e%3cpath%20d='M170%20164h26v26h-26z'%20fill='%2300F08A'/%3e%3c/svg%3e", Qi = "linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02))", Q = (e, t) => ({
 	kind: "path",
 	path: e,
 	color: t,
 	viewBox: "0 0 24 24",
-	background: Zi
-}), Qi = (e, t, n) => ({
+	background: Qi
+}), $i = (e, t, n) => ({
 	kind: "image",
 	src: e,
 	alt: t,
 	fallback: n,
-	background: Zi
-}), $i = (e) => ({
+	background: Qi
+}), ea = (e) => ({
 	kind: "inline-svg",
 	svg: e,
-	background: Zi
-}), ea = Q(e, S.softBlue), ta = ea, na = {
-	gitea: Q(Vi.path, `#${Vi.hex}`),
-	grafana: Q(Hi.path, `#${Hi.hex}`),
-	go_back_db: Q(Gi.path, `#${Gi.hex}`),
-	gorent: Qi(Yi, "GoRent logo", ea),
-	"home-assistant": Q(Ui.path, `#${Ui.hex}`),
-	home_assistant: Q(Ui.path, `#${Ui.hex}`),
-	jellyfin: Q(Wi.path, `#${Wi.hex}`),
-	kuma: Q(Ji.path, `#${Ji.hex}`),
-	kuma_monitoring: Q(Ji.path, `#${Ji.hex}`),
-	monitoring: Q(Hi.path, `#${Hi.hex}`),
+	background: Qi
+}), ta = Q(e, S.softBlue), na = ta, ra = {
+	gitea: Q(Hi.path, `#${Hi.hex}`),
+	grafana: Q(Ui.path, `#${Ui.hex}`),
+	go_back_db: Q(Ki.path, `#${Ki.hex}`),
+	gorent: $i(Xi, "GoRent logo", ta),
+	"home-assistant": Q(Wi.path, `#${Wi.hex}`),
+	home_assistant: Q(Wi.path, `#${Wi.hex}`),
+	jellyfin: Q(Gi.path, `#${Gi.hex}`),
+	kuma: Q(Yi.path, `#${Yi.hex}`),
+	kuma_monitoring: Q(Yi.path, `#${Yi.hex}`),
+	monitoring: Q(Ui.path, `#${Ui.hex}`),
 	virtual_machines: Q(i, S.cyan),
-	"uptime-kuma": Q(Ji.path, `#${Ji.hex}`),
-	uptime_kuma: Q(Ji.path, `#${Ji.hex}`),
-	nas: Qi(Xi, "UGREEN logo", $i(`
+	"uptime-kuma": Q(Yi.path, `#${Yi.hex}`),
+	uptime_kuma: Q(Yi.path, `#${Yi.hex}`),
+	nas: $i(Zi, "UGREEN logo", ea(`
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path fill="${S.cyan}" d="${o}"></path>
       </svg>
     `)),
-	torrent: Q(qi.path, `#${qi.hex}`),
-	webserver: Q(Ki.path, `#${Ki.hex}`)
+	torrent: Q(Ji.path, `#${Ji.hex}`),
+	webserver: Q(qi.path, `#${qi.hex}`)
 };
 S.softBlue;
 // src/styles.ts
-var ra = te`
+var ia = te`
   :host {
     --ug-card-bg: radial-gradient(circle at top, ${h(S.panelTop)}, ${h(S.panelBottom)});
     --ug-panel: ${h(S.panelSolid)};
@@ -4894,23 +4894,23 @@ var ra = te`
   }
 `;
 // \0@oxc-project+runtime@0.156.0/helpers/esm/decorate.js
-function ia(e, t, n, r) {
+function aa(e, t, n, r) {
 	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
 	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
 	else for (var s = e.length - 1; s >= 0; s--) (o = e[s]) && (a = (i < 3 ? o(a) : i > 3 ? o(t, n, a) : o(t, n)) || a);
 	return i > 3 && a && Object.defineProperty(t, n, a), a;
 }
 // src/ugreen-nas-card.ts
-var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
+var oa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
   <svg viewBox=${n} width="1em" height="1em" aria-hidden="true" focusable="false">
     <path d=${e} fill=${t}></path>
   </svg>
-`, oa = class extends tt {
+`, sa = class extends tt {
 	constructor(...e) {
-		super(...e), this._model = Ci, this._history = Nt(), this._dataMode = "preview", this._detailSelection = { kind: "default" }, this._watchEntityIds = [], this._watchPrefixes = [];
+		super(...e), this._model = wi, this._history = Nt(), this._dataMode = "preview", this._detailSelection = { kind: "default" }, this._watchEntityIds = [], this._watchPrefixes = [];
 	}
 	static {
-		this.styles = ra;
+		this.styles = ia;
 	}
 	set hass(e) {
 		let t = this._hass;
@@ -4960,7 +4960,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
           <div class="device-title">${t}</div>
           <div class="info-list">
             ${this.buildDeviceIdentityRows(t, e.model, e.hostname)}
-            ${this.renderInfoRow(n, "Uptime", Pi(e.uptimeSeconds))}
+            ${this.renderInfoRow(n, "Uptime", Fi(e.uptimeSeconds))}
             ${this.renderInfoRow(n, "Time", e.lastUpdated)}
           </div>
         </div>
@@ -4985,9 +4985,9 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
               ${$(this.summaryIcon(e.kind), e.accent)}
               <span>${e.title}</span>
             </div>
-            <div class="mini-value">${Z(e.valuePercent)}</div>
+            <div class="mini-value">${X(e.valuePercent)}</div>
             ${this.renderLineIndicator(e.valuePercent, e.accent)}
-            <div class="mini-footer positive">${Fi(e.temperatureCelsius)}</div>
+            <div class="mini-footer positive">${Ii(e.temperatureCelsius)}</div>
             ${this.renderFanSpeeds(e.fanSpeeds)}
           </div>
         `;
@@ -4997,9 +4997,9 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
               ${$(this.summaryIcon(e.kind), e.accent)}
               <span>${e.title}</span>
             </div>
-            <div class="mini-value">${Z(e.valuePercent)}</div>
+            <div class="mini-value">${X(e.valuePercent)}</div>
             ${this.renderLineIndicator(e.valuePercent, e.accent)}
-            <div class="mini-footer">${Ii(e.usedBytes, e.totalBytes)}</div>
+            <div class="mini-footer">${Li(e.usedBytes, e.totalBytes)}</div>
           </div>
         `;
 			case "system-load": return this._model.topProcesses.length > 0 ? b`
@@ -5037,7 +5037,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
               ${$(this.summaryIcon(e.kind), e.accent)}
               <span>${e.title}</span>
             </div>
-            <div class="mini-value">${ji(e.totalBytes)}</div>
+            <div class="mini-value">${Mi(e.totalBytes)}</div>
             ${this.renderStorageSummaryMeta(e)}
           </div>
         `;
@@ -5052,11 +5052,11 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
             <div class="mini-network-meta">
               <div class="mini-network-stat down">
                 ${$("M7.03 13.92H11.03V5L13.04 4.97V13.92H17.03L12.03 18.92Z", S.good)}
-                <strong>${Mi(n?.downloadBps ?? e.downloadBps)}</strong>
+                <strong>${Ni(n?.downloadBps ?? e.downloadBps)}</strong>
               </div>
               <div class="mini-network-stat up">
                 ${$("M7.03 9.97H11.03V18.89L13.04 18.92V9.97H17.03L12.03 4.97Z", S.purple)}
-                <strong>${Mi(n?.uploadBps ?? e.uploadBps)}</strong>
+                <strong>${Ni(n?.uploadBps ?? e.uploadBps)}</strong>
               </div>
             </div>
           </div>
@@ -5077,11 +5077,11 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
     ` : b``;
 	}
 	renderStorageSummaryMeta(e) {
-		let t = Li(e.usedBytes, e.totalBytes);
+		let t = Ri(e.usedBytes, e.totalBytes);
 		return b`
       <div class="mini-storage-meta">
         <div class="mini-footer">
-          Used: ${ji(e.usedBytes)} (${Z(t)})
+          Used: ${Mi(e.usedBytes)} (${X(t)})
         </div>
         <div class="mini-storage-bar">
           <span style=${`width:${t}%;`}></span>
@@ -5113,7 +5113,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
             <div class="metric-title" style=${`color:${e.accent}`}>${e.title}</div>
             <div class="metric-subtitle">${e.subtitle}</div>
           </div>
-          <div class="metric-value">${Z(e.utilizationPercent)}</div>
+          <div class="metric-value">${X(e.utilizationPercent)}</div>
         </div>
         ${this.renderLineIndicator(e.utilizationPercent, e.accent)}
         <div class="detail-grid">
@@ -5145,9 +5145,9 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 		return b`
       <tr>
         <td>${e.name}</td>
-        <td>${ji(e.capacityBytes)}</td>
-        <td>${Ni((e.readBytesPerSecond ?? 0) + (e.writeBytesPerSecond ?? 0))}</td>
-        <td>${e.temperatureCelsius === void 0 ? "N/A" : Fi(e.temperatureCelsius)}</td>
+        <td>${Mi(e.capacityBytes)}</td>
+        <td>${Pi((e.readBytesPerSecond ?? 0) + (e.writeBytesPerSecond ?? 0))}</td>
+        <td>${e.temperatureCelsius === void 0 ? "N/A" : Ii(e.temperatureCelsius)}</td>
         <td>${this.renderHealthChip(e.status)}</td>
       </tr>
     `;
@@ -5163,7 +5163,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
     `;
 	}
 	renderStoragePool(e) {
-		let t = Li(e.usedBytes, e.totalBytes), n = e.status === "healthy" ? "health" : `health ${e.status}`;
+		let t = Ri(e.usedBytes, e.totalBytes), n = e.status === "healthy" ? "health" : `health ${e.status}`;
 		return b`
       <div
         class=${this._detailSelection.kind === "pool" && this._detailSelection.key === (e.key ?? e.name) ? "storage-card interactive active" : "storage-card interactive"}
@@ -5191,10 +5191,10 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
               ><span class="pool-drives-dot"></span>${this.renderDriveCountValue(e.driveCountText)}</strong
             >
           </div>
-          <div><span class="label">Total</span><strong>${ji(e.totalBytes)}</strong></div>
-          <div><span class="label">Free</span><strong>${ji(e.totalBytes - e.usedBytes)}</strong></div>
-          <div><span class="label">Used</span><strong>${ji(e.usedBytes)}</strong></div>
-          <div><span class="label">Usage</span><strong>${Z(t)}</strong></div>
+          <div><span class="label">Total</span><strong>${Mi(e.totalBytes)}</strong></div>
+          <div><span class="label">Free</span><strong>${Mi(e.totalBytes - e.usedBytes)}</strong></div>
+          <div><span class="label">Used</span><strong>${Mi(e.usedBytes)}</strong></div>
+          <div><span class="label">Usage</span><strong>${X(t)}</strong></div>
         </div>
       </div>
     `;
@@ -5211,7 +5211,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
     `;
 	}
 	renderDockerProject(e, t) {
-		let n = Oi(e.cpuPercent * 14, 6, 100), r = Oi(e.memoryBytes / Math.max(t, 1) * 100, 8, 100), i = `docker-status status ${e.status}`, a = this.resolveProjectLogo(e.key);
+		let n = ki(e.cpuPercent * 14, 6, 100), r = ki(e.memoryBytes / Math.max(t, 1) * 100, 8, 100), i = `docker-status status ${e.status}`, a = this.resolveProjectLogo(e.key);
 		return b`
       <div
         class=${this._detailSelection.kind === "project" && this._detailSelection.key === String(e.key) ? "docker-item interactive active" : "docker-item interactive"}
@@ -5233,12 +5233,12 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
         <div class="docker-metrics">
           <div class="metric-line">
             <span>CPU</span>
-            <strong>${ki(e.cpuPercent)}</strong>
+            <strong>${Ai(e.cpuPercent)}</strong>
             <span class="metric-bar"><span style=${`width:${n}%;`}></span></span>
           </div>
           <div class="metric-line">
             <span>RAM</span>
-            <strong>${Ai(e.memoryBytes, 0)}</strong>
+            <strong>${Z(e.memoryBytes, 0)}</strong>
             <span class="metric-bar"><span style=${`width:${r}%;`}></span></span>
           </div>
         </div>
@@ -5283,7 +5283,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 		return e ? e.containers.length === 0 ? e.key === "virtual_machines" ? b`<div class="empty-state">No live virtual machines were linked to this project.</div>` : b`<div class="empty-state">No live containers were linked to this project.</div>` : b`
       <div class="detail-card-stack">
         ${e.containers.map((t) => {
-			let n = this.resolveProjectLogo(e.key), r = e.key === "virtual_machines", i = t.memoryCurrentBytes !== void 0 && t.memoryCurrentBytes > 0 ? t.memoryCurrentBytes : void 0, a = r ? i ?? t.memoryLimitBytes : t.memoryLimitBytes, o = Oi((t.memoryBytes ?? 0) / Math.max(a ?? t.memoryBytes ?? 1, 1) * 100, 4, 100);
+			let n = this.resolveProjectLogo(e.key), r = e.key === "virtual_machines", i = t.memoryCurrentBytes !== void 0 && t.memoryCurrentBytes > 0 ? t.memoryCurrentBytes : void 0, a = r ? i ?? t.memoryLimitBytes : t.memoryLimitBytes, o = ki((t.memoryBytes ?? 0) / Math.max(a ?? t.memoryBytes ?? 1, 1) * 100, 4, 100);
 			return b`
             <div class="detail-card">
               <div class="detail-card-head">
@@ -5293,7 +5293,9 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
                   </span>
                   <div>
                     <div class="detail-name">${t.name}</div>
-                    <div class="detail-subtitle">${r ? `Source: ${t.image}` : t.image}</div>
+                    <div class="detail-subtitle" title=${t.image}>
+                      ${r ? `Source: ${t.image}` : ji(t.image)}
+                    </div>
                   </div>
                 </div>
                 <span class=${t.running ? "health" : "health degraded"}>
@@ -5303,15 +5305,15 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
               <div class="detail-metric-grid container-metrics">
                 <div class="detail-metric-card">
                   <span>CPU</span>
-                  <strong>${ki(t.cpuPercent)}</strong>
+                  <strong>${Ai(t.cpuPercent)}</strong>
                 </div>
                 <div class="detail-metric-card">
                   <span>${r ? "Used RAM" : "RAM"}</span>
-                  <strong>${Ai(t.memoryBytes, 0)}</strong>
+                  <strong>${Z(t.memoryBytes, 0)}</strong>
                 </div>
                 <div class="detail-metric-card">
                   <span>${r && i !== void 0 ? "Assigned RAM" : r ? "Max RAM" : "Limit"}</span>
-                  <strong>${a ? Ai(a, 0) : "N/A"}</strong>
+                  <strong>${a ? Z(a, 0) : "N/A"}</strong>
                 </div>
                 <div class="detail-metric-card">
                   <span>Status</span>
@@ -5339,20 +5341,20 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
                     <div class="detail-subtitle">${this.formatProcessCount(e.processCount)}</div>
                   </div>
                 </div>
-                <span class="health"><span class="dot"></span>${ki(e.cpuPercent)} CPU</span>
+                <span class="health"><span class="dot"></span>${Ai(e.cpuPercent)} CPU</span>
               </div>
               <div class="detail-metric-grid">
                 <div class="detail-metric-card">
                   <span>CPU</span>
-                  <strong>${ki(e.cpuPercent)}</strong>
+                  <strong>${Ai(e.cpuPercent)}</strong>
                 </div>
                 <div class="detail-metric-card">
                   <span>RAM</span>
-                  <strong>${Ai(e.memoryBytes, 0)}</strong>
+                  <strong>${Z(e.memoryBytes, 0)}</strong>
                 </div>
                 <div class="detail-metric-card">
                   <span>CPU Time</span>
-                  <strong>${e.cpuTimeSeconds === void 0 ? "N/A" : Pi(e.cpuTimeSeconds)}</strong>
+                  <strong>${e.cpuTimeSeconds === void 0 ? "N/A" : Fi(e.cpuTimeSeconds)}</strong>
                 </div>
                 <div class="detail-metric-card">
                   <span>Count</span>
@@ -5360,7 +5362,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
                 </div>
               </div>
               <div class="detail-inline-bar">
-                <span style=${`width:${Oi(e.cpuPercent, 0, 100)}%;`}></span>
+                <span style=${`width:${ki(e.cpuPercent, 0, 100)}%;`}></span>
               </div>
             </div>
           `)}
@@ -5373,8 +5375,8 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
         ${this._model.cpuCores.map((e) => b`
             <div class="detail-stat-card">
               <div class="detail-name">${e.name}</div>
-              <div class="detail-stat-value">${Z(e.usagePercent)}</div>
-              <div class="detail-inline-bar"><span style=${`width:${Oi(e.usagePercent, 0, 100)}%;`}></span></div>
+              <div class="detail-stat-value">${X(e.usagePercent)}</div>
+              <div class="detail-inline-bar"><span style=${`width:${ki(e.usagePercent, 0, 100)}%;`}></span></div>
               <div class="detail-meta-list">
                 <div><span>Current</span><strong>${e.currentMHz ? `${Math.round(e.currentMHz)} MHz` : "N/A"}</strong></div>
                 <div><span>Range</span><strong>${this.formatCpuCoreRange(e.minMHz, e.maxMHz)}</strong></div>
@@ -5391,18 +5393,18 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
         ${this._model.ramBreakdown.map((e) => b`
             <div class="detail-stat-card">
               <div class="detail-name">${e.label}</div>
-              <div class="detail-stat-value">${Ai(e.valueBytes, 1)}</div>
+              <div class="detail-stat-value">${Z(e.valueBytes, 1)}</div>
               ${e.totalBytes ? b`
                     <div class="detail-inline-bar">
-                      <span style=${`width:${Oi(Li(e.valueBytes, e.totalBytes), 0, 100)}%;`}></span>
+                      <span style=${`width:${ki(Ri(e.valueBytes, e.totalBytes), 0, 100)}%;`}></span>
                     </div>
                     <div class="detail-meta-list">
-                      <div><span>Usage</span><strong>${Z(Li(e.valueBytes, e.totalBytes))}</strong></div>
-                      <div><span>Total</span><strong>${Ai(e.totalBytes, 1)}</strong></div>
+                      <div><span>Usage</span><strong>${X(Ri(e.valueBytes, e.totalBytes))}</strong></div>
+                      <div><span>Total</span><strong>${Z(e.totalBytes, 1)}</strong></div>
                     </div>
                   ` : b`
                     <div class="detail-meta-list">
-                      <div><span>Value</span><strong>${Ai(e.valueBytes, 1)}</strong></div>
+                      <div><span>Value</span><strong>${Z(e.valueBytes, 1)}</strong></div>
                     </div>
                   `}
             </div>
@@ -5431,12 +5433,12 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
                 ${this._model.gpuEngines.map((e) => b`
                     <div class="detail-stat-card">
                       <div class="detail-name">${e.label}</div>
-                      <div class="detail-stat-value">${Z(e.busyPercent)}</div>
-                      <div class="detail-inline-bar"><span style=${`width:${Oi(e.busyPercent, 0, 100)}%;`}></span></div>
+                      <div class="detail-stat-value">${X(e.busyPercent)}</div>
+                      <div class="detail-inline-bar"><span style=${`width:${ki(e.busyPercent, 0, 100)}%;`}></span></div>
                       <div class="detail-meta-list">
-                        <div><span>Busy</span><strong>${Z(e.busyPercent)}</strong></div>
-                        <div><span>Sema</span><strong>${e.semaPercent === void 0 ? "N/A" : Z(e.semaPercent)}</strong></div>
-                        <div><span>Wait</span><strong>${e.waitPercent === void 0 ? "N/A" : Z(e.waitPercent)}</strong></div>
+                        <div><span>Busy</span><strong>${X(e.busyPercent)}</strong></div>
+                        <div><span>Sema</span><strong>${e.semaPercent === void 0 ? "N/A" : X(e.semaPercent)}</strong></div>
+                        <div><span>Wait</span><strong>${e.waitPercent === void 0 ? "N/A" : X(e.waitPercent)}</strong></div>
                       </div>
                     </div>
                   `)}
@@ -5471,9 +5473,9 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
             </div>
           </div>
           ${this.renderInterfaceStat("Link", this.formatLinkSpeed(e.linkSpeedMbps))}
-          ${this.renderInterfaceStat("Temp", e.temperatureCelsius === void 0 ? "N/A" : Fi(e.temperatureCelsius))}
-          ${this.renderInterfaceStat("RX", Mi(e.downloadBps), "down")}
-          ${this.renderInterfaceStat("TX", Mi(e.uploadBps), "up")}
+          ${this.renderInterfaceStat("Temp", e.temperatureCelsius === void 0 ? "N/A" : Ii(e.temperatureCelsius))}
+          ${this.renderInterfaceStat("RX", Ni(e.downloadBps), "down")}
+          ${this.renderInterfaceStat("TX", Ni(e.uploadBps), "up")}
         </div>
       </div>
     `;
@@ -5487,17 +5489,17 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
     `;
 	}
 	formatLinkSpeed(e) {
-		return e === void 0 ? "N/A" : Mi(e * 1e6, 1);
+		return e === void 0 ? "N/A" : Ni(e * 1e6, 1);
 	}
 	renderLineIndicator(e, t) {
 		return b`
       <div class="metric-indicator" aria-hidden="true">
-        <span style=${`width:${Oi(e, 0, 100)}%; background:${t}; box-shadow:0 0 14px ${t}55;`}></span>
+        <span style=${`width:${ki(e, 0, 100)}%; background:${t}; box-shadow:0 0 14px ${t}55;`}></span>
       </div>
     `;
 	}
 	renderLogo(e) {
-		return e.kind === "image" ? e.src ? b`<img src=${e.src} alt=${e.alt} />` : e.fallback ? this.renderLogo(e.fallback) : this.renderLogo(ta) : e.kind === "inline-svg" ? b`${ft(e.svg)}` : $(e.path, e.color, e.viewBox);
+		return e.kind === "image" ? e.src ? b`<img src=${e.src} alt=${e.alt} />` : e.fallback ? this.renderLogo(e.fallback) : this.renderLogo(na) : e.kind === "inline-svg" ? b`${ft(e.svg)}` : $(e.path, e.color, e.viewBox);
 	}
 	renderHealthChip(e) {
 		return b`<span class=${e === "healthy" ? "health" : `health ${e}`}><span class="dot"></span>${this.statusLabel(e)}</span>`;
@@ -5604,7 +5606,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 		return e === void 0 && t === void 0 ? "N/A" : e === void 0 ? `<= ${Math.round(t ?? 0)} MHz` : t === void 0 ? `${Math.round(e)}+ MHz` : `${Math.round(e)}-${Math.round(t)} MHz`;
 	}
 	formatGpuStatValue(e, t) {
-		return t === "%" ? Z(e) : t === "W" ? `${e.toFixed(e >= 10 ? 1 : 2)} W` : t === "MHz" ? `${Math.round(e)} MHz` : t === "ms" ? `${e.toFixed(2)} ms` : t === "MiB/s" ? `${e.toFixed(e >= 10 ? 1 : 2)} MiB/s` : t === "/s" ? `${e.toFixed(e >= 10 ? 0 : 2)}/s` : `${e}${t ? ` ${t}` : ""}`;
+		return t === "%" ? X(e) : t === "W" ? `${e.toFixed(e >= 10 ? 1 : 2)} W` : t === "MHz" ? `${Math.round(e)} MHz` : t === "ms" ? `${e.toFixed(2)} ms` : t === "MiB/s" ? `${e.toFixed(e >= 10 ? 1 : 2)} MiB/s` : t === "/s" ? `${e.toFixed(e >= 10 ? 0 : 2)}/s` : `${e}${t ? ` ${t}` : ""}`;
 	}
 	formatProcessCount(e) {
 		return `${e} ${e === 1 ? "process" : "processes"}`;
@@ -5620,7 +5622,7 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 			n.replace(/-/g, "_")
 		]));
 		for (let e of r) {
-			let t = na[e];
+			let t = ra[e];
 			if (t) return t;
 		}
 		for (let [e, t] of [
@@ -5638,8 +5640,8 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 			["mysql", "go_back_db"],
 			["gorent", "gorent"],
 			["nas", "nas"]
-		]) if (r.some((t) => t.includes(e))) return na[t] ?? ta;
-		return ta;
+		]) if (r.some((t) => t.includes(e))) return ra[t] ?? na;
+		return na;
 	}
 	summaryIcon(e) {
 		switch (e) {
@@ -5668,14 +5670,14 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 		if (e) this._history = e.history, this._watchEntityIds = e.watchEntityIds, this._watchPrefixes = e.watchPrefixes, this._model = e.model, this._detailSelection = this.isDetailSelectionAvailable(this._detailSelection) ? this._detailSelection : { kind: "default" }, this._dataMode = "live";
 		else {
 			if (this._hass?.states) {
-				let e = wi();
+				let e = Ti();
 				e.deviceInfo = {
 					...e.deviceInfo,
 					model: this._config?.deviceModel ?? e.deviceInfo.model,
 					ugosVersion: this._config?.ugosVersion ?? e.deviceInfo.ugosVersion,
 					ipAddress: this._config?.ipAddress ?? e.deviceInfo.ipAddress
 				}, this._model = e, this._dataMode = "missing";
-			} else this._model = Ci, this._dataMode = "preview";
+			} else this._model = wi, this._dataMode = "preview";
 			this._detailSelection = { kind: "default" }, this._history = Nt(), this._watchEntityIds = [], this._watchPrefixes = [];
 		}
 	}
@@ -5697,8 +5699,8 @@ var aa = "ugreen-nas-card", $ = (e, t = "currentColor", n = "0 0 24 24") => Le`
 		}
 	}
 };
-ia([ot()], oa.prototype, "_config", void 0), ia([ot()], oa.prototype, "_model", void 0), ia([ot()], oa.prototype, "_history", void 0), ia([ot()], oa.prototype, "_dataMode", void 0), ia([ot()], oa.prototype, "_detailSelection", void 0), customElements.get(aa) || customElements.define(aa, oa), window.customCards = window.customCards || [], window.customCards.some((e) => e.type === aa) || window.customCards.push({
-	type: aa,
+aa([ot()], sa.prototype, "_config", void 0), aa([ot()], sa.prototype, "_model", void 0), aa([ot()], sa.prototype, "_history", void 0), aa([ot()], sa.prototype, "_dataMode", void 0), aa([ot()], sa.prototype, "_detailSelection", void 0), customElements.get(oa) || customElements.define(oa, sa), window.customCards = window.customCards || [], window.customCards.some((e) => e.type === oa) || window.customCards.push({
+	type: oa,
 	name: "UGREEN NAS Card",
 	description: "Large UGREEN DXP6800 Pro monitoring card with hardware, storage, projects, virtual machines, and network sections.",
 	preview: !0,
