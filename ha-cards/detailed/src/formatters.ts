@@ -16,6 +16,9 @@ export const formatProjectPercent = (value: number): string => {
   return `${formatNumber(value, digits)}%`;
 };
 
+export const formatContainerImage = (image: string): string =>
+  image.replace(/(^|@)(sha256:[a-f0-9]{12})[a-f0-9]{52}$/i, '$1$2…');
+
 export const formatBytes = (bytes: number, digits = 1): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';

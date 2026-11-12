@@ -29,6 +29,8 @@
 
 ### Fixed
 
+- Use concise container names for host-scoped nodes even when Memory arrives
+  before Docker metadata, and shorten image digests with the full value on hover.
 - Keep nested filesystem paths intact in the cards: `/mnt/userdata` no longer
   produces an extra `/mnt` storage pool with the same readings.
 - Host collection no longer fails on hosts without software RAID, whose kernel

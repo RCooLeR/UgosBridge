@@ -890,15 +890,10 @@ const collectProjectContainers = (
       containerProject ??
       container.projectSlug ??
       inferProjectSlugFromEntity(containerKey, entity, projectSlug);
-    container.name =
-      container.name ??
-      containerName ??
-      friendlyMetric?.name ??
-      cleanupFriendlyName(entity, '', '') ??
-      toDisplayName(containerKey);
     // Metric-only entities are often received before the CPU entity that owns
-    // the Docker metadata. Do not lock fallback labels into the accumulator or
-    // later image/status attributes can never replace them.
+    // the Docker metadata. Prefer its name and leave fallback labels until the
+    // final mapping so earlier metric labels cannot hide the actual metadata.
+    container.name = containerName ?? container.name ?? friendlyMetric?.name;
     container.image = container.image ?? image;
     container.status = container.status ?? status;
     container.state = container.state ?? state ?? (metric === 'running' ? inferContainerState(entity) : undefined);
@@ -3493,7 +3488,7 @@ const getFriendlyContainerMetric = (
   entity: HassEntityLike | undefined
 ): { key: string; name: string; metric: 'cpu_usage_percent' | 'memory_usage_bytes' | 'running' } | undefined => {
   const friendlyName = getFriendlyName(entity);
-  const match = /^(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(friendlyName);
+  const match = /(?:^|\s)(?:Docker container|Virtual machine)\s+(.+?)\s+(CPU|Memory(?: Used)?|Running)$/i.exec(friendlyName);
   if (!match) {
     return undefined;
   }
