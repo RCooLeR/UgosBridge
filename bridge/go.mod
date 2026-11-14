@@ -8,7 +8,7 @@ require (
 	github.com/prometheus/procfs v0.23.0
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v3 v3.14.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
@@ -19,8 +19,9 @@ require (
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/pandatix/go-abnf v0.5.5 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
-	github.com/prometheus/common v0.72.1 // indirect
+	github.com/prometheus/common v0.74.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
@@ -31,3 +32,5 @@ require (
 )
 
 tool golang.org/x/vuln/cmd/govulncheck
+
+replace golang.org/x/crypto => golang.org/x/crypto v0.59.0
