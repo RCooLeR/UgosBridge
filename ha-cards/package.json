@@ -2,6 +2,7 @@
   "name": "ugos-ha-cards",
   "version": "1.0.7",
   "private": true,
+  "packageManager": "npm@12.2.3",
   "workspaces": [
     "detailed",
     "small"
